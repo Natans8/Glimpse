@@ -40,6 +40,9 @@ local CONTROLS = {
 
 local GAP = { switch = 8, range = 32 }
 
+--- The colour of what a kind's switch says beside its word.
+local NOTE = "|cff808080"
+
 --- How the kinds' switches lay out: two columns, this far apart, rows this far apart.
 local COLUMNS, COLUMN_WIDTH, ROW_HEIGHT = 2, 300, 28
 
@@ -65,9 +68,6 @@ end
 local function kindSwitch(panel, group, changed)
 	local first = group.kinds[1]
 	local button = _G.CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
-	button.Text:SetText(group.word)
-	local note = button:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	note:SetPoint("LEFT", button.Text, "RIGHT", 6, 0)
 	button:SetScript(
 		"OnClick",
 		ns.Safely.Wrap(function()
@@ -80,10 +80,18 @@ local function kindSwitch(panel, group, changed)
 	local function show()
 		local drawer = Kinds.DrawerOf(first)
 		button:SetChecked(Settings.On(first))
-		note:SetText("")
+		-- The addon is named in the label's own line, quieter: the label is wider
+		-- than its words, so anything set after its edge stands far from them.
+		local label = group.word
 		if drawer == "provider" then
-			note:SetText("by " .. (Providers.Name(first) or "another addon"))
+			label = label
+				.. "  "
+				.. NOTE
+				.. "by "
+				.. (Providers.Name(first) or "another addon")
+				.. "|r"
 		end
+		button.Text:SetText(label)
 		button:SetShown(drawer ~= nil)
 		return drawer ~= nil
 	end
