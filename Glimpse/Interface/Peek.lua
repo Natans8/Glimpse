@@ -34,6 +34,10 @@ local SHADE_HEIGHT, SHADE = 64, 0.9
 --- How fast the look turns, in radians a second: once round in about six.
 local SPIN = 1
 
+--- Where a turning look starts: 45 degrees clockwise of its own angle, against the
+-- turn, so the turn carries its front past the viewer first.
+local START = -math.rad(45)
+
 --- How long a look may take to arrive before the first card says there is none.
 local PATIENCE = 4
 
@@ -263,8 +267,15 @@ function Peek.Show(read, lent)
 		if ns.Settings.Get("sideBySide") and #looks > 1 then
 			shown = Peek.Fit(reach, extent(), #looks)
 		end
+		-- The looks turn where the player wants them turned and they are things to
+		-- see from every side; something happening is watched from the front.
+		local turning = ns.Settings.Get("hoverSpin") and not Presentations.Of(look).still
+		local start = 0
+		if turning then
+			start = START
+		end
 		first.caption:SetText(Presentations.Caption(subject, 1))
-		first.stage:Show(look)
+		first.stage:Show(look, start)
 		for index = 2, shown do
 			cards[index] = cards[index] or card()
 			local found = cards[index]
@@ -272,14 +283,12 @@ function Peek.Show(read, lent)
 			found.name:SetText("")
 			found.caption:SetText(Presentations.Place(looks[index], index, #looks))
 			found.frame:Show()
-			found.stage:Show(looks[index])
+			found.stage:Show(looks[index], start)
 		end
 		if shown > 1 and shown < #looks then
 			cards[shown].hint:SetText("+" .. (#looks - shown) .. " more")
 		end
-		-- The looks turn where the player wants them turned and they are things to
-		-- see from every side; something happening is watched from the front.
-		if ns.Settings.Get("hoverSpin") and not Presentations.Of(look).still then
+		if turning then
 			first.frame:SetScript("OnUpdate", first.spin)
 		end
 	end)

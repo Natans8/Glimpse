@@ -60,6 +60,7 @@ function Stage.New(parent)
 	self.actor = self.scene:CreateActor(nil, "ModelSceneActorTemplate")
 	self.actor:SetUseCenterForOrigin(true, true, true)
 	self.actor:SetOnModelLoadedCallback(ns.Safely.Wrap(function()
+		self.loaded = true
 		self:Fit()
 	end))
 
@@ -72,6 +73,7 @@ function Stage.New(parent)
 	self.model:SetScript(
 		"OnModelLoaded",
 		ns.Safely.Wrap(function()
+			self.loaded = true
 			local pose = self.pose
 			if pose then
 				self.pose = nil
@@ -158,13 +160,17 @@ function Stage:Sheathe()
 	end
 end
 
---- Turn what is drawn about its upright axis, from wherever it now faces.
+--- Turn what is drawn about its upright axis, from wherever it now faces. A
+-- model that has not appeared yet is not turned, so a turn starts where it can
+-- be seen.
 -- @param radians how far to turn it
 function Stage:Turn(radians)
 	if not self.presentation then
 		return
 	end
-	self.turned = self.turned + radians
+	if self.loaded then
+		self.turned = self.turned + radians
+	end
 	local facing = math.rad(self.presentation.yaw) + self.turned
 	if self.presentation.drawer == "scene" then
 		self.actor:SetYaw(math.pi + facing)
@@ -257,10 +263,12 @@ local DRAW = {
 
 --- Draw a look, replacing whatever was drawn.
 -- @param look a look from a subject
-function Stage:Show(look)
+-- @param turned optional; how far from its presentation's angle it starts, in radians
+function Stage:Show(look, turned)
 	self:Clear()
 	local presentation = Presentations.Of(look)
 	self.presentation = presentation
+	self.turned = turned or 0
 	-- A model frame applies nothing while hidden, so the drawer is shown first.
 	if presentation.drawer == "scene" then
 		self.scene:Show()
@@ -279,6 +287,7 @@ function Stage:Clear()
 	self.model:SetCamDistanceScale(1)
 	self.presentation = nil
 	self.turned, self.tilted, self.zoom, self.size = 0, 0, 1, nil
+	self.loaded = false
 	self.actor:ClearModel()
 	self.model:ClearModel()
 	self.scene:Hide()
