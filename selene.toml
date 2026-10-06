@@ -1,0 +1,12 @@
+# The client runs Lua 5.1, so that is what the addon is checked against. A
+# newer standard would accept goto, integer division and bitwise operators,
+# every one of which parses here and fails in the game.
+std = "lua51"
+
+# Generated data is machine-written; there is nothing in it for a linter to find.
+exclude = ["Glimpse_Data/**", "Glimpse/Data/**"]
+
+[lints]
+# A client global is read as `_G.Name` on purpose: it marks every reach into the
+# client, and the layer guard counts on that spelling.
+global_usage = "allow"

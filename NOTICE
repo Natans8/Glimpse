@@ -1,0 +1,25 @@
+Glimpse — licensing notice
+Copyright (C) 2026 Nataari <https://github.com/Natans8>
+
+This distribution contains material under more than one set of terms. A single licence over the whole tree
+would over-claim: part of what Glimpse ships is not ours to license at all.
+
+
+1. COVERED BY THE AGPL — the work Glimpse's author wrote
+
+       Glimpse/Core/     Glimpse/Resolvers/     Glimpse/Interface/     Glimpse/Client.lua
+       Glimpse/Art/      generator/             tools/                 test/
+       docs/             README.md              the generated tocs and the repository's configuration files
+
+   Licensed under the GNU Affero General Public License, version 3 or (at your option) any later version.
+   Full text in LICENSE.
+
+
+2. NOT LICENSED BY US — redistributed, not owned
+
+       Glimpse/Data/**       Glimpse_Data/**         test/fixtures/**
+
+   Tables derived from World of Warcraft client data (via wago.tools and the community listfile) and
+   from TrinityCore's world database, and lines of text printed by the Epsilon server. World of
+   Warcraft and its data are the property of Blizzard Entertainment. No copyright is claimed over this
+   material and none is granted by the AGPL above; it is redistributed here for non-commercial fan use.

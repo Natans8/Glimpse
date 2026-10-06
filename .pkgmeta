@@ -1,0 +1,25 @@
+package-as: Glimpse
+
+enable-nolib-creation: no
+
+# Everything that is not one of the two addon folders is for development only.
+ignore:
+  - "*.md"
+  - generator
+  - test
+  - tools
+  - docs
+  - pyproject.toml
+  - uv.lock
+  - selene.toml
+  - stylua.toml
+
+# Generated data, copied as it is: it holds no keywords for the packager, and its
+# megabytes of single lines would otherwise take minutes to search.
+plain-copy:
+  - Glimpse/Data
+  - Glimpse_Data/Data.lua
+
+move-folders:
+  Glimpse/Glimpse: Glimpse
+  Glimpse/Glimpse_Data: Glimpse_Data

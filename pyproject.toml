@@ -1,0 +1,39 @@
+[project]
+name = "glimpse"
+version = "0.1.0"
+description = "Previews for Epsilon's .lookup results: the addon's generator, checks and tests."
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb",
+]
+
+[dependency-groups]
+dev = [
+    "lupa",
+    "mypy",
+    "pillow>=12.3.0",
+    "pytest",
+    "ruff",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+python_files = ["*_test.py"]
+pythonpath = ["tools", "generator", "test/lua"]
+
+[tool.mypy]
+strict = true
+mypy_path = ["tools", "generator", "test/lua"]
+files = ["tools", "generator", "test"]
+explicit_package_bases = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]

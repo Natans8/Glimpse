@@ -1,0 +1,146 @@
+[
+ {
+  "kind": "NPC_GUID",
+  "pattern": "%Selected NPC: GUID: |cff00CCFF(%d*)|r,"
+ },
+ {
+  "kind": "NPC_GUID",
+  "pattern": "NPC_GUID:(%d*)"
+ },
+ {
+  "kind": "blueprint_name",
+  "pattern": "Hblueprint_name:(.+)|h%["
+ },
+ {
+  "kind": "blueprint_name",
+  "pattern": "blueprint_name:(.+)"
+ },
+ {
+  "kind": "creatureDisplayID",
+  "pattern": "creatureDisplayID:(%d*)"
+ },
+ {
+  "kind": "creature_entry",
+  "pattern": "creature_entry:(%d*)"
+ },
+ {
+  "kind": "displayID",
+  "pattern": "displayID:(%d*)"
+ },
+ {
+  "kind": "doodad_deleted_uid",
+  "pattern": "doodad_deleted_uid:(%d*)"
+ },
+ {
+  "kind": "doodad_uid",
+  "pattern": "doodad_uid:(%d*)"
+ },
+ {
+  "kind": "emoteID",
+  "pattern": "emoteID:(%d*)"
+ },
+ {
+  "kind": "enchantID",
+  "pattern": "HenchantID:(%d*)"
+ },
+ {
+  "kind": "enchantID",
+  "pattern": "enchantID:(%d*)"
+ },
+ {
+  "kind": "filepath",
+  "pattern": "filepath:(.*)"
+ },
+ {
+  "kind": "gameobject_GPS",
+  "pattern": "%(?X: |cff00CCFF(-?%d*.?%d*)|r,"
+ },
+ {
+  "kind": "gameobject_GPS",
+  "pattern": ":(-?%d*.?%d*):(-?%d*.?%d*):(-?%d*.?%d*):(-?%d*.?%d*):(%d*):(%d*)"
+ },
+ {
+  "kind": "gameobject_GPS",
+  "pattern": "Map: |cff00CCFF(%d*)|r"
+ },
+ {
+  "kind": "gameobject_GPS",
+  "pattern": "O: |cff00CCFF(-?%d*.?%d*)|r"
+ },
+ {
+  "kind": "gameobject_GPS",
+  "pattern": "Y: |cff00CCFF(-?%d*.?%d*)|r,"
+ },
+ {
+  "kind": "gameobject_GPS",
+  "pattern": "Yaw/Turn: |cff00CCFF(-?%d*.?%d*)|r"
+ },
+ {
+  "kind": "gameobject_GPS",
+  "pattern": "Z: |cff00CCFF(-?%d*.?%d*)|r:?,"
+ },
+ {
+  "kind": "gameobject_GUID",
+  "pattern": "gameobject_GUID:(%d*)"
+ },
+ {
+  "kind": "gameobject_entry",
+  "pattern": "gameobject_entry:(%d*)"
+ },
+ {
+  "kind": "item",
+  "pattern": "item:(%d*)"
+ },
+ {
+  "kind": "lnkfer",
+  "pattern": "lnkfer:(.+)"
+ },
+ {
+  "kind": "lookup next",
+  "pattern": "Enter .lookup next to view the next (%d*) results"
+ },
+ {
+  "kind": "nativeID",
+  "pattern": "nativeID:(%d*)"
+ },
+ {
+  "kind": "phaseID",
+  "pattern": "phaseID:(%d*)"
+ },
+ {
+  "kind": "phase_npc",
+  "pattern": "phase_npc:(%d*)"
+ },
+ {
+  "kind": "phase_npc",
+  "pattern": "phase_npc:(%d*)"
+ },
+ {
+  "kind": "phaseport",
+  "pattern": "Hphaseport:(.*)|h%["
+ },
+ {
+  "kind": "phaseport",
+  "pattern": "phaseport:(.*)"
+ },
+ {
+  "kind": "skyboxID",
+  "pattern": "skyboxID:(%d*)"
+ },
+ {
+  "kind": "spell",
+  "pattern": "Hspell:(%d*)"
+ },
+ {
+  "kind": "spell",
+  "pattern": "spell:(%d*)"
+ },
+ {
+  "kind": "tele",
+  "pattern": "Htele:(%d*)"
+ },
+ {
+  "kind": "tele",
+  "pattern": "tele:(%d*)"
+ }
+]

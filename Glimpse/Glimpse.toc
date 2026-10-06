@@ -1,0 +1,40 @@
+## Interface: 90207
+## Title: Glimpse
+## Notes: Previews for the results of .lookup.
+## Version: @project-version@
+## Author: Nataari
+## X-License: AGPL-3.0-or-later
+## OptionalDeps: GLink
+## SavedVariables: GlimpseSettings, GlimpseFaults
+
+Data\Formats.lua
+Data\Sounds.lua
+Data\Enchants.lua
+Data\Emotes.lua
+Data\Areas.lua
+Core\Safely.lua
+Core\Packed.lua
+Core\Lines.lua
+Core\Subject.lua
+Core\Providers.lua
+Core\Kinds.lua
+Core\Links.lua
+Core\Async.lua
+Client.lua
+Resolvers\Object.lua
+Resolvers\Item.lua
+Resolvers\Direct.lua
+Resolvers\Sound.lua
+Resolvers\Area.lua
+Resolvers\Offered.lua
+Interface\Settings.lua
+Interface\Tools.lua
+Interface\Presentations.lua
+Interface\Stage.lua
+Interface\Peek.lua
+Interface\Window.lua
+Interface\Playback.lua
+Interface\Chat.lua
+Interface\Options.lua
+Interface\Start.lua
+Interface\API.lua

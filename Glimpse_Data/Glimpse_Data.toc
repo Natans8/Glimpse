@@ -1,0 +1,8 @@
+## Interface: 90207
+## Title: Glimpse data
+## Notes: Objects and creatures for Glimpse. Loaded on demand.
+## Version: @project-version@
+## Dependencies: Glimpse
+## LoadOnDemand: 1
+
+Data.lua
