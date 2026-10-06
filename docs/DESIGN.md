@@ -186,6 +186,6 @@ addon says once, in chat, when it is missing, turned off or from another version
 
 Preview on hover; the hover picture's size; whether it turns; whether a creature's several displays show
 side by side on hover; whether each click opens a window of its own; and a switch per kind, on by default, that
-turns its buttons off. The switches list only the kinds something previews, one to a word, and name the addon
-that previews a kind where another one does. A setting is added only once its default has been judged in game,
+turns its buttons off. There is a switch for every kind something previews, one to a word, naming the addon
+that previews a kind where another one does; spells always have one, greyed while no addon offers them. A setting is added only once its default has been judged in game,
 the switches excepted, since on is how the addon has always behaved.

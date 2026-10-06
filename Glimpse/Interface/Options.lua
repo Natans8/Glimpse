@@ -8,7 +8,8 @@ local addonName, ns = ...
 --
 -- Under them, a switch for each kind of thing turns its previews on or off.
 -- Kinds that share a word, as the sounds do, share a switch; a kind another
--- addon previews says which addon does, and a kind nothing previews has none.
+-- addon previews says which addon does. A kind nothing previews has no switch,
+-- but for spells, whose switch is greyed until an addon offers them.
 local Settings, Kinds, Providers = ns.Settings, ns.Kinds, ns.Providers
 
 local Options = {}
@@ -52,7 +53,7 @@ local function groups()
 	for _, each in ipairs(Kinds.List()) do
 		local group = byWord[each.word]
 		if not group then
-			group = { word = each.word, kinds = {} }
+			group = { word = each.word, listed = each.listed, kinds = {} }
 			byWord[each.word] = group
 			found[#found + 1] = group
 		end
@@ -64,7 +65,7 @@ end
 -- A kind's switch, and what it says beside its word: the addon that previews the
 -- kind where another one does. Settled each time the panel is shown, since an
 -- addon may offer a kind or fault after the panel is built; `show` answers whether
--- anything previews the kind, and so whether the switch is shown at all.
+-- the switch is shown. A kind nothing previews is greyed where it is shown at all.
 local function kindSwitch(panel, group, changed)
 	local first = group.kinds[1]
 	local button = _G.CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
@@ -92,8 +93,15 @@ local function kindSwitch(panel, group, changed)
 				.. "|r"
 		end
 		button.Text:SetText(label)
-		button:SetShown(drawer ~= nil)
-		return drawer ~= nil
+		button:SetEnabled(drawer ~= nil)
+		if drawer then
+			button:SetAlpha(1)
+		else
+			button:SetAlpha(0.5)
+		end
+		local shown = drawer ~= nil or group.listed
+		button:SetShown(shown)
+		return shown
 	end
 	return button, show
 end
@@ -207,7 +215,7 @@ local function build()
 
 	local credit = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
 	credit:SetPoint("BOTTOMLEFT", 16, 16)
-	credit:SetText("Made with the help of AI.")
+	credit:SetText("Put together by Nataari, mostly with AI — mistakes are possible")
 
 	panel.refresh = ns.Safely.Wrap(show)
 	panel.default = ns.Safely.Wrap(function()

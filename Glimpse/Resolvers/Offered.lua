@@ -9,9 +9,12 @@ local _, ns = ...
 -- off the world takes data and playing that belong to an addon such as Epsilook.
 local Kinds = ns.Kinds
 
---- Each kind: what it is called, and its letter in a link.
+-- Spells are what Epsilook offers, so their switch stays in the settings while
+-- nothing offers them.
+Kinds.Add("spell", { word = "Spell", code = "s", provided = true, listed = true })
+
+--- Each other kind: what it is called, and its letter in a link.
 local OFFERED = {
-	{ "spell", "Spell", "s" },
 	{ "map", "Map", "p" },
 	{ "teleport", "Teleport", "t" },
 	{ "skill", "Skill", "k" },

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from support import LuaRuntime, evaluate
 
 #: A provider for spells, recording what it is asked. `ANSWER` is what `Show` answers, and
@@ -114,3 +116,12 @@ def test_a_provider_that_faults_is_withdrawn_for_the_session(addon: LuaRuntime) 
     assert evaluate(addon, f"NS.Kinds.Buttons({SPELL})") is None, "spell lines gain no button"
     addon.execute(b'FAULT = false NS.Providers.Show("spell", INSIDE, 116, { place = "hover" })')
     assert not evaluate(addon, "ASKED"), "and the provider is not asked again"
+
+
+def test_spells_are_listed_in_the_settings_while_nothing_offers_them(addon: LuaRuntime) -> None:
+    listed = {
+        row["kind"]: row["listed"]
+        for row in cast(list[dict[str, object]], evaluate(addon, "NS.Kinds.List()"))
+    }
+    assert listed["spell"] is True
+    assert listed["title"] is False and listed["wmo"] is False, "hidden until an addon offers them"

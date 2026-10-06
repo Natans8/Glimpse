@@ -15,6 +15,8 @@ local _, ns = ...
 --             show, so a line that has nothing gains no button
 --   provided  optional; true for a kind only another addon previews (Providers), which
 --             has no `resolve`
+--   listed    optional; true for such a kind whose switch the settings show, greyed, even
+--             while no addon offers it
 --   opens     optional; `opens(read)` does what a click on this addon's own preview does,
 --             in place of opening the window
 --   hint      optional; `hint(read)` gives the lines of a text tooltip shown on hover, for a
@@ -65,11 +67,12 @@ function Kinds.Named(code)
 end
 
 --- Every kind, in the order the addon added them.
--- @return an array of `{ kind, word }`
+-- @return an array of `{ kind, word, listed }`
 function Kinds.List()
 	local list = {}
 	for index, kind in ipairs(order) do
-		list[index] = { kind = kind, word = rows[kind].word }
+		local row = rows[kind]
+		list[index] = { kind = kind, word = row.word, listed = row.listed == true }
 	end
 	return list
 end
