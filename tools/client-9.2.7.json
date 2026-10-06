@@ -6412,10 +6412,12 @@
   "ChatFrame_AddMessageEventFilter": "FrameXML/ChatFrame.lua",
   "FCF_OpenTemporaryWindow": "FrameXML/FloatingChatFrame.lua",
   "GameTooltip": "FrameXML/GameTooltip.xml",
+  "InterfaceOptionsFrame_OpenToCategory": "FrameXML/InterfaceOptionsFrame.lua",
   "InterfaceOptions_AddCategory": "FrameXML/InterfaceOptionsFrame.lua",
   "Item": "FrameXML/ObjectAPI/Item.lua",
   "OpenWorldMap": "AddOns/Blizzard_WorldMap/Blizzard_WorldMap.lua",
   "SetItemRef": "AddOns/Blizzard_CombatLog/Blizzard_CombatLog.lua",
+  "SlashCmdList": "FrameXML/ChatFrame.lua",
   "UIParent": "FrameXML/UIParent.xml",
   "UISpecialFrames": "FrameXML/UIParent.lua",
   "print": "FrameXML/RestrictedInfrastructure.lua"

@@ -77,9 +77,10 @@ local LINKS = {
 	item = function(payload, label)
 		return { kind = "item", id = tonumber(payload:match("^%d+")), name = unbracket(label) }
 	end,
+	-- A spell's link in a line carries its id; one from the spellbook carries more after it.
 	spell = function(payload, label)
 		local name = unbracket(label):gsub(", rank %d+$", "")
-		return { kind = "spell", id = tonumber(payload), name = name }
+		return { kind = "spell", id = tonumber(payload:match("^%d+")), name = name }
 	end,
 	emoteID = named("emote"),
 	area = named("area"),

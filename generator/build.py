@@ -53,6 +53,7 @@ CODE: tuple[str, ...] = (
     "Interface/Playback.lua",
     "Interface/Chat.lua",
     "Interface/Options.lua",
+    "Interface/Command.lua",
     "Interface/Start.lua",
     "Interface/API.lua",
 )

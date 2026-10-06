@@ -7,7 +7,12 @@ local addonName, ns = ...
 -- that cannot be used.
 local Safely = ns.Safely
 
-local function say(text)
+local Start = {}
+ns.Start = Start
+
+--- Say something to the player in chat, under the addon's name.
+-- @param text what to say
+function Start.Say(text)
 	_G.print(ns.Chat.COLOUR .. addonName .. ":|r " .. text)
 end
 
@@ -16,7 +21,7 @@ Safely.Announce = function(place, line)
 		_G.GlimpseFaults = {}
 	end
 	_G.GlimpseFaults[place] = line
-	say("something went wrong and was noted. " .. line)
+	Start.Say("something went wrong and was noted. " .. line)
 end
 
 --- What is wrong with the data addon, by the reason the client or the format gives.
@@ -34,7 +39,7 @@ ns.Client.Unavailable = function(reason)
 	if reason == "DISABLED" then
 		mend = "Turn it on and reload."
 	end
-	say(
+	Start.Say(
 		folder
 			.. " "
 			.. (UNAVAILABLE[reason] or ("could not be loaded (" .. tostring(reason) .. ")"))
@@ -50,5 +55,6 @@ frame:SetScript(
 	Safely.Wrap(function()
 		ns.Chat.Install()
 		ns.Options.Install()
+		ns.Command.Install()
 	end)
 )

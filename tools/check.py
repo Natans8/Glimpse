@@ -23,9 +23,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ADDON = "Glimpse"
 
-#: Every global the addon may write: its saved settings and saved faults, and its door for
-#: other addons.
-GLOBALS = frozenset({"GlimpseSettings", "GlimpseFaults", "Glimpse"})
+#: Every global the addon may write: its saved settings and saved faults, its door for other
+#: addons, and the name of its slash command.
+GLOBALS = frozenset({"GlimpseSettings", "GlimpseFaults", "Glimpse", "SLASH_GLIMPSE1"})
 
 #: Calls that put anything on the wire. The addon previews; it never speaks.
 SENDS = (

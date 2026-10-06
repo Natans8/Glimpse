@@ -29,6 +29,14 @@ it. Every kind of line `.lookup` prints is read, so an addon can offer any of th
 
 Glimpse does not touch what players post in chat, and it does not attach to item tooltips.
 
+## The command
+
+`/glimpse` opens the settings. `/glimpse <kind> <id>` previews one thing as its button on a `.lookup` line would,
+for ids a player has from elsewhere: a tooltip, an object viewer, a macro, another player. The kind is a kind's own
+name, or `gob` and `npc` as the server says them: `/glimpse emote 10`, `/glimpse npc 184093`. A link pasted after
+`/glimpse` works too, a spell's from the spellbook included. It searches for nothing. An object is known by its
+entry alone only where it is a stock one; any other is named by its model, which its `.lookup` line's link carries.
+
 ## What the client can and cannot draw
 
 These were established in game and decide the routes above.
@@ -95,7 +103,8 @@ A layer knows only the layers above it in this list.
   set once the body has loaded. Equipment is always worn, never drawn bare: a model frame keeps one
   camera distance whatever the item and reports no size.
 - **Peek** is the hover frame: the first look, turning unless the player has turned that off, a name and one
-  small line. Where the player has asked, each of several looks of a kind gets a full-size card of its own,
+  small line. A turning look starts 45 degrees clockwise of its angle and only once its model has appeared, so
+  the turn carries its front past the viewer first. Where the player has asked, each of several looks of a kind gets a full-size card of its own,
   glued in a row the way the game glues its comparison tooltips, as many as the screen holds, the last counting
   the rest. It stands at the pointer as a tooltip does: a corner just above the button, or below it where there
   is no room above, the row running whichever way has more room. It takes no input.

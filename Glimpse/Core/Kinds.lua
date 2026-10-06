@@ -43,6 +43,13 @@ function Kinds.Add(name, row)
 	order[#order + 1] = name
 end
 
+--- Whether a kind has been added.
+-- @param kind a kind, or anything
+-- @return true for a kind of this addon's
+function Kinds.Known(kind)
+	return rows[kind] ~= nil
+end
+
 --- The letter that stands for a kind in a link.
 -- @param kind a kind that has been added
 -- @return the letter

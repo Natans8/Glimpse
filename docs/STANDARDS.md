@@ -11,7 +11,7 @@ violation. A rule that lives only in this file does not hold.
 | Invariant | Enforced by |
 |---|---|
 | The addon sends nothing: no chat, no command, no addon message | `send_violations` |
-| It writes only its saved globals, `GlimpseSettings` and `GlimpseFaults`, and its door for other addons, `Glimpse`; loading it creates only the door; its windows are named `GlimpseWindow`, `GlimpseWindow2` and on, because Escape closes a frame only by its name | `global_violations`, selene, the clean-state test |
+| It writes only its saved globals, `GlimpseSettings` and `GlimpseFaults`, its door for other addons, `Glimpse`, and at login its slash command's name, `SLASH_GLIMPSE1`; loading it creates only the door; its windows are named `GlimpseWindow`, `GlimpseWindow2` and on, because Escape closes a frame only by its name | `global_violations`, selene, the clean-state test |
 | It hooks and never replaces: no `SetScript` on a frame it does not own, no assignment over a global function | `foreign_script_violations`, `global_violations` |
 | Every function the client calls into (an event, a hook, a script, a timer) runs under `Safely` | `callback_violations` |
 | Only `Interface/Stage.lua` hands anything to a model loader, and only from a display id, the client's object search, or a generated table gated on `.m2` | `loader_violations`, the generator's `.m2` test |

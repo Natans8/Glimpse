@@ -209,7 +209,18 @@ local function build()
 	return panel
 end
 
+local panel
+
 --- Add the panel to the client's list. Called once, at login.
 function Options.Install()
-	_G.InterfaceOptions_AddCategory(build())
+	panel = build()
+	_G.InterfaceOptions_AddCategory(panel)
+end
+
+--- Open the client's settings at this addon's panel. The client picks a page from
+-- the list it has drawn, and draws that list only once the settings are shown,
+-- so the first call shows them and the second picks the page.
+function Options.Open()
+	_G.InterfaceOptionsFrame_OpenToCategory(panel)
+	_G.InterfaceOptionsFrame_OpenToCategory(panel)
 end

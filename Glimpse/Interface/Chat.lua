@@ -64,26 +64,30 @@ local filter = Safely.Wrap(function(_, _, message, ...)
 	return false, message .. lastButtons, ...
 end)
 
--- Act on a click on one of this addon's buttons: a button that draws opens the
+--- Act on a read as a click on its button does: a button that draws opens the
 -- window, unless its kind does something of its own, and a sound's button plays
 -- it. A kind the player has turned off since the line was printed does nothing.
-local function clicked(read, index)
+-- @param read a read from a line or a link
+-- @param index which of the read's buttons, counted from one
+-- @return true where anything was done
+function Chat.Open(read, index)
 	local drawer = drawerOf(read)
 	if not drawer then
-		return
+		return false
 	end
 	if drawer == "own" and Kinds.Open(read) then
-		return
+		return true
 	end
 	if drawer == "provider" or Kinds.Draws(read) then
 		ns.Window.Toggle(read, drawer == "provider")
-		return
+		return true
 	end
 	Async.Ask("click", read, function(subject)
 		if subject and subject.sounds then
 			ns.Playback.Toggle(subject, index)
 		end
 	end)
+	return true
 end
 
 local said -- true while a kind's text tooltip is up
@@ -161,7 +165,7 @@ function Chat.Install()
 		Safely.Wrap(function(link)
 			local read, index = Links.Read(link)
 			if read then
-				clicked(read, index)
+				Chat.Open(read, index)
 			end
 		end)
 	)

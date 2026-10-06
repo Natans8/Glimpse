@@ -426,3 +426,56 @@ def test_side_by_side_cards_are_as_many_as_the_room_holds() -> None:
 def test_a_click_on_someone_elses_link_does_nothing(chat: LuaRuntime) -> None:
     chat.execute(b'HOOKS.SetItemRef("item:25:0:0:0", "[Worn Shortsword]", "LeftButton")')
     assert evaluate(chat, "PLAYED") == []
+
+
+#: The command's surroundings: the settings and what the addon says, recorded.
+COMMAND = b"""
+    OPTIONS, SAID = 0, {}
+    NS.Options.Open = function() OPTIONS = OPTIONS + 1 end
+    NS.Start.Say = function(text) SAID[#SAID + 1] = text end
+"""
+
+
+def test_the_command_alone_opens_the_settings(chat: LuaRuntime) -> None:
+    chat.execute(COMMAND)
+    chat.execute(b'NS.Command.Run("")')
+    chat.execute(b'NS.Command.Run("   ")')
+    assert evaluate(chat, "OPTIONS") == 2
+    assert evaluate(chat, "SAID") == []
+
+
+def test_the_command_previews_a_kind_by_its_id(chat: LuaRuntime) -> None:
+    chat.execute(COMMAND)
+    chat.execute(
+        b'NS.Command.Run("emote 10") NS.Command.Run("NPC 184093") NS.Command.Run("item 25")'
+    )
+    assert evaluate(chat, "WINDOWED") == ["emote 10", "creature 184093", "item 25"]
+    assert evaluate(chat, "SAID") == []
+
+
+def test_the_command_previews_a_pasted_link(chat: LuaRuntime) -> None:
+    chat.execute(COMMAND)
+    chat.execute(b"""
+        Glimpse.Provide("spell", { Show = function() return true end, Hide = function() end })
+        NS.Command.Run("|cff71d5ff|Hspell:116:0|h[Frostbolt]|h|r")
+    """)
+    assert evaluate(chat, "WINDOWED") == ["spell 116 lent"], (
+        "a spellbook link carries more after the id"
+    )
+
+
+def test_the_command_says_what_it_takes_and_when_there_is_nothing(chat: LuaRuntime) -> None:
+    chat.execute(COMMAND)
+    chat.execute(b'NS.Command.Run("hello") NS.Command.Run("dragon 5")')
+    said = cast(list[str], evaluate(chat, "SAID"))
+    assert len(said) == 2 and all(line.startswith("/glimpse opens the settings") for line in said)
+    chat.execute(b'SAID = {} NS.Command.Run("gob 941883")')
+    said = cast(list[str], evaluate(chat, "SAID"))
+    assert len(said) == 1 and said[0].startswith("Nothing to preview"), "not a stock object"
+    assert evaluate(chat, "WINDOWED") == []
+
+
+def test_the_command_is_added_to_the_clients(chat: LuaRuntime) -> None:
+    chat.execute(b"SlashCmdList = {} NS.Command.Install()")
+    assert evaluate(chat, "SLASH_GLIMPSE1") == "/glimpse"
+    assert evaluate(chat, "type(SlashCmdList.GLIMPSE)") == "function"

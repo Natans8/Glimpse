@@ -78,8 +78,10 @@ local function stocked(entry)
 	return row and row[1]
 end
 
+-- Whether a name may be a model's: a file's name, or one word. An empty name, as
+-- a read made from an id alone has, is none.
 local function namesModel(name)
-	return namesFile(name) or not name:find(" ", 1, true)
+	return name ~= "" and (namesFile(name) or not name:find(" ", 1, true))
 end
 
 Kinds.Add("object", {
