@@ -18,3 +18,8 @@ jobs:
         with:
           fetch-depth: 0
       - uses: BigWigsMods/packager@v2
+      # The packager always uploads release.json beside the zip, for addon managers.
+      # Players download the zip by hand, so the release carries the zip alone.
+      - run: gh release delete-asset "$GITHUB_REF_NAME" release.json --yes -R "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
