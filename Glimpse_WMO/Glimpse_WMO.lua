@@ -76,6 +76,24 @@ local function pictureOf(index, id, name)
 	return number
 end
 
+--- What is said of a WMO that draws nothing from outside, which the index
+-- marks with 0 in place of a picture.
+local NOTHING =
+	"Nothing to see from outside: this WMO draws nothing, as collision, trigger and liquid WMOs do."
+
+-- The line of text this addon says on a lent frame, made once for each frame.
+local function noteOn(frame)
+	if frame.glimpseWmoNote then
+		return frame.glimpseWmoNote
+	end
+	local note = frame:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+	note:SetPoint("CENTER")
+	note:SetWidth(240)
+	note:SetJustifyH("CENTER")
+	frame.glimpseWmoNote = note
+	return note
+end
+
 local function show(frame, id, context)
 	local index = _G[addonName]
 	if not index then
@@ -84,6 +102,12 @@ local function show(frame, id, context)
 	local number = pictureOf(index, id, context and context.name)
 	if not number then
 		return false
+	end
+	if number == 0 then
+		local note = noteOn(frame)
+		note:SetText(NOTHING)
+		note:Show()
+		return true
 	end
 	local picture = pictureOn(frame)
 	local side = math.min(frame:GetSize())
@@ -99,6 +123,9 @@ local function hide(frame)
 		picture:SetTexture(nil)
 		picture:Hide()
 	end
+	if frame.glimpseWmoNote then
+		frame.glimpseWmoNote:Hide()
+	end
 end
 
 --- The picture of a WMO, for any addon: by its gameobject entry, its file name,
@@ -106,9 +133,13 @@ end
 -- exists exactly while the pictures are installed.
 -- @param id optional; a gameobject entry
 -- @param name optional; a WMO's file name, with or without folder, tag or extension
--- @return the texture's path, or nil where there is no picture
+-- @return the texture's path; false for a WMO that draws nothing from outside;
+--   nil where there is no picture
 _G[addonName].Picture = function(id, name)
 	local number = pictureOf(_G[addonName], id, name)
+	if number == 0 then
+		return false
+	end
 	if number then
 		return pathOf(number)
 	end
