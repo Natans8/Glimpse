@@ -62,13 +62,26 @@ local function pictureOn(frame)
 	return picture
 end
 
-local function show(frame, _, context)
+-- The picture of a thing: by its gameobject entry where the index knows the
+-- entry, which a stock object named in words has, and otherwise by the WMO's
+-- file name, which every other line prints.
+local function pictureOf(index, id, name)
+	local number = nil
+	if type(id) == "number" and index.entries then
+		number = numbered(index.entries, string.format("%09d", id))
+	end
+	if not number and type(name) == "string" then
+		number = numbered(index.pictures, stem(name))
+	end
+	return number
+end
+
+local function show(frame, id, context)
 	local index = _G[addonName]
-	local name = context and context.name
-	if not (index and type(name) == "string") then
+	if not index then
 		return false
 	end
-	local number = numbered(index.pictures, stem(name))
+	local number = pictureOf(index, id, context and context.name)
 	if not number then
 		return false
 	end
@@ -86,6 +99,20 @@ local function hide(frame)
 		picture:SetTexture(nil)
 		picture:Hide()
 	end
+end
+
+--- The picture of a WMO, for any addon: by its gameobject entry, its file name,
+-- or both. The index is this addon's one global, so `Glimpse_WMO.Picture`
+-- exists exactly while the pictures are installed.
+-- @param id optional; a gameobject entry
+-- @param name optional; a WMO's file name, with or without folder, tag or extension
+-- @return the texture's path, or nil where there is no picture
+_G[addonName].Picture = function(id, name)
+	local number = pictureOf(_G[addonName], id, name)
+	if number then
+		return pathOf(number)
+	end
+	return nil
 end
 
 if _G.Glimpse and _G.Glimpse.Provide then
