@@ -11,7 +11,10 @@ local _, ns = ...
 --   name   optional; the addon's name, which the settings show the player
 --   Show   `Show(frame, id, context)`: fill `frame`, an empty frame filling the
 --          inside of the hover frame or the window, with whatever shows the thing.
---          `context.place` is "hover", which takes no input, or "window". Answer
+--          `context.place` is "hover", which takes no input, or "window", and the
+--          rest of `context` is everything the line said about the thing: its
+--          `kind`, its `id` again, and its `name` where the line printed one,
+--          since an id alone may name nothing the client can look up. Answer
 --          true where the frame was filled; anything else means it was not,
 --          whether the thing was shown elsewhere or there was nothing to show, and
 --          this addon then shows nothing of its own.
@@ -46,6 +49,19 @@ function Providers.Provide(kind, provider)
 	end
 	offered[kind] = provider
 	return true
+end
+
+--- What a provider is told with a thing: where it is shown, and everything the
+-- line said about it. A provider may keep the table; it is its own.
+-- @param place "hover" or "window"
+-- @param read the read the thing came from
+-- @return the context
+function Providers.Context(place, read)
+	local context = { place = place }
+	for key, value in pairs(read) do
+		context[key] = value
+	end
+	return context
 end
 
 --- Whether another addon previews a kind.

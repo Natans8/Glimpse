@@ -288,7 +288,7 @@ local function lend(self, read)
 	self.own:Hide()
 	self.inside:Show()
 	self.shown.lent = read.kind
-	if not Providers.Show(read.kind, self.inside, read.id, { place = "window" }) then
+	if not Providers.Show(read.kind, self.inside, read.id, Providers.Context("window", read)) then
 		self.frame:Hide()
 	end
 end

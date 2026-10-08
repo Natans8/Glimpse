@@ -221,7 +221,7 @@ local function lend(first, read)
 	first.inside:Show()
 	first.frame:Show()
 	first.lent = read.kind
-	if not Providers.Show(read.kind, first.inside, read.id, { place = "hover" }) then
+	if not Providers.Show(read.kind, first.inside, read.id, Providers.Context("hover", read)) then
 		first.frame:Hide()
 	end
 end

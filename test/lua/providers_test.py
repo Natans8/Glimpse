@@ -44,6 +44,18 @@ def test_an_offered_kind_fills_the_inside_it_is_lent(addon: LuaRuntime) -> None:
     assert evaluate(addon, "ASKED") == ["show 116 in the inside at hover", "hide in the inside"]
 
 
+def test_a_provider_is_told_everything_the_line_said(addon: LuaRuntime) -> None:
+    offer(addon)
+    wmo = '{ kind = "wmo", id = 10010631, name = "6dr_draenei_house2.wmo" }'
+    context = evaluate(addon, f'NS.Providers.Context("window", {wmo})')
+    assert context == {
+        "place": "window",
+        "kind": "wmo",
+        "id": 10010631,
+        "name": "6dr_draenei_house2.wmo",
+    }, "an id alone may name nothing the client can look up"
+
+
 def test_a_kind_nobody_offers_gains_no_button(addon: LuaRuntime) -> None:
     assert evaluate(addon, f"NS.Kinds.Buttons({SPELL})") is None
     assert evaluate(addon, 'NS.Providers.Show("spell", {}, 116, { place = "hover" })') is False
