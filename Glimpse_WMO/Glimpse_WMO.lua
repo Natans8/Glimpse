@@ -5,10 +5,11 @@ local addonName = ...
 -- Glimpse reads the line and lends the inside of its hover frame or window;
 -- this addon fills it with the picture. A line names a WMO by its file, so
 -- the name Glimpse passes along is what the index is searched for: without
--- folder, tag, extension or trailing space, in lower case. A thousand pictures
--- share a folder.
+-- folder, tag, extension or trailing space, in lower case. A picture is named
+-- by its WMO's file id, which never changes, so a later set adds and replaces
+-- pictures without renaming the rest; a hundred thousand ids share a folder.
 local FOLDER = "Interface\\AddOns\\" .. addonName .. "\\Pictures\\"
-local PER_FOLDER = 1000
+local PER_FOLDER = 100000
 
 -- A WMO file's name as the index keys it.
 local function stem(name)
@@ -41,7 +42,7 @@ end
 
 -- The path of a picture, by its number.
 local function pathOf(number)
-	return string.format("%s%02d\\%d.blp", FOLDER, math.floor(number / PER_FOLDER), number)
+	return string.format("%s%03d\\%d.blp", FOLDER, math.floor(number / PER_FOLDER), number)
 end
 
 -- The texture this addon draws on a lent frame, made once for each frame. A
