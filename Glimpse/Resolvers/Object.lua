@@ -87,6 +87,15 @@ end
 Kinds.Add("object", {
 	word = "Object",
 	code = "o",
+	-- A stock entry whose display is a WMO is a WMO's line under another name,
+	-- for whoever previews WMOs; no model frame draws one.
+	recast = function(read)
+		local data = ns.Client.Data()
+		if data and Packed.First(data.wmoObjects, read.id) then
+			return { kind = "wmo", id = read.id, name = read.name }
+		end
+		return nil
+	end,
 	-- A line naming a model file is worth trying, and so is a known entry. A
 	-- name that is one word is searched for at once; such lines are few.
 	shows = function(read)

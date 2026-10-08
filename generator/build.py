@@ -70,7 +70,7 @@ DATA = (
 #: The layout of the data addon. Both addons carry it, and the main one uses the data only
 #: where the two agree, so a folder updated without the other is ignored rather than misread.
 #: Raise it whenever the packed tables or their fields change.
-DATA_FORMAT = 14
+DATA_FORMAT = 15
 
 #: The packed tables: each field's width in digits, and the offset it is stored with. A value
 #: that outgrows its width fails the build.
@@ -78,6 +78,7 @@ PACKED: dict[str, tuple[tuple[int, ...], tuple[int, ...]]] = {
     "objects": ((6, 7), (0, 0)),  # gameobject entry, model file
     "creatures": ((6, 6), (0, 0)),  # creature entry, display
     "characters": ((7,), (0,)),  # display
+    "wmoObjects": ((6,), (0,)),  # gameobject entry whose display is a WMO
 }
 
 
@@ -151,6 +152,7 @@ def data_rows(con: duckdb.DuckDBPyConnection) -> dict[str, list[tuple[int, ...]]
         "objects": list(tables.object_files(con).items()),
         "creatures": tables.creature_displays(con),
         "characters": list(tables.character_displays(con)),
+        "wmoObjects": tables.wmo_objects(con),
     }
 
 

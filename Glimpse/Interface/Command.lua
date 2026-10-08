@@ -26,7 +26,11 @@ local NOTHING = "Nothing to preview. An object is known by its id only where it 
 -- The read a command's text names, or nil where it names none.
 local function readOf(text)
 	if text:find("|H", 1, true) then
-		return ns.Lines.Read(text)
+		local read = ns.Lines.Read(text)
+		if read then
+			return ns.Kinds.Settle(read)
+		end
+		return nil
 	end
 	local word, id = text:match("^(%a+)%s+(%d+)$")
 	if not word then
@@ -36,7 +40,7 @@ local function readOf(text)
 	if not ns.Kinds.Known(kind) then
 		return nil
 	end
-	return { kind = kind, id = tonumber(id), name = "" }
+	return ns.Kinds.Settle({ kind = kind, id = tonumber(id), name = "" })
 end
 
 --- Act on the text after `/glimpse`.

@@ -32,6 +32,9 @@ end
 -- The buttons a line gains, as text to append to it, or nil.
 local function buttonsOf(message)
 	local read = Lines.Read(message)
+	if read then
+		read = Kinds.Settle(read)
+	end
 	local words = read and drawerOf(read) and Kinds.Buttons(read)
 	if not words then
 		return nil

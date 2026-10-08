@@ -21,6 +21,8 @@ local _, ns = ...
 --             in place of opening the window
 --   hint      optional; `hint(read)` gives the lines of a text tooltip shown on hover, for a
 --             kind with nothing to draw
+--   recast    optional; `recast(read)` answers a read of another kind where the data says
+--             the line is really about that, or nil to keep the read as it is
 --
 -- Any kind that is drawn may also be offered by another addon, which then
 -- previews it in place of this one.
@@ -43,6 +45,18 @@ function Kinds.Add(name, row)
 	rows[name] = row
 	named[row.code] = name
 	order[#order + 1] = name
+end
+
+--- The read a line is really about: the read itself, or the one its kind
+-- recasts it as once the data has been asked.
+-- @param read a read from `Lines.Read`
+-- @return a read
+function Kinds.Settle(read)
+	local row = rows[read.kind]
+	if row and row.recast then
+		return row.recast(read) or read
+	end
+	return read
 end
 
 --- Whether a kind has been added.

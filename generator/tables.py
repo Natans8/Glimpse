@@ -250,6 +250,27 @@ def object_files(con: duckdb.DuckDBPyConnection) -> dict[int, int]:
     return {int(entry): int(file) for entry, file in rows}
 
 
+def wmo_objects(con: duckdb.DuckDBPyConnection) -> list[tuple[int, ...]]:
+    """Every stock gameobject entry whose display is a WMO root, which no model frame draws.
+
+    Such an entry's line reads as an object, and this is what tells the addon to
+    hand it to whoever previews WMOs instead. A group file is named `_NNN` after
+    its root and is never a display's.
+    """
+    rows = con.execute(
+        f"""
+        SELECT DISTINCT t.entry
+        FROM {SCHEMA}.tdb_gameobject_template t
+        JOIN {SCHEMA}."GameObjectDisplayInfo" d ON d."ID" = t.displayId
+        JOIN ref.listfile l ON l.fid = d."FileDataID"
+        WHERE lower(l.path) LIKE '%.wmo'
+          AND NOT regexp_matches(lower(l.path), '_[0-9]{{3}}(_lod[0-9])?\\.wmo$')
+        ORDER BY 1
+        """
+    ).fetchall()
+    return [(int(entry),) for (entry,) in rows]
+
+
 def model_files(con: duckdb.DuckDBPyConnection) -> dict[str, int]:
     """Every `.m2` model the client's gameobject displays name, by its file name, to its file.
 

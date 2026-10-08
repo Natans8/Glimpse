@@ -33,6 +33,8 @@ CLIENT = b"""
         records = "000068003167" .. "000068005446" .. "000068099389" .. "000068099391",
     }
     CHARACTERS = { widths = { 7 }, offsets = { 0 }, records = "0099391" }
+    -- Ship (The Bravery), whose display is a WMO.
+    WMO_OBJECTS = { widths = { 6 }, offsets = { 0 }, records = "176310" }
     -- The data addon: the models the client's displays name and the stock objects.
     DATA = {
         models = ";0xp_scale_ruler01=2351343;6dr_draenei_karabor_bigdoor=926294;"
@@ -40,6 +42,7 @@ CLIENT = b"""
         objects = STOCK,
         creatures = CREATURES,
         characters = CHARACTERS,
+        wmoObjects = WMO_OBJECTS,
     }
     NS.Client = {
         SearchObjects = function(query)
@@ -276,6 +279,20 @@ def test_a_line_gains_a_button_only_where_there_is_something_to_show(game: LuaRu
     assert button('{ kind = "spell", id = 116 }') is None, "no addon offers to preview it"
     assert button('{ kind = "area", id = 12 }') == "Map"
     assert button('{ kind = "area", id = 999999 }') is None, "an area with no map"
+
+
+def test_a_stock_object_whose_display_is_a_wmo_is_a_wmo_line_under_another_name(
+    game: LuaRuntime,
+) -> None:
+    ship = '{ kind = "object", id = 176310, name = "Ship (The Bravery)" }'
+    assert evaluate(game, f"NS.Kinds.Settle({ship})") == {
+        "kind": "wmo",
+        "id": 176310,
+        "name": "Ship (The Bravery)",
+    }
+    pillow = '{ kind = "object", id = 253044, name = "Pillow" }'
+    assert evaluate(game, f"NS.Kinds.Settle({pillow}).kind") == "object"
+    assert evaluate(game, f"NS.Kinds.Of({ship})") is None, "nothing of the addon's own draws it"
 
 
 #: The data addon missing, turned off or from another version: `Client.Data` answers nothing.
