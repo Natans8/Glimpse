@@ -146,6 +146,11 @@ _G[addonName].Picture = function(id, name)
 	return nil
 end
 
+-- A WMO is named by an object line through its display, and by a line of
+-- `.lookup wmo` through its file; both carry the file's name, so one provider
+-- serves both kinds.
 if _G.Glimpse and _G.Glimpse.Provide then
-	_G.Glimpse.Provide("wmo", { name = "Glimpse WMO pictures", Show = show, Hide = hide })
+	local provider = { name = "Glimpse WMO pictures", Show = show, Hide = hide }
+	_G.Glimpse.Provide("wmo", provider)
+	_G.Glimpse.Provide("wmoarea", provider)
 end
