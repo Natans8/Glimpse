@@ -6,3 +6,7 @@ __pycache__/
 .venv/
 /.cache/
 /.release/
+
+# The WMO pictures and their index: generated, hundreds of megabytes, shipped as their own download
+/Glimpse_WMO/Pictures/
+/Glimpse_WMO/Index.lua

@@ -2,8 +2,10 @@ package-as: Glimpse
 
 enable-nolib-creation: no
 
-# Everything that is not one of the two addon folders is for development only.
+# Everything that is not one of the two addon folders is for development only; the WMO pictures
+# are their own download.
 ignore:
+  - Glimpse_WMO
   - "*.md"
   - generator
   - test

@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 #: The folders this tool may write or replace, and no others.
-OWNED = ("Glimpse", "Glimpse_Data")
+OWNED = ("Glimpse", "Glimpse_Data", "Glimpse_WMO")
 
 
 def main() -> int:
