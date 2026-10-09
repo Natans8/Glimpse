@@ -95,6 +95,38 @@ local function liquidOf(index, name)
 	return nil
 end
 
+--- What is said under a picture that shows a WMO otherwise than the client shows
+-- it from outside, by the list of the index that holds the picture's number.
+local CAPTIONS = {
+	{ list = "collision", text = "Invisible in game. This is its collision shape." },
+	{ list = "interiors", text = "Seen only from inside." },
+}
+
+-- The caption of a picture, or nil for a picture of what the client shows.
+local function captionOf(index, number)
+	local key = string.format("%09d", number)
+	for _, caption in ipairs(CAPTIONS) do
+		local list = index[caption.list]
+		if list and numbered(list, key) then
+			return caption.text
+		end
+	end
+	return nil
+end
+
+-- The caption along the bottom of a lent frame, made once for each frame.
+local function captionOn(frame)
+	if frame.glimpseWmoCaption then
+		return frame.glimpseWmoCaption
+	end
+	local caption = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	caption:SetPoint("BOTTOMLEFT", 8, 6)
+	caption:SetPoint("BOTTOMRIGHT", -8, 6)
+	caption:SetJustifyH("CENTER")
+	frame.glimpseWmoCaption = caption
+	return caption
+end
+
 -- The line of text this addon says on a lent frame, made once for each frame.
 local function noteOn(frame)
 	if frame.glimpseWmoNote then
@@ -129,6 +161,12 @@ local function show(frame, id, context)
 	picture:SetSize(side, side)
 	picture:SetTexture(pathOf(number))
 	picture:Show()
+	local text = captionOf(index, number)
+	if text then
+		local caption = captionOn(frame)
+		caption:SetText(text)
+		caption:Show()
+	end
 	return true
 end
 
@@ -140,6 +178,9 @@ local function hide(frame)
 	end
 	if frame.glimpseWmoNote then
 		frame.glimpseWmoNote:Hide()
+	end
+	if frame.glimpseWmoCaption then
+		frame.glimpseWmoCaption:Hide()
 	end
 end
 
