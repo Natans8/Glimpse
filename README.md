@@ -7,9 +7,9 @@ To install, download the zip from [Releases](https://github.com/Natans8/Glimpse/
 game's `_retail_/Interface/AddOns` folder. It holds two folders, `Glimpse` and `Glimpse_Data`, and both are needed.
 
 No model frame can draw a WMO, so WMOs are previewed from pictures, a separate download in the same release: take
-`Glimpse_WMO-<version>.7z` (256 pixels, about 110 MB) or `Glimpse_WMO-HD-<version>.7z` (512 pixels, about 390 MB),
-and unpack its `Glimpse_WMO` folder beside the other two. Use the pictures of the same version as the addon. Without
-them, a WMO's line gains no button.
+`Glimpse_WMO-<version>-256.7z` (256-pixel pictures, about 110 MB) or `Glimpse_WMO-<version>-512.7z` (512-pixel
+pictures, about 395 MB), and unpack its `Glimpse_WMO` folder beside the other two. Use the pictures of the same
+version as the addon. Without them, a WMO's line gains no button.
 
 Licensed under AGPL-3.0-or-later; `NOTICE` says what that does and does not cover. Made by Nataari, with the help
 of AI.
