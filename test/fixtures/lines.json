@@ -31,6 +31,14 @@
   "|cff00CCFF|Hgameobject_entry:824301|h[7xpshell01.m2 - 824301]|h|r (GUID: |cff00CCFF|Hgameobject_GUID:76466|h76466|h|r)",
   "Found nearby gameobjects (distance 10.000000): 26"
  ],
+ "gobject spawn": [
+  "Spawned gameobject |cff00CCFF|Hgameobject_entry:801862|h[6ar_fern_b02.m2 - 801862]|r (GUID: |cff00CCFF|Hgameobject_GUID:96102|h96102|h|r)",
+  "Map: |cff00CCFF1116|r (X: |cff00CCFF3174.503418|r, Y: |cff00CCFF2457.866943|r, Z: |cff00CCFF109.773560|r, Pitch: |cff00CCFF-0.000000|r, Roll: |cff00CCFF0.000000|r, Yaw/Turn: |cff00CCFF-178.025081|r, Scale: |cff00CCFF1.000000|r)"
+ ],
+ "gobject delete": [
+  "You have deleted |cff00CCFF|Hgameobject_entry:801862|h(6ar_fern_b02.m2 - 801862)|h|r (GUID: |cff00CCFF3839|r DBGUID: |cff00CCFF96102|r).",
+  "Map: |cff00CCFF1116|r (X: |cff00CCFF3174.503418|r, Y: |cff00CCFF2457.866943|r, Z: |cff00CCFF109.773560|r, Pitch: |cff00CCFF10.000000|r, Roll: |cff00CCFF10.000021|r, Yaw/Turn: |cff00CCFF-0.000002|r)"
+ ],
  "lookup ambience forest": [
   "|cff00CCFF28|r - [DAY] forestdarkenchantedday, [NIGHT] forestdarkenchantednight",
   "|cff00CCFF29|r - [DAY] enchangedforestday, [NIGHT] enchantedforestnight",
