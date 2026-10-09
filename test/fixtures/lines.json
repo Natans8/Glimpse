@@ -1047,5 +1047,37 @@
   "950983 - |cffffffff|Hgameobject_entry:950983|h[[9270100] 9ori_skyscene02.m2]|h|r ",
   "950996 - |cffffffff|Hgameobject_entry:950996|h[[9270100] 9ori_skyscene01.m2]|h|r ",
   "|cff00CCFFYou have reached the end of your lookup.|r"
+ ],
+ "modify mount": [
+  "You have mounted |cff00CCFF17697|r."
+ ],
+ "morph": [
+  "You have morphed |cff00CCFFNataari|r to |cff00CCFF1000|r."
+ ],
+ "enchant mainhand": [
+  "|cff00CCFFEnchantment 303 applied.|r"
+ ],
+ "phase forge npc displays list": [
+  "Creature Template |cff00CCFF[Glimpse Probe - 2634994]|r has the following models & weights:",
+  "ID: |cff00CCFF1|r - Display 1000|r | Scale: |cff00CCFF1.000000|r | Probability Weight: |cff00CCFF1.000000|r.",
+  "ID: |cff00CCFF2|r - Display 1001|r | Scale: |cff00CCFF1.000000|r | Probability Weight: |cff00CCFF1.000000|r.",
+  "Creature Template |cff00CCFF[Shattrath City Peacekeeper - 2372187]|r has the following models & weights:",
+  "ID: |cff00CCFF1|r - Outfit 11455947|r | Scale: |cff00CCFF1.000000|r | Probability Weight: |cff00CCFF1.000000|r."
+ ],
+ "phase forge npc list": [
+  "Forged NPCs for |cff00CCFF[Pre-Horde Draenor - WIP - 185243]|r:",
+  "|cffADFFFF2195435 -|r |cff00CCFF|Hphase_npc:2195435|h[Forest Prowler]|h|r",
+  "|cffADFFFF2195440 -|r |cff00CCFF|Hphase_npc:2195440|h[Warp Stalker]|h|r",
+  "|cff00CCFFEnter .phase forge npc list next to view the next 50 results.|r"
+ ],
+ "doodad near": [
+  "|cff00CCFF|Hdoodad_uid:8832685:918836|h[6td_treestump_b01.m2 - 821144]|h|r (UID: |cff00CCFF8832685|r) (Replaced)",
+  "|cff00CCFF|Hdoodad_deleted_uid:8832688:-1|h[6td_treestump_c01.m2 - 821145]|h|r (UID: |cff00CCFF8832688|r) (Deleted)",
+  "|cff00CCFF|Hdoodad_uid:8832678:0|h[6td_broadleaf_c01.m2 - 820179]|h|r (UID: |cff00CCFF8832678|r)",
+  "|cff00CCFF|Hdoodad_uid:8832682:0|h[6td_bush_b01.m2 - 820157]|h|r (UID: |cff00CCFF8832682|r)",
+  "|cff00CCFF|Hdoodad_uid:8832683:0|h[6td_rockcluster_b01.m2 - 820187]|h|r (UID: |cff00CCFF8832683|r)",
+  "|cff00CCFF|Hdoodad_uid:8832686:918836|h[6td_treestump_b01.m2 - 821144]|h|r (UID: |cff00CCFF8832686|r) (Replaced)",
+  "|cff00CCFF|Hdoodad_uid:8706404:0|h[6td_shattrathtower.wmo - 833676]|h|r (UID: |cff00CCFF8706404|r)",
+  "Found |cff00CCFF7|r doodads."
  ]
 }

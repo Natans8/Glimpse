@@ -51,6 +51,12 @@ EXPECTED: dict[str, dict[str | None, int]] = {
     "lookup spell": {None: 4},
     "npc info": {None: 1},
     "gobject info": {None: 1},
+    "modify mount": {"display": 1},
+    "morph": {"display": 1},
+    "enchant mainhand": {"enchant": 1},
+    "phase forge npc displays list": {"display": 2, None: 3},
+    "phase forge npc list": {"creature": 2, None: 2},
+    "doodad near": {"mapdoodad": 7, None: 1},
 }
 
 
@@ -105,6 +111,38 @@ def test_an_object_is_named_alike_when_spawned_and_when_deleted(addon: LuaRuntim
     fern = {"kind": "object", "id": 801862, "name": "6ar_fern_b02.m2"}
     assert read(LINES["gobject spawn"][0]) == fern, "a link left open stops at its label"
     assert read(LINES["gobject delete"][0]) == fern, "a label in parentheses"
+
+
+def test_a_reply_names_what_it_put_on_the_player(addon: LuaRuntime) -> None:
+    read = reader(addon)
+    assert read(LINES["modify mount"][0]) == {"kind": "display", "id": 17697, "name": "17697"}
+    assert read(LINES["morph"][0]) == {"kind": "display", "id": 1000, "name": "1000"}
+    assert read(LINES["enchant mainhand"][0]) == {"kind": "enchant", "id": 303, "name": "303"}
+
+
+def test_a_forged_npc_is_a_creature_and_its_displays_are_displays(addon: LuaRuntime) -> None:
+    read = reader(addon)
+    listed = read(LINES["phase forge npc list"][1])
+    assert listed == {"kind": "creature", "id": 2195435, "name": "Forest Prowler"}
+    rows = LINES["phase forge npc displays list"]
+    assert read(rows[2]) == {"kind": "display", "id": 1001, "name": "1001"}
+    assert read(rows[4]) is None, "an outfit is not a display the client has"
+
+
+def test_a_doodad_is_its_model_and_carries_what_replaced_it(addon: LuaRuntime) -> None:
+    read = reader(addon)
+    rows = LINES["doodad near"]
+    assert read(rows[0]) == {
+        "kind": "mapdoodad",
+        "id": 821144,
+        "name": "6td_treestump_b01.m2",
+        "ids": [918836],
+    }, "replaced: the link carries the replacement's file"
+    assert read(rows[1]) == {"kind": "mapdoodad", "id": 821145, "name": "6td_treestump_c01.m2"}, (
+        "deleted: its own model, nothing after"
+    )
+    assert read(rows[2]) == {"kind": "mapdoodad", "id": 820179, "name": "6td_broadleaf_c01.m2"}
+    assert read(rows[6]) == {"kind": "mapdoodad", "id": 833676, "name": "6td_shattrathtower.wmo"}
 
 
 def test_an_object_whose_model_is_a_wmo_is_a_wmo(addon: LuaRuntime) -> None:

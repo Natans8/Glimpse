@@ -130,19 +130,19 @@ function Kinds.DrawerOf(kind)
 	return nil
 end
 
---- Who previews a read: as its kind is previewed, where whichever addon previews
--- it has something to show for the line.
+--- Who previews a read: the addon that offers its kind, where that addon has
+-- something to show for the line, and otherwise this one, where it has. So an
+-- addon may offer a kind for the lines it can show and leave the rest here.
 -- @param read a read from `Lines.Read`
 -- @return "provider", "own", or nil where the line gains no button
 function Kinds.Drawer(read)
-	local drawer = Kinds.DrawerOf(read.kind)
-	if drawer == "own" and not Kinds.Of(read) then
-		return nil
+	if ns.Providers.Has(read.kind) and ns.Providers.Shows(read) then
+		return "provider"
 	end
-	if drawer == "provider" and not ns.Providers.Shows(read) then
-		return nil
+	if Kinds.Of(read) then
+		return "own"
 	end
-	return drawer
+	return nil
 end
 
 --- Do what a click on a read's own preview does where its kind says, in place of

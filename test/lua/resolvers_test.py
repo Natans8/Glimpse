@@ -152,6 +152,37 @@ def test_a_doodad_shows_the_models_that_are_found(game: LuaRuntime) -> None:
     assert evaluate(game, 'RESOLVE("doodad", { id = 5, names = { "unknown.m2" } })') is None
 
 
+def test_a_placed_doodad_shows_its_file_and_what_replaced_it(game: LuaRuntime) -> None:
+    stump = '{ id = 821144, name = "6td_treestump_b01.m2" }'
+    assert evaluate(game, f'RESOLVE("mapdoodad", {stump}).looks') == [
+        {"draw": "file", "value": 821144}
+    ]
+    replaced = '{ id = 821144, name = "6td_treestump_b01.m2", ids = { 999901 } }'
+    assert evaluate(game, f'RESOLVE("mapdoodad", {replaced}).looks') == [
+        {"draw": "file", "value": 821144, "name": "before"},
+        {"draw": "file", "value": 999901, "name": "after"},
+    ]
+    unknown = '{ id = 821144, name = "6td_treestump_b01.m2", ids = { 123 } }'
+    assert evaluate(game, f'RESOLVE("mapdoodad", {unknown}).looks') == [
+        {"draw": "file", "value": 821144, "name": "replaced by file 123"}
+    ], "a file no display names never reaches a model loader"
+
+
+def test_a_placed_wmo_is_left_to_whoever_previews_wmos(game: LuaRuntime) -> None:
+    tower = '{ kind = "mapdoodad", id = 833676, name = "6td_shattrathtower.wmo" }'
+    assert evaluate(game, f"NS.Kinds.Buttons({tower})") is None
+    game.execute(b"""
+        Glimpse.Provide("mapdoodad", {
+            Shows = function(id, context) return context.name:find("%.wmo$") ~= nil end,
+            Show = function() return true end,
+            Hide = function() end,
+        })
+    """)
+    assert evaluate(game, f"NS.Kinds.Drawer({tower})") == "provider"
+    bush = '{ kind = "mapdoodad", id = 820157, name = "6td_bush_b01.m2" }'
+    assert evaluate(game, f"NS.Kinds.Drawer({bush})") == "own", "the rest is drawn here"
+
+
 def test_a_name_is_found_anywhere_among_the_models(game: LuaRuntime) -> None:
     def file(name: str) -> object:
         subject = evaluate(game, f'RESOLVE("object", {{ id = 1, name = "{name}" }})')

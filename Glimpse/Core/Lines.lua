@@ -11,8 +11,9 @@ local _, ns = ...
 -- Every kind of line `.lookup` prints is read, including those only another
 -- addon previews, so such an addon can offer any of them.
 --
--- A read is `{ kind, id, name }`, with `names` for a detail doodad. A read is
--- shared between callers and is not changed.
+-- A read is `{ kind, id, name }`, with `names` for a detail doodad's models and
+-- `ids` for the other ids a line gives, as a replaced doodad its replacement's
+-- file. A read is shared between callers and is not changed.
 local Lines = {}
 ns.Lines = Lines
 
@@ -67,6 +68,21 @@ local function numbered(kind)
 	end
 end
 
+-- A doodad placed on the map: its model's name and file, and in the link the file
+-- that replaced it, 0 where none did; a deleted one carries -1 there.
+local function placed(payload, label)
+	local name, file = unbracket(label):match("^(.-) %- (%d+)$")
+	if not file then
+		return nil
+	end
+	local read = { kind = "mapdoodad", id = tonumber(file), name = name }
+	local replacement = tonumber(payload:match(":(%d+)$"))
+	if replacement and replacement > 0 then
+		read.ids = { replacement }
+	end
+	return read
+end
+
 local LINKS = {
 	-- An object whose model is a WMO is read as the WMO kind, since no model frame
 	-- draws one and another addon does; to the player it is still an object.
@@ -79,6 +95,8 @@ local LINKS = {
 		return { kind = kind, id = tonumber(payload), name = name }
 	end,
 	creature_entry = named("creature"),
+	-- A creature a phase forged, as its list of them names it.
+	phase_npc = named("creature"),
 	creatureDisplayID = numbered("display"),
 	enchantID = numbered("enchant"),
 	item = function(payload, label)
@@ -96,6 +114,8 @@ local LINKS = {
 	skill = named("skill"),
 	title = named("title"),
 	blueprint_name = named("blueprint"),
+	doodad_uid = placed,
+	doodad_deleted_uid = placed,
 }
 
 -- The start of each link this file reads, for asking of a line without reading it.
@@ -187,6 +207,35 @@ local function faction(message)
 	return { kind = "faction", id = tonumber(id), name = name }
 end
 
+-- A reply naming the creature display it put on the player: a mount or a morph.
+local function worn(message)
+	local id = message:match("^You have mounted |cff00CCFF(%d+)|r%.$")
+		or message:match("^You have morphed |cff00CCFF.-|r to |cff00CCFF(%d+)|r%.$")
+	if not id then
+		return nil
+	end
+	return { kind = "display", id = tonumber(id), name = id }
+end
+
+-- A reply naming the enchant it put on the player's weapon.
+local function enchanted(message)
+	local id = message:match("^|cff00CCFFEnchantment (%d+) applied%.|r$")
+	if not id then
+		return nil
+	end
+	return { kind = "enchant", id = tonumber(id), name = id }
+end
+
+-- A row of a forged creature's displays. A row naming an outfit is left alone: an
+-- outfit is the server's, not a display the client has.
+local function forgedDisplay(message)
+	local id = message:match("^ID: |cff00CCFF%d+|r %- Display (%d+)|r |")
+	if not id then
+		return nil
+	end
+	return { kind = "display", id = tonumber(id), name = id }
+end
+
 -- A tile texture line: its picture, its file's name, then the file's id.
 local function texture(message)
 	local name, id = message:match("^|T%d+:%d+:%d+|t|h|r |cff00CCFF([^|]+)|r: |cff00CCFF(%d+)|r")
@@ -221,6 +270,9 @@ function Lines.Maybe(message)
 		or message:find("^%d+ %- |cff00CCFF%[") ~= nil
 		or message:find("^|T%d") ~= nil
 		or message:find(".wmo|r - RootId: ", 1, true) ~= nil
+		or message:find("^You have m") ~= nil
+		or message:find("^|cff00CCFFEnchantment %d") ~= nil
+		or message:find("^ID: |cff00CCFF%d") ~= nil
 end
 
 local function read(message)
@@ -239,6 +291,9 @@ local function read(message)
 		or faction(message)
 		or texture(message)
 		or wmoArea(message)
+		or worn(message)
+		or enchanted(message)
+		or forgedDisplay(message)
 end
 
 --- Read a system line.

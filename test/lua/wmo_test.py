@@ -71,9 +71,19 @@ def drawn(runtime: LuaRuntime) -> dict[str, Plain]:
     return cast(dict[str, Plain], plain(runtime.execute(DRAWN)))
 
 
-def test_both_wmo_kinds_are_offered() -> None:
+def test_every_kind_a_wmo_is_named_by_is_offered() -> None:
     runtime = module()
-    assert evaluate(runtime, "OFFERED.wmo ~= nil and OFFERED.wmo == OFFERED.wmoarea") is True
+    for kind in ("wmoarea", "mapdoodad"):
+        assert evaluate(runtime, f"OFFERED.wmo ~= nil and OFFERED.wmo == OFFERED.{kind}") is True
+
+
+def test_a_doodad_is_found_by_its_name_alone_and_only_a_wmo() -> None:
+    runtime = module()
+    assert shows(runtime, '42, { kind = "mapdoodad", name = "castle.wmo" }') is True
+    assert shows(runtime, '42, { kind = "mapdoodad", name = "nowhere.wmo" }') is False, (
+        "a doodad's id is its file's, not the entry 42 the index knows"
+    )
+    assert shows(runtime, '1234, { kind = "mapdoodad", name = "castle.m2" }') is False, "a model"
 
 
 def test_without_glimpse_it_loads_offers_nothing_and_still_answers_for_a_picture() -> None:

@@ -48,11 +48,15 @@ function Links.Write(read, index)
 		end
 		extra = table.concat(names, ",")
 	end
-	return PREFIX
+	local link = PREFIX
 		.. table.concat(
 			{ Kinds.Code(read.kind), read.id, index, encode(read.name or ""), extra },
 			"/"
 		)
+	if read.ids then
+		link = link .. "/" .. table.concat(read.ids, ",")
+	end
+	return link
 end
 
 --- Read a link back.
@@ -63,8 +67,8 @@ function Links.Read(link)
 	if link:sub(1, #PREFIX) ~= PREFIX then
 		return nil
 	end
-	local code, id, index, name, extra = link:sub(#PREFIX + 1)
-		:match("^(%a)/(%d+)/(%d+)/([^/]*)/([^/]*)$")
+	local code, id, index, name, extra, ids = link:sub(#PREFIX + 1)
+		:match("^(%a)/(%d+)/(%d+)/([^/]*)/([^/]*)/?([%d,]*)$")
 	local kind = code and Kinds.Named(code)
 	if not kind then
 		return nil
@@ -74,6 +78,12 @@ function Links.Read(link)
 		read.names = {}
 		for encoded in extra:gmatch("[^,]+") do
 			read.names[#read.names + 1] = decode(encoded)
+		end
+	end
+	if ids ~= "" then
+		read.ids = {}
+		for number in ids:gmatch("%d+") do
+			read.ids[#read.ids + 1] = tonumber(number)
 		end
 	end
 	return read, tonumber(index)

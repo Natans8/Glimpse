@@ -1,6 +1,6 @@
 local _, ns = ...
 
---- Objects, tiles, planes and detail doodads: the model an object draws.
+--- Objects, tiles, planes, doodads and detail doodads: the model a thing draws.
 --
 -- No client call takes a gameobject entry, so a model is found by what the
 -- line names. A name is a model's where it ends in the file's extension or,
@@ -109,6 +109,36 @@ Kinds.Add("object", {
 		local file = (row and row.file) or stocked(read.id)
 		if file then
 			Subject.Look(subject, "file", file)
+		end
+		Subject.Answer(subject, done)
+	end,
+})
+
+-- Whether a file is one of the models the client's displays name: an id from a
+-- line says nothing of what its file is, and only a model may reach a model loader.
+local function aModel(file)
+	local data = ns.Client.Data()
+	return data ~= nil and data.models:find("=" .. file .. ";", 1, true) ~= nil
+end
+
+-- A doodad placed on the map, drawn from the file its line names; a replaced one
+-- beside what replaced it, where that is a model. A WMO is left to whoever
+-- previews WMOs, so a doodad here is a model by its name.
+Kinds.Add("mapdoodad", {
+	word = "Doodad",
+	code = "l",
+	shows = function(read)
+		return namesFile(read.name)
+	end,
+	resolve = function(read, done)
+		local subject = Subject.New(read)
+		local before = Subject.Look(subject, "file", read.id)
+		local replacement = read.ids and read.ids[1]
+		if replacement and aModel(replacement) then
+			before.name = "before"
+			Subject.Look(subject, "file", replacement).name = "after"
+		elseif replacement then
+			before.name = "replaced by file " .. replacement
 		end
 		Subject.Answer(subject, done)
 	end,

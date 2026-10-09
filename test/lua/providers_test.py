@@ -151,6 +151,20 @@ def test_an_offered_kind_this_addon_draws_is_previewed_by_the_one_that_offers_it
     assert evaluate(addon, f"NS.Kinds.Buttons({nameless})") == ["Preview"], "the offer decides"
 
 
+def test_a_line_the_offering_addon_has_nothing_for_is_drawn_here(addon: LuaRuntime) -> None:
+    addon.execute(b"""
+        Glimpse.Provide("creature", {
+            Shows = function(id) return id == 1 end,
+            Show = function() return true end,
+            Hide = function() end,
+        })
+    """)
+    assert (
+        evaluate(addon, 'NS.Kinds.Drawer({ kind = "creature", id = 1, name = "x" })') == "provider"
+    )
+    assert evaluate(addon, 'NS.Kinds.Drawer({ kind = "creature", id = 2, name = "y" })') == "own"
+
+
 def test_every_kind_of_lookup_line_can_be_offered(addon: LuaRuntime) -> None:
     title = '{ kind = "title", id = 174, name = "Player, Bane of the Fallen King" }'
     assert evaluate(addon, f"NS.Kinds.Buttons({title})") is None
