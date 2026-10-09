@@ -2,6 +2,7 @@
 ## Title: Glimpse WMO pictures
 ## Notes: A picture of every WMO, for Glimpse's previews. Its own download, since it is large.
 ## Version: @project-version@
+# Glimpse's own version: the pictures ship in each Glimpse release as two archives of their own, stamped at release.
 ## Author: Nataari
 ## X-License: AGPL-3.0-or-later
 ## Dependencies: Glimpse

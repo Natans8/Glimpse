@@ -108,3 +108,19 @@ def test_toc_names_what_exists(tmp_path: Path) -> None:
 def test_missing_toc_is_a_violation(tmp_path: Path) -> None:
     (tmp_path / "Glimpse").mkdir()
     assert check.toc_violations(tmp_path / "Glimpse") == ["Glimpse.toc: missing"]
+
+
+def test_wmo_pictures_share_the_addon_version() -> None:
+    addon = "## Interface: 90207\n## Version: @project-version@\n"
+    assert (
+        check.module_version_violations(addon, "## Title: x\n## Version: @project-version@\n") == []
+    )
+    assert check.module_version_violations(addon, "## Version: 0.1\n") == [
+        "Glimpse_WMO.toc: version 0.1, the addon's @project-version@"
+    ]
+    assert check.module_version_violations("## Interface: 90207\n", "## Version: 0.1\n") == [
+        "Glimpse_WMO.toc: version 0.1, the addon's none"
+    ]
+    assert check.module_version_violations(addon, "## Title: x\n") == [
+        "Glimpse_WMO.toc: no ## Version"
+    ]

@@ -215,6 +215,24 @@ def toc_violations(addon: Path) -> list[str]:
     ]
 
 
+def module_version_violations(addon_toc: str, module_toc: str) -> list[str]:
+    """Where the WMO pictures' toc does not declare the addon's own version.
+
+    The pictures ship in each of the addon's releases, as archives of their own that
+    the release stamps, so the two tocs must declare one version the same way.
+    """
+    declared = [
+        re.search(r"^## Version:[ \t]*(\S+)[ \t]*$", toc, flags=re.M)
+        for toc in (addon_toc, module_toc)
+    ]
+    if not declared[1]:
+        return ["Glimpse_WMO.toc: no ## Version"]
+    if not declared[0] or declared[0].group(1) != declared[1].group(1):
+        theirs = declared[0].group(1) if declared[0] else "none"
+        return [f"Glimpse_WMO.toc: version {declared[1].group(1)}, the addon's {theirs}"]
+    return []
+
+
 def icon_violations(drawn: str, named: str) -> list[str]:
     """Where the icons the sheet is drawn with and the icons the addon names disagree.
 
@@ -253,8 +271,23 @@ GUARDS: Sequence[tuple[str, Callable[[Sources], list[str]]]] = (
     ("every callback guarded", callback_violations),
 )
 
+#: The WMO pictures, an addon of their own beside this one. Its hand-written Lua is held to the
+#: guards that concern any addon here; the rest are about this addon's own layers and files.
+MODULE = "Glimpse_WMO"
+MODULE_GUARDS = frozenset(
+    {
+        "sends nothing",
+        "declared globals only",
+        "one door to the model loader",
+        "only what the 9.2.7 client has",
+    }
+)
+
+#: The module's index, generated beside its Lua and never written by hand.
+MODULE_GENERATED = frozenset({"Index.lua"})
+
 #: Where hand-written Lua lives. Fixtures hold the game's own output and are left as they came.
-LUA_PATHS = (ADDON, "test/lua")
+LUA_PATHS = (ADDON, f"{MODULE}/{MODULE}.lua", "test/lua")
 
 
 #: The external checks, each with its command.
@@ -288,6 +321,27 @@ def main() -> int:
     sources = addon_sources(addon)
     results = [(name, guard(sources)) for name, guard in GUARDS]
     results.append(("toc", toc_violations(addon)))
+    module = ROOT / MODULE
+    module_sources = {
+        f"{MODULE}/{name}": text
+        for name, text in addon_sources(module).items()
+        if name not in MODULE_GENERATED
+    }
+    results += [
+        (f"{name}, {MODULE}", guard(module_sources))
+        for name, guard in GUARDS
+        if name in MODULE_GUARDS
+    ]
+    module_toc = module / f"{MODULE}.toc"
+    addon_toc = (addon / f"{ADDON}.toc").read_text(encoding="utf-8")
+    results.append(
+        (
+            "WMO pictures share the addon's version",
+            module_version_violations(addon_toc, module_toc.read_text(encoding="utf-8"))
+            if module_toc.is_file()
+            else [f"{module_toc.name}: missing"],
+        )
+    )
     drawn = (ROOT / "tools" / "art.py").read_text(encoding="utf-8")
     results.append(("icons", icon_violations(drawn, sources["Interface/Tools.lua"])))
     for name, violations in results:
