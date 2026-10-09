@@ -334,6 +334,12 @@ local function read(message)
 		if reader then
 			local found = reader(payload, closed(label))
 			if found and found.id and not (found.kind == "creature" and inOutfit(message)) then
+				-- A line of a spawned object names it too, and its GUID finds what the
+				-- server says of how that object stands.
+				local guid = found.kind == "object" and message:match("|Hgameobject_GUID:(%d+)|h")
+				if guid then
+					found.ids = { tonumber(guid) }
+				end
 				return found
 			end
 			return nil

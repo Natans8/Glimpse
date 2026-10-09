@@ -207,6 +207,21 @@ local DRAW = {
 	display = function(self, display)
 		self.actor:SetModelByCreatureDisplayID(display)
 	end,
+	-- A kit given before the model has drawn is dropped, so the tint is given a
+	-- moment after the model, and the frame stays unseen until then.
+	tinted = function(self, file, look)
+		local model = self.model
+		model:SetAlpha(0)
+		model:SetModel(file)
+		self.retry = _G.C_Timer.NewTimer(
+			RETRY_SECONDS * 5,
+			ns.Safely.Wrap(function()
+				self.retry = nil
+				model:ApplySpellVisualKit(look.kit, false)
+				model:SetAlpha(1)
+			end)
+		)
+	end,
 	-- The frame is emptied first and stays unseen until it holds a model, so an
 	-- earlier creature is never shown under the new one's name, and one the client
 	-- never loads, as a forged creature in an outfit, shows nothing at all.

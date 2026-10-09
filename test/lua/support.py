@@ -63,6 +63,7 @@ def new_runtime() -> LuaRuntime:
 HARNESS = b"""
     NS = {}
     HANDLERS = {}
+    C_ChatInfo = { RegisterAddonMessagePrefix = function() end }
     function CreateFrame()
         local events = {}
         return {
@@ -75,7 +76,7 @@ HARNESS = b"""
 """
 
 #: The global names the harness leaves behind, which are not the addon's.
-HARNESS_GLOBALS = {"NS", "CreateFrame", "HANDLERS", "SOURCE", "NAME"}
+HARNESS_GLOBALS = {"NS", "CreateFrame", "C_ChatInfo", "HANDLERS", "SOURCE", "NAME"}
 
 
 def load_addon() -> LuaRuntime:

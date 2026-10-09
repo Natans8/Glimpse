@@ -18,15 +18,20 @@ ns.Subject = Subject
 -- @param read the read it answers
 -- @return the subject
 function Subject.New(read)
-	return { kind = read.kind, id = read.id, name = read.name, looks = {} }
+	return { kind = read.kind, id = read.id, name = read.name, ids = read.ids, looks = {} }
 end
 
---- What tells one subject from another: its kind and id. A read has the same key
--- as the subject resolved from it.
+--- What tells one subject from another: its kind, its id, and the other ids its
+-- line gave, so two objects of one entry standing differently are two. A read has
+-- the same key as the subject resolved from it.
 -- @param of a read or a subject
 -- @return the key
 function Subject.Key(of)
-	return of.kind .. ":" .. of.id
+	local key = of.kind .. ":" .. of.id
+	if of.ids then
+		key = key .. ":" .. table.concat(of.ids, ",")
+	end
+	return key
 end
 
 --- Add a look to a subject.

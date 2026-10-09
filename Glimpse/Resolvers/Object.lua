@@ -84,6 +84,39 @@ local function namesModel(name)
 	return name ~= "" and (namesFile(name) or not name:find(" ", 1, true))
 end
 
+-- A percentage on a scale of `steps`, rounded, and held within it.
+local function step(percent, steps)
+	return math.max(0, math.min(steps, math.floor(percent * steps / 100 + 0.5)))
+end
+
+-- The kit Epsilon plays on an object to tint it. Its tints are one grid: each colour
+-- on 21 steps, the transparency and the saturation on fifths, and the kit is the
+-- place in the grid; an object made wholly transparent is the grid's first kit.
+local function tintKit(tint)
+	local alpha = step(tint.transparency, 5)
+	if alpha == 0 then
+		return 167000
+	end
+	local colour = step(tint.red, 20) + 21 * step(tint.green, 20) + 441 * step(tint.blue, 20)
+	return 167001 + (5 - alpha) * 46305 + step(100 - tint.saturation, 5) * 9261 + colour
+end
+
+-- An object's look as the server says the spawned object stands: tinted, drawn with
+-- the kit that tints it, or carrying a spell, named after its kind. An object no
+-- record has come for is drawn as its model alone.
+local function standing(look, read)
+	local record = read.ids and ns.Client.ObjectRecord(read.ids[1])
+	if not record then
+		return
+	end
+	if record.tint then
+		look.draw, look.kit = "tinted", tintKit(record.tint)
+	end
+	if record.spell ~= 0 then
+		look.name = "with " .. (ns.Client.SpellName(record.spell) or ("spell " .. record.spell))
+	end
+end
+
 Kinds.Add("object", {
 	word = "Object",
 	code = "o",
@@ -108,7 +141,7 @@ Kinds.Add("object", {
 		local row = namesModel(read.name) and searched(read.name) or nil
 		local file = (row and row.file) or stocked(read.id)
 		if file then
-			Subject.Look(subject, "file", file)
+			standing(Subject.Look(subject, "file", file), read)
 		end
 		Subject.Answer(subject, done)
 	end,

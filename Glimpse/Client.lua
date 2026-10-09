@@ -153,6 +153,68 @@ function Client.StopSound(handle)
 	_G.StopSound(handle)
 end
 
+-- The server's latest record of each object, by its GUID: Epsilon sends one to the
+-- client whenever an object is spawned or selected, and this addon only listens.
+-- An object nobody has spawned or selected since the interface loaded has none.
+local OBJECT_PREFIXES = { EPSILON_OBJ_INFO = true, EPSILON_OBJ_SEL = true }
+local FIELD = string.char(31)
+local records = {}
+
+local objects = _G.CreateFrame("Frame")
+objects:RegisterEvent("CHAT_MSG_ADDON")
+for prefix in pairs(OBJECT_PREFIXES) do
+	_G.C_ChatInfo.RegisterAddonMessagePrefix(prefix)
+end
+objects:SetScript(
+	"OnEvent",
+	ns.Safely.Wrap(function(_, _, prefix, message)
+		if OBJECT_PREFIXES[prefix] and type(message) == "string" then
+			local guid = message:match("^(%d+)" .. FIELD)
+			if guid then
+				records[guid] = message
+			end
+		end
+	end)
+)
+
+--- What the server last said of an object: the model it draws, its scale, its
+-- tint and the spell it carries. A tint is the percentages typed for it.
+-- @param guid the object's GUID, as its line prints it
+-- @return `{ file, scale, spell, tint }`, `spell` 0 for none and `tint` nil for none
+--   or `{ red, green, blue, transparency, saturation }`; or nil where no record has come
+function Client.ObjectRecord(guid)
+	local message = records[tostring(guid)]
+	if not message then
+		return nil
+	end
+	local fields = {}
+	for field in (message .. FIELD):gmatch("(.-)" .. FIELD) do
+		fields[#fields + 1] = field
+	end
+	local record = {
+		file = tonumber(fields[4]) or 0,
+		scale = tonumber(fields[18]) or 1,
+		spell = tonumber(fields[17]) or 0,
+	}
+	if fields[12] == "1" then
+		record.tint = {
+			red = tonumber(fields[13]) or 100,
+			green = tonumber(fields[14]) or 100,
+			blue = tonumber(fields[15]) or 100,
+			transparency = tonumber(fields[16]) or 100,
+			saturation = tonumber(fields[21]) or 100,
+		}
+	end
+	return record
+end
+
+--- A spell's name, as the client gives it.
+-- @param spell a spell id
+-- @return the name, or nil where the client has no such spell
+function Client.SpellName(spell)
+	return (_G.GetSpellInfo(spell))
+end
+
 --- Called once, where the data addon cannot be used, with why: the reason the
 -- client gives for not loading it ("MISSING", "DISABLED" and the like), or
 -- "FORMAT" where it was made for another version of this addon. Whoever speaks

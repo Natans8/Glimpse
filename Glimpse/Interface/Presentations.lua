@@ -22,6 +22,8 @@ ns.Presentations = Presentations
 
 local ROWS = {
 	prop = { drawer = "scene", yaw = 30, pitch = 20 },
+	-- A tinted thing is drawn by a model frame, the widget its tint is proven on.
+	tinted = { inherits = "prop", drawer = "model" },
 	-- A figure is drawn by a model frame, the one widget that draws every
 	-- playable race's display whole.
 	figure = { drawer = "model", yaw = 25, pitch = 5 },
@@ -41,6 +43,7 @@ local ROWS = {
 --- Which presentation each way of drawing a look takes.
 local BY_DRAW = {
 	file = "prop",
+	tinted = "tinted",
 	display = "display",
 	character = "figure",
 	creature = "creature",
@@ -100,7 +103,7 @@ end
 Presentations.NOTHING = "Nothing to preview"
 
 --- What several looks drawn the same way are counted as.
-local COUNTED = { display = "display", character = "display", file = "model" }
+local COUNTED = { display = "display", character = "display", file = "model", tinted = "model" }
 
 -- A display is named by its id, which is what a morph takes.
 local function place(look, index, count)

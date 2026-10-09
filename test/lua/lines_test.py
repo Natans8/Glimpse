@@ -109,14 +109,20 @@ def test_a_read_line_is_one_maybe_admits(addon: LuaRuntime) -> None:
 def test_an_object_name_loses_its_tag_and_its_entry(addon: LuaRuntime) -> None:
     read = reader(addon)
     tagged = next(line for line in LINES["gobject near"] if "[bfa 8.0]" in line)
-    assert read(tagged) == {"kind": "object", "id": 876586, "name": "8zul_tallgrass_b01.m2"}
+    assert read(tagged) == {
+        "kind": "object",
+        "id": 876586,
+        "name": "8zul_tallgrass_b01.m2",
+        "ids": [77272],
+    }, "and the spawned object's GUID beside it"
 
 
 def test_an_object_is_named_alike_when_spawned_and_when_deleted(addon: LuaRuntime) -> None:
     read = reader(addon)
     fern = {"kind": "object", "id": 801862, "name": "6ar_fern_b02.m2"}
-    assert read(LINES["gobject spawn"][0]) == fern, "a link left open stops at its label"
-    assert read(LINES["gobject delete"][0]) == fern, "a label in parentheses"
+    spawned = read(LINES["gobject spawn"][0])
+    assert spawned == {**fern, "ids": [96102]}, "a link left open stops at its label"
+    assert read(LINES["gobject delete"][0]) == fern, "a label in parentheses, and no GUID link"
 
 
 def test_a_reply_names_what_it_put_on_the_player(addon: LuaRuntime) -> None:

@@ -152,6 +152,34 @@ def test_a_doodad_shows_the_models_that_are_found(game: LuaRuntime) -> None:
     assert evaluate(game, 'RESOLVE("doodad", { id = 5, names = { "unknown.m2" } })') is None
 
 
+def test_a_spawned_object_is_drawn_as_the_server_says_it_stands(game: LuaRuntime) -> None:
+    game.execute(b"""
+        STANDING = {
+            [1] = { file = 999901, scale = 1, spell = 0,
+                tint = { red = 100, green = 0, blue = 0, transparency = 100, saturation = 100 } },
+            [2] = { file = 999901, scale = 1, spell = 0,
+                tint = { red = 20, green = 40, blue = 60, transparency = 60, saturation = 80 } },
+            [3] = { file = 999901, scale = 1, spell = 0,
+                tint = { red = 20, green = 40, blue = 60, transparency = 0, saturation = 80 } },
+            [4] = { file = 999901, scale = 1, spell = 116 },
+        }
+        NS.Client.ObjectRecord = function(guid) return STANDING[guid] end
+        NS.Client.SpellName = function(id) return id == 116 and "Frostbolt" or nil end
+    """)
+
+    def look(guid: int) -> object:
+        pillow = f'{{ id = 1, name = "7nb_nightborn_floorpillow03.m2", ids = {{ {guid} }} }}'
+        return evaluate(game, f'RESOLVE("object", {pillow}).looks[1]')
+
+    assert look(1) == {"draw": "tinted", "value": 999901, "kit": 167021}, "the red proven in game"
+    assert look(2) == {"draw": "tinted", "value": 999901, "kit": 274336}, (
+        "20 40 60 on the grid, three fifths opaque, a fifth desaturated"
+    )
+    assert look(3) == {"draw": "tinted", "value": 999901, "kit": 167000}, "wholly transparent"
+    assert look(4) == {"draw": "file", "value": 999901, "name": "with Frostbolt"}
+    assert look(5) == {"draw": "file", "value": 999901}, "no record has come for it"
+
+
 def test_a_placed_doodad_shows_its_file_and_what_replaced_it(game: LuaRuntime) -> None:
     stump = '{ id = 821144, name = "6td_treestump_b01.m2" }'
     assert evaluate(game, f'RESOLVE("mapdoodad", {stump}).looks') == [

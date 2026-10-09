@@ -125,3 +125,31 @@ def test_loading_the_addon_creates_only_its_door() -> None:
     before = set(cast(list[str], evaluate(new_runtime(), GLOBAL_NAMES)))
     after = set(cast(list[str], evaluate(load_addon(), GLOBAL_NAMES)))
     assert after - before == HARNESS_GLOBALS | {"Glimpse"}, "the harness's names and the door"
+
+
+#: The server's record of a fern spawned on the Infinite Flatlands and given `.gobject tint
+#: 20 40 60 80 60`, as its addon message carried it: its fields parted by byte 31.
+TINTED_FERN = "".join(
+    [
+        *("96105", "801862", "6ar_fern_b02.m2", "979607", "-607.532", "276.995", "8.71196e-05"),
+        *("1.83547", "0", "-0", "105.165", "1", "20", "40", "60", "60", "0", "1", "0", "5", "80"),
+        *("203676832464111111", "3170539788286497152", "1", ""),
+    ]
+)
+
+
+def test_the_servers_record_of_an_object_is_kept_by_its_guid() -> None:
+    runtime = load_addon()
+    runtime.globals()[b"RECORD"] = TINTED_FERN.encode()
+    runtime.execute(b"""
+        HANDLERS.CHAT_MSG_ADDON(nil, "CHAT_MSG_ADDON", "EPSILON_OBJ_INFO", RECORD, "WHISPER", "x")
+        HANDLERS.CHAT_MSG_ADDON(nil, "CHAT_MSG_ADDON", "OTHER", "7" .. "1", "WHISPER", "x")
+    """)
+    assert evaluate(runtime, "NS.Client.ObjectRecord(96105)") == {
+        "file": 979607,
+        "scale": 1,
+        "spell": 0,
+        "tint": {"red": 20, "green": 40, "blue": 60, "transparency": 60, "saturation": 80},
+    }, "the percentages typed, and saturation from the far end of the record"
+    assert evaluate(runtime, "NS.Client.ObjectRecord(7)") is None, "another prefix is not heard"
+    assert evaluate(runtime, "NS.Client.ObjectRecord(1)") is None, "nothing came for it"
