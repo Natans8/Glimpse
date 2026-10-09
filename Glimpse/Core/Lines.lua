@@ -94,7 +94,11 @@ local LINKS = {
 		end
 		return { kind = kind, id = tonumber(payload), name = name }
 	end,
-	creature_entry = named("creature"),
+	-- A creature's line may print its entry after its name, as `.npc info` does.
+	creature_entry = function(payload, label)
+		local name = unbracket(label):gsub("%s+%-%s+" .. payload .. "$", "")
+		return { kind = "creature", id = tonumber(payload), name = name }
+	end,
 	-- A creature a phase forged, as its list of them names it.
 	phase_npc = named("creature"),
 	creatureDisplayID = numbered("display"),
@@ -310,6 +314,16 @@ function Lines.Maybe(message)
 		or message:find("(Ambience: ", 1, true) ~= nil
 end
 
+-- Whether a line is `.npc info`'s of a creature in an outfit: it prints the display
+-- the creature is drawn from, then in brackets what it wears, which for an outfit
+-- is the server's own number. An outfit's face, hair and gear are the server's
+-- alone and no preview frame can be given them, so such a line gains nothing
+-- rather than a likeness that is wrong.
+local function inOutfit(message)
+	local drawn, wearing = message:match("|HdisplayID:%d+|h(%d+) %((%d+)%)|h")
+	return drawn ~= nil and drawn ~= wearing
+end
+
 local function read(message)
 	local shaped = overrides(message) or setSound(message)
 	if shaped then
@@ -319,7 +333,7 @@ local function read(message)
 		local reader = LINKS[linkType]
 		if reader then
 			local found = reader(payload, closed(label))
-			if found and found.id then
+			if found and found.id and not (found.kind == "creature" and inOutfit(message)) then
 				return found
 			end
 			return nil

@@ -229,6 +229,9 @@ local DRAW = {
 					model:SetAlpha(1)
 				elseif asked == RETRIES then
 					stopRetrying(self)
+					if self.nothing then
+						self.nothing()
+					end
 				end
 			end),
 			RETRIES
@@ -268,6 +271,13 @@ local DRAW = {
 		self.model:SetUnit("player")
 	end,
 }
+
+--- Say what is done when a look turns out to draw nothing at all, as a creature
+-- the client never loads does, so whoever shows the stage can say so.
+-- @param nothing a function called with no arguments
+function Stage:WhenNothing(nothing)
+	self.nothing = nothing
+end
 
 --- Draw a look, replacing whatever was drawn.
 -- @param look a look from a subject

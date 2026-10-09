@@ -91,12 +91,17 @@ local function card()
 	inside:SetAllPoints()
 	inside:Hide()
 
+	local stage = Stage.New(holder)
+	stage:WhenNothing(function()
+		caption:SetText(Presentations.NOTHING)
+	end)
+
 	return {
 		frame = frame,
 		holder = holder,
 		over = over,
 		inside = inside,
-		stage = Stage.New(holder),
+		stage = stage,
 		name = name,
 		caption = caption,
 		hint = hint,

@@ -61,6 +61,8 @@ EXPECTED: dict[str, dict[str | None, int]] = {
     "phase shift wmo list": {"areasounds": 3, None: 2},
     "phase shift area ambience": {"ambience": 1},
     "phase shift area music": {"music": 1},
+    "npc info of a creature": {"creature": 1, None: 1},
+    "npc info of an outfit": {None: 2},
 }
 
 
@@ -167,6 +169,15 @@ def test_an_override_carries_the_sounds_it_sets(addon: LuaRuntime) -> None:
     }, "a WMO's override, by its root"
     music = read(LINES["phase shift area music"][0])
     assert music == {"kind": "music", "id": 156, "name": "Zone-TavernAlliance"}, "not the area"
+
+
+def test_a_creature_in_an_outfit_is_not_read_since_it_cannot_be_drawn(addon: LuaRuntime) -> None:
+    read = reader(addon)
+    plain = read(LINES["npc info of a creature"][0])
+    assert plain == {"kind": "creature", "id": 16998, "name": "Mr. Bigglesworth"}, (
+        "its entry left off"
+    )
+    assert read(LINES["npc info of an outfit"][0]) is None, "58232 drawn, 11455984 worn"
 
 
 def test_an_object_whose_model_is_a_wmo_is_a_wmo(addon: LuaRuntime) -> None:
