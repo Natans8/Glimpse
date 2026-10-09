@@ -35,10 +35,13 @@ CLIENT = b"""
 """
 
 
-def module() -> LuaRuntime:
-    """A runtime with the module loaded as the client loads it, after its index."""
+def module(glimpse: bool = True) -> LuaRuntime:
+    """A runtime with the module loaded as the client loads it, after its index, with Glimpse
+    loaded before it or, where `glimpse` is false, absent."""
     runtime = new_runtime()
     runtime.execute(CLIENT)
+    if not glimpse:
+        runtime.execute(b"Glimpse = nil")
     runtime.globals()[b"SOURCE"] = MODULE.read_bytes()
     runtime.execute(b'assert(loadstring(SOURCE, "@Glimpse_WMO.lua"))("Glimpse_WMO")')
     return runtime
@@ -71,6 +74,14 @@ def drawn(runtime: LuaRuntime) -> dict[str, Plain]:
 def test_both_wmo_kinds_are_offered() -> None:
     runtime = module()
     assert evaluate(runtime, "OFFERED.wmo ~= nil and OFFERED.wmo == OFFERED.wmoarea") is True
+
+
+def test_without_glimpse_it_loads_offers_nothing_and_still_answers_for_a_picture() -> None:
+    runtime = module(glimpse=False)
+    assert evaluate(runtime, "next(OFFERED)") is None
+    assert evaluate(runtime, 'Glimpse_WMO.Picture(nil, "castle.wmo")') == (
+        "Interface\\AddOns\\Glimpse_WMO\\Pictures\\000\\1234.blp"
+    )
 
 
 def test_a_picture_by_name_is_drawn_square_and_said_nothing_of() -> None:
