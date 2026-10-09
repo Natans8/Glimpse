@@ -1047,5 +1047,13 @@
   "950983 - |cffffffff|Hgameobject_entry:950983|h[[9270100] 9ori_skyscene02.m2]|h|r ",
   "950996 - |cffffffff|Hgameobject_entry:950996|h[[9270100] 9ori_skyscene01.m2]|h|r ",
   "|cff00CCFFYou have reached the end of your lookup.|r"
+ ],
+ "npc info of a creature": [
+  "NPC Info: |cff00CCFF|Hcreature_entry:16998|h[Mr. Bigglesworth - 16998]|h|r (GUID: |cff00CCFF|HNPC_GUID:19647814|h19647814|h|r) Faction: |cff00CCFF35|r, NPCFlags: |cff00CCFF0|r, DisplayID: |cff00CCFF|HdisplayID:46897|h46897 (46897)|h|r, NativeDisplayID: |cff00CCFF|HnativeID:46897|h46897|h|r, Scale: |cff00CCFF0.600000|r, Gender: |cff00CCFFRandom|r",
+  "Position: 2763.060547 3377.739258 70.565628."
+ ],
+ "npc info of an outfit": [
+  "NPC Info: |cff00CCFF|Hcreature_entry:2372187|h[Shattrath City Peacekeeper - 2372187]|h|r (GUID: |cff00CCFF|HNPC_GUID:17372799|h17372799|h|r) Faction: |cff00CCFF35|r, NPCFlags: |cff00CCFF1|r, DisplayID: |cff00CCFF|HdisplayID:58232|h58232 (11455984)|h|r, NativeDisplayID: |cff00CCFF|HnativeID:11686|h11686|h|r, Scale: |cff00CCFF1.000000|r, Gender: |cff00CCFFRandom|r",
+  "Phase Forged: |cff00CCFF185243|r"
  ]
 }

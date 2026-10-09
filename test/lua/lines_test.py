@@ -51,6 +51,8 @@ EXPECTED: dict[str, dict[str | None, int]] = {
     "lookup spell": {None: 4},
     "npc info": {None: 1},
     "gobject info": {None: 1},
+    "npc info of a creature": {"creature": 1, None: 1},
+    "npc info of an outfit": {None: 2},
 }
 
 
@@ -105,6 +107,15 @@ def test_an_object_is_named_alike_when_spawned_and_when_deleted(addon: LuaRuntim
     fern = {"kind": "object", "id": 801862, "name": "6ar_fern_b02.m2"}
     assert read(LINES["gobject spawn"][0]) == fern, "a link left open stops at its label"
     assert read(LINES["gobject delete"][0]) == fern, "a label in parentheses"
+
+
+def test_a_creature_in_an_outfit_is_not_read_since_it_cannot_be_drawn(addon: LuaRuntime) -> None:
+    read = reader(addon)
+    plain = read(LINES["npc info of a creature"][0])
+    assert plain == {"kind": "creature", "id": 16998, "name": "Mr. Bigglesworth"}, (
+        "its entry left off"
+    )
+    assert read(LINES["npc info of an outfit"][0]) is None, "58232 drawn, 11455984 worn"
 
 
 def test_an_object_whose_model_is_a_wmo_is_a_wmo(addon: LuaRuntime) -> None:

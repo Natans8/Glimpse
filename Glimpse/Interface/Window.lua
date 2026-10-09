@@ -116,6 +116,7 @@ local function draw(self)
 
 	self.reset:Show()
 	self.sheathe:SetShown(presentation.body == true)
+	self.status:SetText("")
 	self.stage:Show(look)
 end
 
@@ -389,6 +390,9 @@ local function new()
 	self.picture = hands(self, holder)
 	self.status = self.picture:CreateFontString(nil, "OVERLAY", "GameFontDisable")
 	self.status:SetPoint("CENTER")
+	self.stage:WhenNothing(function()
+		self.status:SetText(Presentations.NOTHING)
+	end)
 	corners(self, self.picture)
 	grip(self, self.chrome)
 
