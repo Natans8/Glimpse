@@ -81,8 +81,9 @@ end
 local NOTHING =
 	"Nothing to see from outside: this WMO draws nothing, as collision, trigger and liquid WMOs do."
 
---- What is said of a watertile, a WMO holding nothing but a liquid, while no
--- preview of its surface is given.
+--- What is said of a watertile, a WMO holding nothing but a liquid. The index
+-- keeps its liquid type, so a preview of the surface can take this line's place
+-- without the pictures being rendered again.
 local LIQUID = "A watertile of liquid type %d. Its surface has no preview yet."
 
 -- The liquid type of a watertile, which the index keeps beside its 0; nil for
@@ -118,10 +119,6 @@ local function show(frame, id, context)
 	end
 	if number == 0 then
 		local liquid = liquidOf(index, context and context.name)
-		local preview = index.Liquid
-		if liquid and preview and preview.Show(frame, liquid) then
-			return true
-		end
 		local note = noteOn(frame)
 		note:SetText(liquid and string.format(LIQUID, liquid) or NOTHING)
 		note:Show()
@@ -144,10 +141,6 @@ local function hide(frame)
 	if frame.glimpseWmoNote then
 		frame.glimpseWmoNote:Hide()
 	end
-	local preview = _G[addonName] and _G[addonName].Liquid
-	if preview then
-		preview.Hide(frame)
-	end
 end
 
 --- The picture of a WMO, for any addon: by its gameobject entry, its file name,
@@ -167,13 +160,6 @@ _G[addonName].Picture = function(id, name)
 	end
 	return nil
 end
-
---- The slot a preview of a watertile's surface fills, for any addon or a later
--- version of this one: `Glimpse_WMO.Liquid = { Show = function(frame, liquidType)
--- ... end, Hide = function(frame) ... end }`. Show answers whether it drew; where
--- it does not, or the slot is empty, the frame says what the tile is. Hide is
--- called whenever this addon clears a frame, whether Show drew on it or not.
-_G[addonName].Liquid = nil
 
 -- A WMO is named by an object line through its display, and by a line of
 -- `.lookup wmo` through its file; both carry the file's name, so one provider
