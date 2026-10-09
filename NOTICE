@@ -9,7 +9,8 @@ would over-claim: part of what Glimpse ships is not ours to license at all.
 
        Glimpse/Core/     Glimpse/Resolvers/     Glimpse/Interface/     Glimpse/Client.lua
        Glimpse/Art/      generator/             tools/                 test/
-       docs/             README.md              the generated tocs and the repository's configuration files
+       docs/             README.md              Glimpse_WMO/Glimpse_WMO.lua and Glimpse_WMO/Glimpse_WMO.toc
+       the generated tocs and the repository's configuration files
 
    Licensed under the GNU Affero General Public License, version 3 or (at your option) any later version.
    Full text in LICENSE.
@@ -18,8 +19,10 @@ would over-claim: part of what Glimpse ships is not ours to license at all.
 2. NOT LICENSED BY US — redistributed, not owned
 
        Glimpse/Data/**       Glimpse_Data/**         test/fixtures/**
+       Glimpse_WMO/Pictures/**                       Glimpse_WMO/Index.lua
 
    Tables derived from World of Warcraft client data (via wago.tools and the community listfile) and
-   from TrinityCore's world database, and lines of text printed by the Epsilon server. World of
-   Warcraft and its data are the property of Blizzard Entertainment. No copyright is claimed over this
+   from TrinityCore's world database, pictures rendered from World of Warcraft models and textures,
+   and lines of text printed by the Epsilon server. World of Warcraft and its data are the property of
+   Blizzard Entertainment. No copyright is claimed over this
    material and none is granted by the AGPL above; it is redistributed here for non-commercial fan use.

@@ -6,6 +6,11 @@ to show. A World of Warcraft 9.2.7 addon for the Epsilon server.
 To install, download the zip from [Releases](https://github.com/Natans8/Glimpse/releases) and unpack it into the
 game's `_retail_/Interface/AddOns` folder. It holds two folders, `Glimpse` and `Glimpse_Data`, and both are needed.
 
+No model frame can draw a WMO, so WMOs are previewed from pictures, a separate download in the same release: take
+`Glimpse_WMO-<version>.7z` (256 pixels, about 110 MB) or `Glimpse_WMO-HD-<version>.7z` (512 pixels, about 390 MB),
+and unpack its `Glimpse_WMO` folder beside the other two. Use the pictures of the same version as the addon. Without
+them, a WMO's line gains no button.
+
 Licensed under AGPL-3.0-or-later; `NOTICE` says what that does and does not cover. Made by Nataari, with the help
 of AI.
 
@@ -15,6 +20,7 @@ of AI.
 |---|---|
 | `Glimpse/` | the addon |
 | `Glimpse_Data/` | the data addon: objects, models and creatures, generated, loaded on demand |
+| `Glimpse_WMO/` | the WMO pictures' addon, its toc and Lua; the pictures and their index are generated and ship as their own download |
 | `.pkgmeta` | what a release holds, for the BigWigs packager |
 | `.github/workflows/` | the check on every push, and the release on every pushed tag |
 | `generator/` | builds the data tables from Epsilon's client tables |
@@ -70,4 +76,6 @@ the emotes Epsilon adds to the client's own from a file named by `GLIMPSE_EPSILO
 regenerating the data needs it.
 
 A release is a pushed tag, `v0.1` and on: the release workflow packs the two folders with the tag as their version
-and attaches the zip to a GitHub release.
+and attaches the zip to a GitHub release. The two WMO picture archives are built outside this repository, from
+pictures rendered off the client, with the same tag stamped into `Glimpse_WMO.toc`, and attached to the same
+release.
