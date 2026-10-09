@@ -45,21 +45,30 @@ local function pathOf(number)
 	return string.format("%s%03d\\%d.blp", FOLDER, math.floor(number / PER_FOLDER), number)
 end
 
--- The texture this addon draws on a lent frame, made once for each frame. A
--- picture is square and stays so whatever shape the frame takes, centred at
+-- A picture is square and stays so whatever shape the frame takes, centred at
 -- the largest square that fits.
-local function pictureOn(frame)
-	if frame.glimpseWmoPicture then
-		return frame.glimpseWmoPicture
+local function fit(picture, width, height)
+	local side = math.min(width, height)
+	picture:SetSize(side, side)
+end
+
+-- What this addon draws on a lent frame, made once for each frame: the picture,
+-- and a line of text in place of a picture.
+local function partsOf(frame)
+	if frame.glimpseWmo then
+		return frame.glimpseWmo
 	end
 	local picture = frame:CreateTexture(nil, "ARTWORK")
 	picture:SetPoint("CENTER")
-	frame.glimpseWmoPicture = picture
+	local note = frame:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+	note:SetPoint("CENTER")
+	note:SetWidth(240)
+	note:SetJustifyH("CENTER")
 	frame:HookScript("OnSizeChanged", function(_, width, height)
-		local side = math.min(width, height)
-		picture:SetSize(side, side)
+		fit(picture, width, height)
 	end)
-	return picture
+	frame.glimpseWmo = { picture = picture, note = note }
+	return frame.glimpseWmo
 end
 
 -- The picture of a thing: by its gameobject entry where the index knows the
@@ -95,49 +104,25 @@ local function liquidOf(index, name)
 	return nil
 end
 
---- What is said under a picture that shows a WMO otherwise than the client shows
--- it from outside, by the list of the index that holds the picture's number.
-local CAPTIONS = {
-	{ list = "collision", text = "Invisible in game. This is its collision shape." },
-	{ list = "interiors", text = "Seen only from inside." },
+--- What is said of a picture that shows a WMO otherwise than the client shows it
+-- from outside, by the list of the index that holds the picture's number. Glimpse
+-- puts the words after the kind, on the line under the name: "WMO, seen only from
+-- inside".
+local WORDS = {
+	{ list = "collision", text = "invisible: its collision shape" },
+	{ list = "interiors", text = "seen only from inside" },
 }
 
--- The caption of a picture, or nil for a picture of what the client shows.
-local function captionOf(index, number)
+-- The words said of a picture, or nil for a picture of what the client shows.
+local function wordsOf(index, number)
 	local key = string.format("%09d", number)
-	for _, caption in ipairs(CAPTIONS) do
-		local list = index[caption.list]
+	for _, words in ipairs(WORDS) do
+		local list = index[words.list]
 		if list and numbered(list, key) then
-			return caption.text
+			return words.text
 		end
 	end
 	return nil
-end
-
--- The caption along the bottom of a lent frame, made once for each frame.
-local function captionOn(frame)
-	if frame.glimpseWmoCaption then
-		return frame.glimpseWmoCaption
-	end
-	local caption = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	caption:SetPoint("BOTTOMLEFT", 8, 6)
-	caption:SetPoint("BOTTOMRIGHT", -8, 6)
-	caption:SetJustifyH("CENTER")
-	frame.glimpseWmoCaption = caption
-	return caption
-end
-
--- The line of text this addon says on a lent frame, made once for each frame.
-local function noteOn(frame)
-	if frame.glimpseWmoNote then
-		return frame.glimpseWmoNote
-	end
-	local note = frame:CreateFontString(nil, "OVERLAY", "GameFontDisable")
-	note:SetPoint("CENTER")
-	note:SetWidth(240)
-	note:SetJustifyH("CENTER")
-	frame.glimpseWmoNote = note
-	return note
 end
 
 local function show(frame, id, context)
@@ -149,38 +134,27 @@ local function show(frame, id, context)
 	if not number then
 		return false
 	end
+	local parts = partsOf(frame)
 	if number == 0 then
 		local liquid = liquidOf(index, context and context.name)
-		local note = noteOn(frame)
-		note:SetText(liquid and string.format(LIQUID, liquid) or NOTHING)
-		note:Show()
+		parts.note:SetText(liquid and string.format(LIQUID, liquid) or NOTHING)
+		parts.note:Show()
 		return true
 	end
-	local picture = pictureOn(frame)
-	local side = math.min(frame:GetSize())
-	picture:SetSize(side, side)
-	picture:SetTexture(pathOf(number))
-	picture:Show()
-	local text = captionOf(index, number)
-	if text then
-		local caption = captionOn(frame)
-		caption:SetText(text)
-		caption:Show()
-	end
-	return true
+	fit(parts.picture, frame:GetSize())
+	parts.picture:SetTexture(pathOf(number))
+	parts.picture:Show()
+	return true, wordsOf(index, number)
 end
 
 local function hide(frame)
-	local picture = frame.glimpseWmoPicture
-	if picture then
-		picture:SetTexture(nil)
-		picture:Hide()
+	local parts = frame.glimpseWmo
+	if not parts then
+		return
 	end
-	if frame.glimpseWmoNote then
-		frame.glimpseWmoNote:Hide()
-	end
-	if frame.glimpseWmoCaption then
-		frame.glimpseWmoCaption:Hide()
+	parts.picture:SetTexture(nil)
+	for _, region in pairs(parts) do
+		region:Hide()
 	end
 end
 

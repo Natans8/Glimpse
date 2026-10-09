@@ -6,15 +6,15 @@ from typing import cast
 
 from support import LuaRuntime, evaluate
 
-#: A provider for spells, recording what it is asked. `ANSWER` is what `Show` answers, and
-#: `FAULT` makes it throw.
+#: A provider for spells, recording what it is asked. `ANSWER` is what `Show` answers, `WORDS`
+#: what it answers after that, and `FAULT` makes it throw.
 PROVIDER = b"""
-    ASKED, ANSWER, FAULT = {}, true, false
+    ASKED, ANSWER, WORDS, FAULT = {}, true, nil, false
     PROVIDER = {
         Show = function(frame, id, context)
             if FAULT then error("broken") end
             ASKED[#ASKED + 1] = "show " .. id .. " in " .. frame.name .. " at " .. context.place
-            return ANSWER
+            return ANSWER, WORDS
         end,
         Hide = function(frame) ASKED[#ASKED + 1] = "hide in " .. frame.name end,
     }
@@ -42,6 +42,22 @@ def test_an_offered_kind_fills_the_inside_it_is_lent(addon: LuaRuntime) -> None:
     assert evaluate(addon, 'NS.Providers.Show("spell", INSIDE, 116, { place = "hover" })') is True
     addon.execute(b'NS.Providers.Hide("spell", INSIDE)')
     assert evaluate(addon, "ASKED") == ["show 116 in the inside at hover", "hide in the inside"]
+
+
+def test_the_words_a_provider_says_of_a_thing_are_passed_on_where_they_are_text(
+    addon: LuaRuntime,
+) -> None:
+    offer(addon)
+
+    def answers(words: str) -> object:
+        addon.execute(f"WORDS = {words}".encode())
+        return evaluate(addon, '{ NS.Providers.Show("spell", INSIDE, 116, { place = "hover" }) }')
+
+    assert answers('"seen only from inside"') == [True, "seen only from inside"]
+    assert answers("7") == [True], "only text is said"
+    assert answers('""') == [True], "nothing is said"
+    addon.execute(b"ANSWER = false")
+    assert answers('"seen only from inside"') == [False], "nothing is said of a frame not filled"
 
 
 def test_a_provider_is_told_everything_the_line_said(addon: LuaRuntime) -> None:

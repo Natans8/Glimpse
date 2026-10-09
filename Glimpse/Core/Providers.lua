@@ -17,11 +17,13 @@ local _, ns = ...
 --          since an id alone may name nothing the client can look up. Answer
 --          true where the frame was filled; anything else means it was not,
 --          whether the thing was shown elsewhere or there was nothing to show, and
---          this addon then shows nothing of its own.
+--          this addon then shows nothing of its own. A provider may answer a few
+--          words after the true, said of the thing after its kind on the line
+--          under its name: "seen only from inside".
 --   Hide   `Hide(frame)`: empty a frame it filled.
 --
 -- This addon keeps the frame around the inside: the border, closing, moving and
--- sizing. What is inside is the provider's alone, so the provider may change
+-- sizing, and the thing's name and kind over it, as every kind has. What is inside is the provider's alone, so the provider may change
 -- anything in it without this addon changing. A provider changes far more often
 -- than this addon is reinstalled, so nothing else of it is read, its functions
 -- are called protected, and the first fault withdraws it for the session without
@@ -82,18 +84,19 @@ function Providers.Name(kind)
 	return nil
 end
 
--- Call one of a kind's provider's functions, protected. A fault withdraws the provider.
+-- Call one of a kind's provider's functions, protected, for its first two answers. A
+-- fault withdraws the provider.
 local function call(kind, name, ...)
 	local provider = offered[kind]
 	if not provider then
 		return nil
 	end
-	local ok, answer = pcall(provider[name], ...)
+	local ok, answer, more = pcall(provider[name], ...)
 	if not ok then
 		offered[kind] = nil
 		return nil
 	end
-	return answer
+	return answer, more
 end
 
 --- Have the provider of a kind fill a frame with a thing.
@@ -101,9 +104,17 @@ end
 -- @param frame the frame to fill, shown and empty
 -- @param id the thing's id
 -- @param context `{ place = "hover" }` or `{ place = "window" }`
--- @return true where the provider filled the frame
+-- @return true where the provider filled the frame, then the words it said of the
+--   thing where it said any that are text
 function Providers.Show(kind, frame, id, context)
-	return call(kind, "Show", frame, id, context) == true
+	local filled, words = call(kind, "Show", frame, id, context)
+	if filled ~= true then
+		return false
+	end
+	if type(words) ~= "string" or words == "" then
+		return true
+	end
+	return true, words
 end
 
 --- Have the provider of a kind empty a frame it filled.

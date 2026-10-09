@@ -393,6 +393,15 @@ def test_a_caption_says_what_a_thing_is_and_which_look_is_shown() -> None:
     assert caption(spell, 1) == "Spell, all stages"
 
 
+def test_a_thing_another_addon_shows_is_captioned_as_every_kind_is() -> None:
+    runtime = load_addon()
+    assert evaluate(runtime, 'NS.Presentations.Lent({ kind = "spell", id = 116 })') == "Spell"
+    assert (
+        evaluate(runtime, 'NS.Presentations.Lent({ kind = "wmo" }, "seen only from inside")')
+        == "WMO, seen only from inside"
+    ), "the words the addon said follow the kind"
+
+
 def test_every_kind_has_a_word_and_a_letter_of_its_own() -> None:
     runtime = load_addon()
     kinds = [

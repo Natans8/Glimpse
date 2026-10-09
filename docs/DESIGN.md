@@ -157,10 +157,13 @@ kind.
 
 The door belongs to Glimpse because Glimpse is the side that changes least and is reinstalled least, so the
 side that changes often adapts to it and is never held to a shape. Glimpse lends the inside of its hover frame or
-window, empty, and keeps only the frame around it: the border, closing, moving and sizing. Everything inside is
-the provider's, words and controls included, so the provider changes anything in it without Glimpse changing.
-`context.place` says which it is, "hover", which takes no input, or "window". `Show` answers true where it filled
-the inside; anything else, as when it shows the thing in a frame of its own, means Glimpse shows nothing.
+window, empty, and keeps only the frame around it: the border, closing, moving and sizing, and the thing's name
+and kind, which every kind wears whoever draws it. Everything inside is the provider's, words and controls
+included, so the provider changes anything in it without Glimpse changing. `context.place` says which it is,
+"hover", which takes no input, or "window". `Show` answers true where it filled the inside; anything else, as when
+it shows the thing in a frame of its own, means Glimpse shows nothing. After the true it may answer a few words
+said of the thing, which Glimpse puts after the kind, as it puts a display's id after an item's: "WMO, seen only
+from inside".
 
 Where nothing offers a kind, its lines gain no button. A provider is called protected, and the first fault
 withdraws it for the session, saying nothing, since the fault is its own. Offering nil withdraws an offer. An

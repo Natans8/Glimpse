@@ -18,9 +18,10 @@ local _, ns = ...
 -- A control is shown only where it applies. Clicking the button of a subject
 -- a window already shows closes that window, and Escape closes them all.
 --
--- A kind another addon previews gets the window's inside, empty, below the close
--- button: the window keeps its border, closing, moving and sizing, and the rest
--- is the other addon's. The window stays open only where that addon fills it.
+-- A kind another addon previews gets the window's inside, empty, where the
+-- picture would be: the window keeps its border, closing, moving and sizing, and
+-- the header, and the rest is the other addon's. The window stays open only where
+-- that addon fills it.
 --
 -- One window serves every click unless the player has asked for a window of
 -- each: then a click opens another, a little below and right of the last.
@@ -37,9 +38,6 @@ local NAME = "GlimpseWindow"
 local WIDTH, HEIGHT = 380, 480
 local NARROWEST, SHORTEST, LARGEST = 300, 320, 1000
 local MARGIN = 8
-
---- How far down a lent inside starts, clear of the close button.
-local TOP = 30
 
 --- How far above the window's own level its close button and grip stand, so
 -- whatever fills the window stays under them.
@@ -195,7 +193,7 @@ end
 
 local function header(self)
 	local frame = self.frame
-	self.title = self.own:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+	self.title = self.head:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 	self.title:SetPoint("TOPLEFT", MARGIN + 2, -MARGIN)
 
 	local close = Tools.Icon(self.chrome, "close", "Close", nil, function()
@@ -203,7 +201,7 @@ local function header(self)
 	end)
 	close:SetPoint("TOPRIGHT", -4, -4)
 
-	self.name = self.own:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+	self.name = self.head:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 	self.name:SetPoint("TOPLEFT", self.title, "BOTTOMLEFT", 0, -4)
 	self.name:SetPoint("RIGHT", frame, "RIGHT", -MARGIN - 24, 0)
 	self.name:SetJustifyH("LEFT")
@@ -282,26 +280,43 @@ local function empty(self)
 	self.inside:Hide()
 end
 
+-- What the line over the name says: the thing's kind and id, then the words the
+-- addon that shows it said of it, where it said any.
+local function heading(read, words)
+	local line = Kinds.Word(read)
+	if read.id then
+		line = line .. " " .. read.id
+	end
+	if words then
+		line = line .. ", " .. words
+	end
+	return line
+end
+
 -- Lend the window's inside to the addon that previews the read's kind; the
 -- window closes again where that addon does not fill it.
 local function lend(self, read)
 	self.own:Hide()
 	self.inside:Show()
 	self.shown.lent = read.kind
-	if not Providers.Show(read.kind, self.inside, read.id, Providers.Context("window", read)) then
+	local filled, words =
+		Providers.Show(read.kind, self.inside, read.id, Providers.Context("window", read))
+	if not filled then
 		self.frame:Hide()
+		return
 	end
+	self.title:SetText(heading(read, words))
 end
 
--- The window's three layers: what it shows of its own, the inside it lends in
--- place of that, and its close button and grip over both.
+-- The window's four layers: the header, what it shows of its own below it, the
+-- inside it lends in place of that, and its close button and grip over all.
 local function layers(self)
 	local frame = self.frame
+	self.head = _G.CreateFrame("Frame", nil, frame)
+	self.head:SetAllPoints()
 	self.own = _G.CreateFrame("Frame", nil, frame)
 	self.own:SetAllPoints()
 	self.inside = _G.CreateFrame("Frame", nil, frame)
-	self.inside:SetPoint("TOPLEFT", MARGIN, -TOP)
-	self.inside:SetPoint("BOTTOMRIGHT", -MARGIN, MARGIN)
 	self.inside:Hide()
 	self.chrome = _G.CreateFrame("Frame", nil, frame)
 	self.chrome:SetAllPoints()
@@ -367,6 +382,8 @@ local function new()
 	holder:SetPoint("BOTTOMRIGHT", -MARGIN, MARGIN)
 	Tools.Fill(holder, Tools.WELL)
 	self.stage = Stage.New(holder)
+	-- A lent inside stands where the picture would.
+	self.inside:SetAllPoints(holder)
 
 	-- The controls stand on the frame that takes the pointer, so they are over it.
 	self.picture = hands(self, holder)
@@ -396,6 +413,9 @@ local function open(self, read, lent)
 	Async.Cancel(self.slot)
 	empty(self)
 	self.shown = { key = Subject.Key(read) }
+	self.title:SetText(heading(read))
+	self.name:SetText(read.name)
+	bare(self)
 	self.frame:Show()
 	self.frame:Raise()
 	if lent then
@@ -403,10 +423,7 @@ local function open(self, read, lent)
 		return
 	end
 	self.own:Show()
-	self.title:SetText(Kinds.Word(read) .. " " .. read.id)
-	self.name:SetText(read.name)
 	self.status:SetText("")
-	bare(self)
 	Async.Ask(self.slot, read, function(subject)
 		if not (subject and subject.looks[1]) then
 			self.status:SetText(Presentations.NOTHING)

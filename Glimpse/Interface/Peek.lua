@@ -214,16 +214,22 @@ local function settle()
 	end
 end
 
--- Lend the first card's inside to the addon that previews the read's kind. The
--- card is shown first, since a model frame inside it applies nothing while hidden.
+-- Lend the first card's inside to the addon that previews the read's kind, under
+-- the name and kind every card wears. The card is shown first, since a model frame
+-- inside it applies nothing while hidden.
 local function lend(first, read)
-	first.over:Hide()
+	first.over:Show()
+	first.name:SetText(read.name)
 	first.inside:Show()
 	first.frame:Show()
 	first.lent = read.kind
-	if not Providers.Show(read.kind, first.inside, read.id, Providers.Context("hover", read)) then
+	local filled, words =
+		Providers.Show(read.kind, first.inside, read.id, Providers.Context("hover", read))
+	if not filled then
 		first.frame:Hide()
+		return
 	end
+	first.caption:SetText(Presentations.Lent(read, words))
 end
 
 --- Show a read at the pointer.

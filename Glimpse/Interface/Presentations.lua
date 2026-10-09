@@ -139,3 +139,15 @@ function Presentations.Caption(subject, index)
 	end
 	return table.concat(parts, ", ")
 end
+
+--- What is said beside a thing another addon shows: what kind of thing it is,
+-- then the words that addon said of it.
+-- @param read the read shown
+-- @param words what the addon said of the thing, or nil
+-- @return the line: "Spell", "WMO, seen only from inside"
+function Presentations.Lent(read, words)
+	if words then
+		return ns.Kinds.Word(read) .. ", " .. words
+	end
+	return ns.Kinds.Word(read)
+end
