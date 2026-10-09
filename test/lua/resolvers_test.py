@@ -279,6 +279,8 @@ def test_a_line_gains_a_button_only_where_there_is_something_to_show(game: LuaRu
     assert button('{ kind = "spell", id = 116 }') is None, "no addon offers to preview it"
     assert button('{ kind = "area", id = 12 }') == "Map"
     assert button('{ kind = "area", id = 999999 }') is None, "an area with no map"
+    assert button('{ kind = "map", id = 1 }') == "Map"
+    assert button('{ kind = "map", id = 24298 }') is None, "a map the client draws no world map of"
 
 
 def test_a_stock_object_whose_display_is_a_wmo_is_a_wmo_line_under_another_name(
