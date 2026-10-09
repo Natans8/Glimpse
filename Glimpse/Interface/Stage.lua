@@ -186,6 +186,13 @@ local function stopRetrying(self)
 	end
 end
 
+-- Whether a model frame holds a model, which a creature the client has not been
+-- told about yet does not.
+local function holdsModel(model)
+	local file = model:GetModelFileID()
+	return file ~= nil and file ~= 0
+end
+
 -- The player's body, wearing only what the look puts on it.
 local function body(model)
 	model:SetUnit("player")
@@ -200,15 +207,14 @@ local DRAW = {
 	display = function(self, display)
 		self.actor:SetModelByCreatureDisplayID(display)
 	end,
-	-- The frame stays unseen until its display is no longer the earlier one, so
-	-- the earlier creature is never shown under the new one's name. A creature
-	-- with the earlier one's own display cannot be told from one still to come,
-	-- so the frame is shown at the last asking whatever it holds.
+	-- The frame is emptied first and stays unseen until it holds a model, so an
+	-- earlier creature is never shown under the new one's name, and one the client
+	-- never loads, as a forged creature in an outfit, shows nothing at all.
 	creature = function(self, entry)
 		local model = self.model
-		local earlier = model:GetDisplayInfo()
+		model:ClearModel()
 		model:SetCreature(entry)
-		if model:GetDisplayInfo() ~= earlier then
+		if holdsModel(model) then
 			return
 		end
 		model:SetAlpha(0)
@@ -218,9 +224,11 @@ local DRAW = {
 			ns.Safely.Wrap(function()
 				asked = asked + 1
 				model:SetCreature(entry)
-				if model:GetDisplayInfo() ~= earlier or asked == RETRIES then
+				if holdsModel(model) then
 					stopRetrying(self)
 					model:SetAlpha(1)
+				elseif asked == RETRIES then
+					stopRetrying(self)
 				end
 			end),
 			RETRIES
