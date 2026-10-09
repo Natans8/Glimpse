@@ -92,6 +92,16 @@ def test_the_filter_appends_one_button_after_the_line(chat: LuaRuntime) -> None:
     assert (author, rest) == ("author", "rest"), "the event's other arguments pass through"
 
 
+def test_a_line_in_rows_gains_its_button_on_the_row_that_names_it(chat: LuaRuntime) -> None:
+    line = LINES["lookup detaildoodad grass"][0]
+    first, rest = line.split("\r", 1)
+    shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
+    assert isinstance(shown, str)
+    head, tail = shown.split("\r", 1)
+    assert head.startswith(first) and head.endswith("|h[Preview]|h|r"), "after the detail's id"
+    assert tail == rest, "the model rows untouched"
+
+
 def test_the_filter_gives_the_same_answer_each_time_it_is_asked(chat: LuaRuntime) -> None:
     line = json.dumps(LINES["lookup object inn"][0])
     assert evaluate(chat, f"select(2, FILTER({line})) == select(2, FILTER({line}))") is True

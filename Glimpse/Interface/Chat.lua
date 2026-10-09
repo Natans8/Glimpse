@@ -2,10 +2,11 @@ local _, ns = ...
 
 --- The chat side: buttons on the lines the server prints, and clicks on them.
 --
--- One filter on system messages appends a button to each line that has
--- something to show. The filter is added at login, after every other addon
--- has added its own, so this addon's buttons come after theirs and theirs
--- stay where players are used to finding them.
+-- One filter on system messages puts a button at the end of each line that has
+-- something to show, or of its first row where the server breaks it into rows.
+-- The filter is added at login, after every other addon has added its own, so
+-- this addon's buttons come after theirs and theirs stay where players are used
+-- to finding them.
 --
 -- The chat frames and the client's link handler belong to the client and are
 -- shared with other addons, so they are hooked here and never replaced.
@@ -47,10 +48,25 @@ local function buttonsOf(message)
 	return table.concat(buttons)
 end
 
-local lastMessage, lastOff, lastButtons
+-- The line with its buttons, put where its first row ends: a line the server
+-- breaks into rows names what it is on the first, as a detail doodad gives its
+-- id there and a model on each row after.
+local function shownOf(message)
+	local buttons = buttonsOf(message)
+	if not buttons then
+		return nil
+	end
+	local rowEnd = message:find("[\r\n]")
+	if not rowEnd then
+		return message .. buttons
+	end
+	return message:sub(1, rowEnd - 1) .. buttons .. message:sub(rowEnd)
+end
+
+local lastMessage, lastOff, lastShown
 
 -- The client runs a filter once for each chat frame showing the line, with
--- the same text each time, so the last line's buttons are kept, for as long as
+-- the same text each time, so the last line as shown is kept, for as long as
 -- the kinds turned off are the same table; turning one on or off makes another.
 -- A fault leaves the line as it came.
 local filter = Safely.Wrap(function(_, _, message, ...)
@@ -59,12 +75,12 @@ local filter = Safely.Wrap(function(_, _, message, ...)
 	end
 	local off = ns.Settings.Get("off")
 	if message ~= lastMessage or off ~= lastOff then
-		lastMessage, lastOff, lastButtons = message, off, buttonsOf(message)
+		lastMessage, lastOff, lastShown = message, off, shownOf(message)
 	end
-	if not lastButtons then
+	if not lastShown then
 		return false
 	end
-	return false, message .. lastButtons, ...
+	return false, lastShown, ...
 end)
 
 --- Act on a read as a click on its button does: a button that draws opens the
