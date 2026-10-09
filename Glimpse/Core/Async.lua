@@ -5,7 +5,8 @@ local _, ns = ...
 -- A resolver may answer at once or later. Each place a preview is shown is a
 -- slot; a new question in a slot abandons the one before it, so an answer
 -- that arrives late for a line the player has left is dropped. A subject,
--- once found, is kept, so asking again about the same thing is immediate.
+-- once found, is kept, so asking again about the same thing is immediate,
+-- unless its kind says it depends on what the server says of the thing now.
 local Async = {}
 ns.Async = Async
 
@@ -39,7 +40,7 @@ function Async.Ask(slot, read, done)
 	local cancel = ns.Kinds.Resolve(read, function(subject)
 		-- Only a subject is kept: "nothing to show" may change once the client has
 		-- loaded what was asked of it.
-		if subject then
+		if subject and not ns.Kinds.Live(read) then
 			answers[key] = subject
 		end
 		if current[slot] == pending then

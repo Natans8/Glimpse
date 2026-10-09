@@ -23,6 +23,8 @@ local _, ns = ...
 --             kind with nothing to draw
 --   recast    optional; `recast(read)` answers a read of another kind where the data says
 --             the line is really about that, or nil to keep the read as it is
+--   live      optional; `live(read)` is true where the subject depends on what the server
+--             says of the thing now, so it is found afresh each time rather than kept
 --
 -- Any kind that is drawn may also be offered by another addon, which then
 -- previews it in place of this one.
@@ -57,6 +59,15 @@ function Kinds.Settle(read)
 		return row.recast(read) or read
 	end
 	return read
+end
+
+--- Whether a read's subject depends on what the server says of the thing now, so
+-- it is found afresh each time it is asked for.
+-- @param read a read from `Lines.Read`
+-- @return true where it must not be kept
+function Kinds.Live(read)
+	local row = rows[read.kind]
+	return row ~= nil and row.live ~= nil and row.live(read) == true
 end
 
 --- Whether a kind has been added.

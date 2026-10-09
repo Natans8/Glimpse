@@ -120,6 +120,10 @@ end
 Kinds.Add("object", {
 	word = "Object",
 	code = "o",
+	-- A spawned object may be tinted or given a spell at any moment.
+	live = function(read)
+		return read.ids ~= nil
+	end,
 	-- A stock entry whose display is a WMO is a WMO's line under another name,
 	-- for whoever previews WMOs; no model frame draws one.
 	recast = function(read)

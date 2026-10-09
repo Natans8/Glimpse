@@ -153,3 +153,20 @@ def test_the_servers_record_of_an_object_is_kept_by_its_guid() -> None:
     }, "the percentages typed, and saturation from the far end of the record"
     assert evaluate(runtime, "NS.Client.ObjectRecord(7)") is None, "another prefix is not heard"
     assert evaluate(runtime, "NS.Client.ObjectRecord(1)") is None, "nothing came for it"
+
+
+def test_a_subject_that_depends_on_the_servers_word_is_found_afresh() -> None:
+    runtime = load_addon()
+    runtime.execute(b"""
+        ASKED = 0
+        NS.Kinds.Resolve = function(read, done)
+            ASKED = ASKED + 1
+            done({ kind = read.kind, id = read.id, looks = { { draw = "file", value = 1 } } })
+        end
+        local function ask(read) NS.Async.Ask("peek", read, function() end) end
+        ask({ kind = "object", id = 801862, name = "fern" })
+        ask({ kind = "object", id = 801862, name = "fern" })
+        ask({ kind = "object", id = 801862, name = "fern", ids = { 96105 } })
+        ask({ kind = "object", id = 801862, name = "fern", ids = { 96105 } })
+    """)
+    assert evaluate(runtime, "ASKED") == 3, "an entry's model is kept, a spawned object's is not"

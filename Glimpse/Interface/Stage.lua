@@ -29,6 +29,9 @@ local PLAIN_SWORD = 25
 -- later, it draws the creature.
 local RETRY_SECONDS, RETRIES = 0.1, 5
 
+--- How long after a model is given its tint: the wait that drew one in game.
+local TINT_SECONDS = 1
+
 local MAIN_HAND = 16
 
 --- The client's model scene whose camera the scene takes: an orbit camera.
@@ -207,18 +210,16 @@ local DRAW = {
 	display = function(self, display)
 		self.actor:SetModelByCreatureDisplayID(display)
 	end,
-	-- A kit given before the model has drawn is dropped, so the tint is given a
-	-- moment after the model, and the frame stays unseen until then.
+	-- A kit given before the model has drawn is dropped, and a model not seen is
+	-- not drawn, so the model is shown as it is and tinted a moment later.
 	tinted = function(self, file, look)
 		local model = self.model
-		model:SetAlpha(0)
 		model:SetModel(file)
 		self.retry = _G.C_Timer.NewTimer(
-			RETRY_SECONDS * 5,
+			TINT_SECONDS,
 			ns.Safely.Wrap(function()
 				self.retry = nil
 				model:ApplySpellVisualKit(look.kit, false)
-				model:SetAlpha(1)
 			end)
 		)
 	end,
