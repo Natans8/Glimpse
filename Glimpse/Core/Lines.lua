@@ -24,8 +24,15 @@ local function plain(text)
 	return text:match("^%s*(.-)%s*$")
 end
 
+-- A label without its brackets, or the parentheses a deleted object's line uses.
 local function unbracket(label)
-	return plain(label:match("^%[(.*)%]$") or label)
+	return plain(label:match("^%[(.*)%]$") or label:match("^%((.*)%)$") or label)
+end
+
+-- A link's label as far as its closing bracket. A link the server leaves open, as
+-- on a spawned object's line, would otherwise run on into the next link.
+local function closed(label)
+	return label:match("^%b[]") or label:match("^%b()") or label
 end
 
 --- A model's name without the tag some carry in front of it. The server
@@ -220,7 +227,7 @@ local function read(message)
 	for linkType, payload, label in message:gmatch("|H([%a_]+):([^|]*)|h(.-)|h") do
 		local reader = LINKS[linkType]
 		if reader then
-			local found = reader(payload, label)
+			local found = reader(payload, closed(label))
 			if found and found.id then
 				return found
 			end
