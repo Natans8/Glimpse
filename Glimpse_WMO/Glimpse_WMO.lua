@@ -83,23 +83,16 @@ local function pictureOf(index, id, name)
 	return number
 end
 
---- What is said of a picture that shows a WMO otherwise than the client shows it
--- from outside, by the list of the index that holds the picture's number. Glimpse
--- puts the words after the kind, on the line under the name: "Object, seen only
--- from inside".
-local WORDS = {
-	{ list = "collision", text = "invisible: its collision shape" },
-	{ list = "interiors", text = "seen only from inside" },
-}
+--- What is said of a picture of a WMO the client shows nothing of, which shows its
+-- collision shape in its place; the index lists those pictures by number. Glimpse
+-- puts the words after the kind, on the line under the name: "Object, invisible:
+-- its collision shape".
+local COLLISION = "invisible: its collision shape"
 
 -- The words said of a picture, or nil for a picture of what the client shows.
 local function wordsOf(index, number)
-	local key = string.format("%09d", number)
-	for _, words in ipairs(WORDS) do
-		local list = index[words.list]
-		if list and numbered(list, key) then
-			return words.text
-		end
+	if index.collision and numbered(index.collision, string.format("%09d", number)) then
+		return COLLISION
 	end
 	return nil
 end

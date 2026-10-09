@@ -8,32 +8,27 @@ from support import ROOT, LuaRuntime, Plain, evaluate, new_runtime, plain
 
 MODULE = ROOT / "Glimpse_WMO" / "Glimpse_WMO.lua"
 
-#: A client of regions and frames that record what is done to them, a small index, and
+#: A client of a texture and a frame that record what is done to them, a small index, and
 #: Glimpse's door keeping what is offered through it.
 CLIENT = b"""
-    local function region()
-        local r = { shown = false }
-        function r:SetPoint() end
-        function r:SetWidth() end
-        function r:SetJustifyH() end
-        function r:SetSize(w, h) self.size = w .. "x" .. h end
-        function r:SetTexture(path) self.texture = path end
-        function r:SetText(text) self.text = text end
-        function r:Show() self.shown = true end
-        function r:Hide() self.shown = false end
-        return r
+    local function texture()
+        local t = { shown = false }
+        function t:SetPoint() end
+        function t:SetSize(w, h) self.size = w .. "x" .. h end
+        function t:SetTexture(path) self.texture = path end
+        function t:Show() self.shown = true end
+        function t:Hide() self.shown = false end
+        return t
     end
     FRAME = { width = 300, height = 200 }
-    function FRAME:CreateTexture() return region() end
-    function FRAME:CreateFontString() return region() end
+    function FRAME:CreateTexture() return texture() end
     function FRAME:HookScript(_, handler) self.sized = handler end
     function FRAME:GetSize() return self.width, self.height end
     Glimpse_WMO = {
-        pictures = ";castle=1234;deleteme_box=1500;laketile_1_water=0;wall=1600;",
+        pictures = ";castle=1234;laketile_1_water=0;wall=1600;",
         entries = ";000000042=1234;",
         liquids = ";laketile_1_water=1;",
         collision = ";000001600=1;",
-        interiors = ";000001500=1;",
     }
     OFFERED = {}
     Glimpse = { Provide = function(kind, provider) OFFERED[kind] = provider end }
@@ -95,10 +90,10 @@ def test_a_picture_is_found_by_entry_before_name() -> None:
     )
 
 
-def test_collision_and_interior_pictures_say_so_for_glimpse_to_put_after_the_kind() -> None:
+def test_a_collision_picture_says_so_for_glimpse_to_put_after_the_kind() -> None:
     runtime = module()
     assert show(runtime, 'nil, { name = "wall" }') == [True, "invisible: its collision shape"]
-    assert show(runtime, 'nil, { name = "deleteme_box" }') == [True, "seen only from inside"]
+    assert show(runtime, 'nil, { name = "castle" }') == [True], "a picture of what the client shows"
 
 
 def test_only_a_wmo_with_a_picture_gains_a_button() -> None:

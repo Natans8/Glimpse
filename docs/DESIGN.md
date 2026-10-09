@@ -163,8 +163,8 @@ and kind, which every kind wears whoever draws it. Everything inside is the prov
 included, so the provider changes anything in it without Glimpse changing. `context.place` says which it is,
 "hover", which takes no input, or "window". `Show` answers true where it filled the inside; anything else, as when
 it shows the thing in a frame of its own, means Glimpse shows nothing. After the true it may answer a few words
-said of the thing, which Glimpse puts after the kind, as it puts a display's id after an item's: "Object, seen only
-from inside".
+said of the thing, which Glimpse puts after the kind, as it puts a display's id after an item's: "Object,
+invisible: its collision shape".
 
 Where nothing offers a kind, its lines gain no button. A provider is called protected, and the first fault
 withdraws it for the session, saying nothing, since the fault is its own. Offering nil withdraws an offer. An

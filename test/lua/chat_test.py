@@ -397,8 +397,10 @@ def test_a_thing_another_addon_shows_is_captioned_as_every_kind_is() -> None:
     runtime = load_addon()
     assert evaluate(runtime, 'NS.Presentations.Lent({ kind = "spell", id = 116 })') == "Spell"
     assert (
-        evaluate(runtime, 'NS.Presentations.Lent({ kind = "wmo" }, "seen only from inside")')
-        == "Object, seen only from inside"
+        evaluate(
+            runtime, 'NS.Presentations.Lent({ kind = "wmo" }, "invisible: its collision shape")'
+        )
+        == "Object, invisible: its collision shape"
     ), "the words the addon said follow the kind, and a WMO is an object to the player"
 
 

@@ -53,11 +53,11 @@ def test_the_words_a_provider_says_of_a_thing_are_passed_on_where_they_are_text(
         addon.execute(f"WORDS = {words}".encode())
         return evaluate(addon, '{ NS.Providers.Show("spell", INSIDE, 116, { place = "hover" }) }')
 
-    assert answers('"seen only from inside"') == [True, "seen only from inside"]
+    assert answers('"its collision shape"') == [True, "its collision shape"]
     assert answers("7") == [True], "only text is said"
     assert answers('""') == [True], "nothing is said"
     addon.execute(b"ANSWER = false")
-    assert answers('"seen only from inside"') == [False], "nothing is said of a frame not filled"
+    assert answers('"its collision shape"') == [False], "nothing is said of a frame not filled"
 
 
 def test_a_line_gains_no_button_where_its_provider_has_nothing_to_show(addon: LuaRuntime) -> None:

@@ -23,7 +23,7 @@ local _, ns = ...
 --          whether the thing was shown elsewhere or there was nothing to show, and
 --          this addon then shows nothing of its own. A provider may answer a few
 --          words after the true, said of the thing after its kind on the line
---          under its name: "seen only from inside".
+--          under its name: "invisible: its collision shape".
 --   Hide   `Hide(frame)`: empty a frame it filled.
 --
 -- This addon keeps the frame around the inside: the border, closing, moving and

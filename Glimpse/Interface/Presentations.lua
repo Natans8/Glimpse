@@ -144,7 +144,7 @@ end
 -- then the words that addon said of it.
 -- @param read the read shown
 -- @param words what the addon said of the thing, or nil
--- @return the line: "Spell", "Object, seen only from inside"
+-- @return the line: "Spell", "Object, invisible: its collision shape"
 function Presentations.Lent(read, words)
 	if words then
 		return ns.Kinds.Word(read) .. ", " .. words
