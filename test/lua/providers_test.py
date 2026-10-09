@@ -127,7 +127,6 @@ def test_any_kind_that_is_drawn_may_be_offered_and_nothing_else(addon: LuaRuntim
         assert evaluate(addon, f'Glimpse.Provide("{kind}", PROVIDER)') is True, kind
     assert evaluate(addon, 'Glimpse.Provide("music", PROVIDER)') is False, "a sound is played"
     assert evaluate(addon, 'Glimpse.Provide("area", PROVIDER)') is False, "an area opens a map"
-    assert evaluate(addon, 'Glimpse.Provide("map", PROVIDER)') is False, "so does a map"
     assert evaluate(addon, 'Glimpse.Provide("nothing like it", PROVIDER)') is False
     assert evaluate(addon, "Glimpse.Provide(nil, PROVIDER)") is False
 

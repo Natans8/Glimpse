@@ -19,14 +19,13 @@ line, so any server reply carrying one of these links gains the button, whicheve
 | enchant | `enchantID:` link | `[Preview]` | a weapon tried on with the enchant |
 | emote | `emoteID:` link | `[Preview]` | the animation on the player's body |
 | area | `area:` link, of an area that has a map | `[Map]` | the client's world map, opened at the area's map: its own, its zone's, or in an instance the dungeon floor named as the area is, else the first; resting on it names the area and the map in text |
-| map | `MapID:` link, of a map the client draws a world map of | `[Map]` | the client's world map, opened at the map's top: of the world maps the client assigns it, the one holding the most of the others, as a continent holds its zones; a dungeon on its first floor; resting on it names the map in text |
 | spell | `spell:` link, and an addon such as Epsilook offering it | `[Preview]` | whatever that addon draws inside Glimpse's hover frame and window |
-| teleport, skill, title, blueprint, faction, WMO area, tile texture | their links (`tele:`, `skill:`, `title:`, `blueprint_name:`), or the line's shape for the last three | `[Preview]`, only while an addon offers the kind | as for a spell |
+| map, teleport, skill, title, blueprint, faction, WMO area, tile texture | their links (`MapID:`, `tele:`, `skill:`, `title:`, `blueprint_name:`), or the line's shape for the last three | `[Preview]`, only while an addon offers the kind | as for a spell |
 | music, ambience, intro music | the line's shape, and its id and name both matching the shipped table | `[Play]` | the sound kit, played and stopped |
 
 No button is added where there is nothing to show: a non-equipment item that is neither mount nor pet, a stock
-enchant with no visual, an area or map with no world map, an object whose WMO the addon drawing it has no picture
-of, a watertile among them, a kind the player has turned off, and a kind only another addon previews while none
+enchant with no visual, an area with no world map, an object whose WMO the addon drawing it has no picture of, a
+watertile among them, a kind the player has turned off, and a kind only another addon previews while none
 offers it. Every kind of line `.lookup` prints is read, so an addon can offer any of them.
 
 Glimpse does not touch what players post in chat, and it does not attach to item tooltips.

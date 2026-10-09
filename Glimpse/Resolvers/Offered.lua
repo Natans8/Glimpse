@@ -18,6 +18,7 @@ Kinds.Add("spell", { word = "Spell", code = "s", provided = true, listed = true 
 -- the object's word and with it the object's switch; it is a kind of its own only
 -- because another addon draws it.
 local OFFERED = {
+	{ "map", "Map", "p" },
 	{ "teleport", "Teleport", "t" },
 	{ "skill", "Skill", "k" },
 	{ "title", "Title", "h" },

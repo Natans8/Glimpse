@@ -136,9 +136,7 @@ def main_data(con: duckdb.DuckDBPyConnection) -> dict[str, str]:
         "Data/Formats.lua": head + f"ns.Data.Format = {DATA_FORMAT}\n",
         "Data/Sounds.lua": head + sounds,
         "Data/Enchants.lua": head + f"ns.Data.EnchantsWithoutVisual = {lua.plain(enchants)}\n",
-        "Data/Areas.lua": head
-        + f"ns.Data.AreaMaps = {lua.plain(tables.area_maps(con))}\n"
-        + f"ns.Data.MapMaps = {lua.plain(tables.map_maps(con))}\n",
+        "Data/Areas.lua": head + f"ns.Data.AreaMaps = {lua.plain(tables.area_maps(con))}\n",
         "Data/Emotes.lua": head
         + f"ns.Data.EmoteAnimations = {lua.plain(unruled)}\n"
         + f"ns.Data.EmoteBases = {lua.plain(list(tables.EMOTE_BASES))}\n"

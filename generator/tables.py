@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections import Counter
 from collections.abc import Iterable, Mapping, Set
 from typing import NamedTuple
 
@@ -169,59 +168,6 @@ def area_maps(con: duckdb.DuckDBPyConnection) -> dict[int, int]:
         if found:
             same = [ui_map for _, floor, ui_map in found if floor.lower() == str(name).lower()]
             maps[int(area)] = (same or [found[0][2]])[0]
-    return dict(sorted(maps.items()))
-
-
-#: The kinds of map a whole map may open on, by `UiMap.Type`, in the order they are preferred
-#: where two hold as much of it: a continent, a zone, a map outside any continent, a dungeon,
-#: a micro-dungeon. The world itself is no map's own.
-WHOLE_MAP_PREFERENCE = {2: 0, 3: 1, 6: 2, 4: 3, 5: 4}
-
-
-def map_maps(con: duckdb.DuckDBPyConnection) -> dict[int, int]:
-    """Each map's world map, by map id: of the world maps the client assigns the map, one at
-    the top, with no ancestor among them, holding the most of the others beneath it, as
-    Outland's holds its zones where the Eastern Kingdoms holds only the Blood Elf ones on the
-    same map. Ties go by kind, then to the lowest floor, as a dungeon opens on its first.
-
-    A map the client assigns no world map has no entry, and so gains no button.
-    """
-    parents = {
-        int(ui_map): int(parent or 0)
-        for ui_map, parent in con.execute(
-            f'SELECT "ID", "ParentUiMapID" FROM {SCHEMA}."UiMap"'
-        ).fetchall()
-    }
-    rows = con.execute(
-        f'SELECT DISTINCT a."MapID", a."UiMapID", m."Type" FROM {SCHEMA}."UiMapAssignment" a '
-        f'JOIN {SCHEMA}."UiMap" m ON m."ID" = a."UiMapID"'
-    ).fetchall()
-    kinds: dict[int, dict[int, int]] = {}
-    for world, ui_map, kind in rows:
-        if int(kind) in WHOLE_MAP_PREFERENCE:
-            kinds.setdefault(int(world), {})[int(ui_map)] = int(kind)
-    floors = {int(row["UiMapID"]): int(row["FloorIndex"]) for row in wago_rows("UiMapGroupMember")}
-
-    maps: dict[int, int] = {}
-    for world, assigned in kinds.items():
-        held: Counter[int] = Counter()
-        for ui_map in assigned:
-            top, at, seen = ui_map, parents.get(ui_map, 0), {ui_map}
-            while at and at not in seen:
-                seen.add(at)
-                if at in assigned:
-                    top = at
-                at = parents.get(at, 0)
-            held[top] += 1
-        maps[world] = min(
-            held,
-            key=lambda ui_map: (
-                -held[ui_map],
-                WHOLE_MAP_PREFERENCE[assigned[ui_map]],
-                floors.get(ui_map, 0),
-                ui_map,
-            ),
-        )
     return dict(sorted(maps.items()))
 
 

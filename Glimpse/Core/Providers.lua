@@ -4,9 +4,9 @@ local _, ns = ...
 --
 -- An addon offers itself through `Glimpse.Provide(kind, provider)`, for any kind
 -- that is drawn, this addon's own or one it leaves to others: "spell", "object",
--- "creature" and the rest, never a sound, an area or a map, which draw nothing. It
--- then previews that kind in place of this addon, while the player has not turned
--- the kind off. A provider is a table, its functions called as plain functions:
+-- "creature" and the rest, never a sound or an area, which draw nothing. It then
+-- previews that kind in place of this addon, while the player has not turned the
+-- kind off. A provider is a table, its functions called as plain functions:
 --
 --   name   optional; the addon's name, which the settings show the player
 --   Shows  optional; `Shows(id, context)`: answer false where there is nothing to
