@@ -3,7 +3,8 @@ local _, ns = ...
 --- The chat side: buttons on the lines the server prints, and clicks on them.
 --
 -- One filter on system messages puts a button at the end of each line that has
--- something to show, or of its first row where the server breaks it into rows.
+-- something to show, or of its first row where the server breaks it into rows,
+-- and one at the end of each later row that names a thing of its own.
 -- The filter is added at login, after every other addon has added its own, so
 -- this addon's buttons come after theirs and theirs stay where players are used
 -- to finding them.
@@ -30,13 +31,9 @@ local function drawerOf(read)
 	return Kinds.Drawer(read)
 end
 
--- The buttons a line gains, as text to append to it, or nil.
-local function buttonsOf(message)
-	local read = Lines.Read(message)
-	if read then
-		read = Kinds.Settle(read)
-	end
-	local words = read and drawerOf(read) and Kinds.Buttons(read)
+-- The buttons a read gains, as text to put after what names it, or nil.
+local function buttonsOf(read)
+	local words = drawerOf(read) and Kinds.Buttons(read)
 	if not words then
 		return nil
 	end
@@ -48,19 +45,23 @@ local function buttonsOf(message)
 	return table.concat(buttons)
 end
 
--- The line with its buttons, put where its first row ends: a line the server
--- breaks into rows names what it is on the first, as a detail doodad gives its
--- id there and a model on each row after.
+-- The line with its buttons. A line the server breaks into rows names what it is
+-- on the first, so the line's own buttons end that row, and a later row that names
+-- a thing of its own, as a detail doodad lists a model on each, gains that thing's.
 local function shownOf(message)
-	local buttons = buttonsOf(message)
-	if not buttons then
+	local read = Lines.Read(message)
+	local own = read and buttonsOf(Kinds.Settle(read))
+	if not own then
 		return nil
 	end
-	local rowEnd = message:find("[\r\n]")
-	if not rowEnd then
-		return message .. buttons
+	local within = Lines.Rows(message, read) or {}
+	local shown = {}
+	for index, row in ipairs(Lines.Split(message)) do
+		local buttons = index == 1 and own
+			or (within[index] and buttonsOf(Kinds.Settle(within[index])))
+		shown[index] = row.text .. (buttons or "") .. row.ending
 	end
-	return message:sub(1, rowEnd - 1) .. buttons .. message:sub(rowEnd)
+	return table.concat(shown)
 end
 
 local lastMessage, lastOff, lastShown

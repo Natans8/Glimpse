@@ -238,3 +238,41 @@ end
 -- @param message the line as the server sent it
 -- @return the read, or nil where the line is not one the addon previews
 Lines.Read = read
+
+--- A line's rows, as the server breaks it.
+-- @param message the line as the server sent it
+-- @return a list of `{ text, ending }`, each row's text and the break after it,
+-- the last row's break empty, so that joining them gives the line again
+function Lines.Split(message)
+	local rows, from = {}, 1
+	while true do
+		local at = message:find("[\r\n]", from)
+		if not at then
+			rows[#rows + 1] = { text = message:sub(from), ending = "" }
+			return rows
+		end
+		rows[#rows + 1] = { text = message:sub(from, at - 1), ending = message:sub(at, at) }
+		from = at + 1
+	end
+end
+
+--- What a line names on rows of their own, after the row that names the line:
+-- each model a detail doodad lists, read on the first row that lists it.
+-- @param message the line as the server sent it
+-- @param own the line's own read
+-- @return a read for each such row, by its number in `Lines.Split`, or nil
+-- where the line has no such rows
+function Lines.Rows(message, own)
+	if own.kind ~= "doodad" then
+		return nil
+	end
+	local reads, seen = {}, {}
+	for index, row in ipairs(Lines.Split(message)) do
+		local name = index > 1 and row.text:match("|cff00CCFF([%w_%-%.]+%.m2)|r")
+		if name and not seen[name] then
+			seen[name] = true
+			reads[index] = { kind = "doodad", id = own.id, name = name, names = { name } }
+		end
+	end
+	return reads
+end

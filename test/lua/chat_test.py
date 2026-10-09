@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable
 from typing import cast
 
@@ -92,14 +93,33 @@ def test_the_filter_appends_one_button_after_the_line(chat: LuaRuntime) -> None:
     assert (author, rest) == ("author", "rest"), "the event's other arguments pass through"
 
 
-def test_a_line_in_rows_gains_its_button_on_the_row_that_names_it(chat: LuaRuntime) -> None:
-    line = LINES["lookup detaildoodad grass"][0]
-    first, rest = line.split("\r", 1)
+def rows_shown(chat: LuaRuntime, line: str) -> list[tuple[str, list[str]]]:
+    """Each row of a line in rows as shown: the row's own text and the links after it."""
     shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
     assert isinstance(shown, str)
-    head, tail = shown.split("\r", 1)
-    assert head.startswith(first) and head.endswith("|h[Preview]|h|r"), "after the detail's id"
-    assert tail == rest, "the model rows untouched"
+    rows = []
+    for given, row in zip(line.split("\r"), shown.split("\r"), strict=True):
+        assert row.startswith(given), "the row's own text is untouched"
+        rows.append((given, re.findall(r"\|H(garrmission:[^|]+)\|h\[Preview\]", row[len(given) :])))
+    return rows
+
+
+def test_a_line_in_rows_gains_a_button_on_each_row_that_names_a_thing(chat: LuaRuntime) -> None:
+    line = LINES["lookup detaildoodad grass"][1]
+    rows = rows_shown(chat, line)
+    assert [len(links) for _, links in rows] == [1, 1, 1, 1, 1], "the detail's, then a model's each"
+    group = evaluate(chat, f"(NS.Links.Read({json.dumps(rows[0][1][0])})).names")
+    assert group == ["itkmush01.m2", "itkgrass02.m2", "itkgrass01.m2", "itkgrass04.m2"]
+    for given, links in rows[1:]:
+        back = evaluate(chat, f"(NS.Links.Read({json.dumps(links[0])}))")
+        model = re.search(r"\|cff00CCFF(.+?)\|r", given)
+        assert model
+        assert back == {"kind": "doodad", "id": 93365, "name": model[1], "names": [model[1]]}
+
+
+def test_a_model_a_detail_lists_twice_gains_one_button(chat: LuaRuntime) -> None:
+    rows = rows_shown(chat, LINES["lookup detaildoodad grass"][0])
+    assert [len(links) for _, links in rows] == [1, 1, 0, 0, 0]
 
 
 def test_the_filter_gives_the_same_answer_each_time_it_is_asked(chat: LuaRuntime) -> None:
