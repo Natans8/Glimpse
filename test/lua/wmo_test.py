@@ -55,15 +55,15 @@ def show(runtime: LuaRuntime, call: str) -> Plain:
     return evaluate(runtime, f"{{OFFERED.wmo.Show(FRAME, {call})}}")
 
 
-#: What the frame shows, each part false while hidden: the picture's path, the note's text,
-#: and the picture's size.
+def shows(runtime: LuaRuntime, call: str) -> Plain:
+    """Whether the provider says it has anything to show for a thing, which decides its button."""
+    return evaluate(runtime, f"OFFERED.wmo.Shows({call})")
+
+
+#: What the frame shows: the picture's path, false while hidden, and its size.
 DRAWN = b"""
     return (function(p)
-        return {
-            picture = p.picture.shown and p.picture.texture or false,
-            note = p.note.shown and p.note.text or false,
-            size = p.picture.size or false,
-        }
+        return { picture = p.shown and p.texture or false, size = p.size or false }
     end)(FRAME.glimpseWmo)
 """
 
@@ -83,7 +83,6 @@ def test_a_picture_by_name_is_drawn_square_and_said_nothing_of() -> None:
     assert show(runtime, 'nil, { name = "World\\\\wmo\\\\Castle.wmo " }') == [True]
     assert drawn(runtime) == {
         "picture": "Interface\\AddOns\\Glimpse_WMO\\Pictures\\000\\1234.blp",
-        "note": False,
         "size": "200x200",
     }
 
@@ -91,7 +90,7 @@ def test_a_picture_by_name_is_drawn_square_and_said_nothing_of() -> None:
 def test_a_picture_is_found_by_entry_before_name() -> None:
     runtime = module()
     assert show(runtime, '42, { name = "wall" }') == [True]
-    assert evaluate(runtime, "FRAME.glimpseWmo.picture.texture") == (
+    assert evaluate(runtime, "FRAME.glimpseWmo.texture") == (
         "Interface\\AddOns\\Glimpse_WMO\\Pictures\\000\\1234.blp"
     )
 
@@ -102,28 +101,31 @@ def test_collision_and_interior_pictures_say_so_for_glimpse_to_put_after_the_kin
     assert show(runtime, 'nil, { name = "deleteme_box" }') == [True, "seen only from inside"]
 
 
-def test_a_watertile_names_its_liquid_instead_of_a_picture() -> None:
+def test_only_a_wmo_with_a_picture_gains_a_button() -> None:
     runtime = module()
-    assert show(runtime, 'nil, { name = "laketile_1_water.wmo" }') == [True]
-    assert drawn(runtime)["note"] == "A watertile of liquid type 1. Its surface has no preview yet."
-    assert drawn(runtime)["picture"] is False
+    assert shows(runtime, 'nil, { name = "castle.wmo" }') is True
+    assert shows(runtime, '42, { name = "nowhere" }') is True, "known by its entry"
+    assert shows(runtime, 'nil, { name = "laketile_1_water.wmo" }') is False, "a watertile"
+    assert shows(runtime, 'nil, { name = "nowhere" }') is False, "not in the index"
 
 
-def test_an_unknown_wmo_is_not_shown() -> None:
+def test_a_wmo_with_nothing_to_show_fills_nothing() -> None:
     runtime = module()
+    assert show(runtime, 'nil, { name = "laketile_1_water.wmo" }') == [False]
     assert show(runtime, 'nil, { name = "nowhere" }') == [False]
+    assert evaluate(runtime, "FRAME.glimpseWmo") is None
 
 
-def test_hide_takes_down_everything_drawn() -> None:
+def test_hide_takes_down_the_picture() -> None:
     runtime = module()
     show(runtime, 'nil, { name = "wall" }')
     evaluate(runtime, "OFFERED.wmo.Hide(FRAME)")
-    assert drawn(runtime) == {"picture": False, "note": False, "size": "200x200"}
-    assert evaluate(runtime, "FRAME.glimpseWmo.picture.texture") is None
+    assert drawn(runtime) == {"picture": False, "size": "200x200"}
+    assert evaluate(runtime, "FRAME.glimpseWmo.texture") is None
 
 
 def test_the_picture_stays_square_when_the_frame_is_resized() -> None:
     runtime = module()
     show(runtime, 'nil, { name = "castle" }')
     evaluate(runtime, "FRAME:sized(500, 320)")
-    assert evaluate(runtime, "FRAME.glimpseWmo.picture.size") == "320x320"
+    assert evaluate(runtime, "FRAME.glimpseWmo.size") == "320x320"

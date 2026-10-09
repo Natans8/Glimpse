@@ -61,8 +61,8 @@ local function numbered(kind)
 end
 
 local LINKS = {
-	-- An object whose model is a WMO is a kind of its own, since no model frame
-	-- draws one.
+	-- An object whose model is a WMO is read as the WMO kind, since no model frame
+	-- draws one and another addon does; to the player it is still an object.
 	gameobject_entry = function(payload, label)
 		local name = objectName(label)
 		local kind = "object"

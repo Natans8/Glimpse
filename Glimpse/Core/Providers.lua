@@ -4,11 +4,15 @@ local _, ns = ...
 --
 -- An addon offers itself through `Glimpse.Provide(kind, provider)`, for any kind
 -- that is drawn, this addon's own or one it leaves to others: "spell", "object",
--- "creature" and the rest, never a sound or an area, which draw nothing. It then
--- previews that kind in place of this addon, while the player has not turned the
--- kind off. A provider is a table, its functions called as plain functions:
+-- "creature" and the rest, never a sound, an area or a map, which draw nothing. It
+-- then previews that kind in place of this addon, while the player has not turned
+-- the kind off. A provider is a table, its functions called as plain functions:
 --
 --   name   optional; the addon's name, which the settings show the player
+--   Shows  optional; `Shows(id, context)`: answer false where there is nothing to
+--          show for the thing, and its line gains no button. It is asked as the
+--          line is read, so it answers at once; `context` is as `Show` has it,
+--          with `context.place` "line". Anything else, or no `Shows`, means there is.
 --   Show   `Show(frame, id, context)`: fill `frame`, an empty frame filling the
 --          inside of the hover frame or the window, with whatever shows the thing.
 --          `context.place` is "hover", which takes no input, or "window", and the
@@ -23,8 +27,9 @@ local _, ns = ...
 --   Hide   `Hide(frame)`: empty a frame it filled.
 --
 -- This addon keeps the frame around the inside: the border, closing, moving and
--- sizing, and the thing's name and kind over it, as every kind has. What is inside is the provider's alone, so the provider may change
--- anything in it without this addon changing. A provider changes far more often
+-- sizing, and the thing's name and kind over it, as every kind has. What is inside
+-- is the provider's alone, so the provider may change anything in it without this
+-- addon changing. A provider changes far more often
 -- than this addon is reinstalled, so nothing else of it is read, its functions
 -- are called protected, and the first fault withdraws it for the session without
 -- a word: the fault is its own.
@@ -55,7 +60,7 @@ end
 
 --- What a provider is told with a thing: where it is shown, and everything the
 -- line said about it. A provider may keep the table; it is its own.
--- @param place "hover" or "window"
+-- @param place "line", "hover" or "window"
 -- @param read the read the thing came from
 -- @return the context
 function Providers.Context(place, read)
@@ -97,6 +102,22 @@ local function call(kind, name, ...)
 		return nil
 	end
 	return answer, more
+end
+
+--- Whether the provider of a read's kind has anything to show for it. A provider
+-- that does not say is taken to have.
+-- @param read a read of a kind another addon previews
+-- @return false where none is offered, it faults, or it answers false
+function Providers.Shows(read)
+	local provider = offered[read.kind]
+	if not provider then
+		return false
+	end
+	if type(provider.Shows) ~= "function" then
+		return true
+	end
+	local answer = call(read.kind, "Shows", read.id, Providers.Context("line", read))
+	return offered[read.kind] ~= nil and answer ~= false
 end
 
 --- Have the provider of a kind fill a frame with a thing.

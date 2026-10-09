@@ -305,6 +305,24 @@ def test_an_area_has_a_map_button_that_opens_the_world_map_at_its_map(chat: LuaR
     assert evaluate(chat, "WINDOWED") == [], "and no window of this addon's"
 
 
+def test_a_map_has_a_map_button_that_opens_the_world_map_at_its_top(chat: LuaRuntime) -> None:
+    chat.execute(b"""
+        OPENED = {}
+        OpenWorldMap = function(map) OPENED[#OPENED + 1] = map end
+        C_Map = { GetMapInfo = function(id) return ({ [12] = { name = "Kalimdor" } })[id] end }
+    """)
+    kalimdor, phase, classic = LINES["lookup map kalimdor"][:3]
+    assert [
+        button["word"] for button in cast(list[dict[str, str]], call(chat, "LINKS", kalimdor))
+    ] == ["Map"]
+    assert call(chat, "LINKS", phase) == [], "a phase of it the client draws no world map of"
+    assert call(chat, "LINKS", classic) == [], "nor of Epsilon's own"
+    rest(chat, kalimdor, 1)
+    assert evaluate(chat, "TOOLTIP") == ["Kalimdor", "Click to open the map"], "its own name once"
+    click(chat, kalimdor, 1)
+    assert evaluate(chat, "OPENED") == [12], "the continent's world map"
+
+
 def test_a_kind_another_addon_offers_is_lent_to_it(chat: LuaRuntime) -> None:
     chat.execute(b"""
         Glimpse.Provide("creature", { Show = function() return true end, Hide = function() end })
@@ -398,8 +416,8 @@ def test_a_thing_another_addon_shows_is_captioned_as_every_kind_is() -> None:
     assert evaluate(runtime, 'NS.Presentations.Lent({ kind = "spell", id = 116 })') == "Spell"
     assert (
         evaluate(runtime, 'NS.Presentations.Lent({ kind = "wmo" }, "seen only from inside")')
-        == "WMO, seen only from inside"
-    ), "the words the addon said follow the kind"
+        == "Object, seen only from inside"
+    ), "the words the addon said follow the kind, and a WMO is an object to the player"
 
 
 def test_every_kind_has_a_word_and_a_letter_of_its_own() -> None:

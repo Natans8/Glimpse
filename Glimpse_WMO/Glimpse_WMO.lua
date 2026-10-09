@@ -52,28 +52,26 @@ local function fit(picture, width, height)
 	picture:SetSize(side, side)
 end
 
--- What this addon draws on a lent frame, made once for each frame: the picture,
--- and a line of text in place of a picture.
-local function partsOf(frame)
+-- The picture this addon draws on a lent frame, made once for each frame.
+local function pictureFor(frame)
 	if frame.glimpseWmo then
 		return frame.glimpseWmo
 	end
 	local picture = frame:CreateTexture(nil, "ARTWORK")
 	picture:SetPoint("CENTER")
-	local note = frame:CreateFontString(nil, "OVERLAY", "GameFontDisable")
-	note:SetPoint("CENTER")
-	note:SetWidth(240)
-	note:SetJustifyH("CENTER")
 	frame:HookScript("OnSizeChanged", function(_, width, height)
 		fit(picture, width, height)
 	end)
-	frame.glimpseWmo = { picture = picture, note = note }
-	return frame.glimpseWmo
+	frame.glimpseWmo = picture
+	return picture
 end
 
 -- The picture of a thing: by its gameobject entry where the index knows the
 -- entry, which a stock object named in words has, and otherwise by the WMO's
--- file name, which every other line prints.
+-- file name, which every other line prints. A WMO that draws nothing from
+-- outside is 0, a watertile among them; the index keeps a watertile's liquid
+-- type (`liquids`), so a preview of its surface can come here later without the
+-- pictures being rendered again.
 local function pictureOf(index, id, name)
 	local number = nil
 	if type(id) == "number" and index.entries then
@@ -85,29 +83,10 @@ local function pictureOf(index, id, name)
 	return number
 end
 
---- What is said of a WMO that draws nothing from outside, which the index
--- marks with 0 in place of a picture.
-local NOTHING =
-	"Nothing to see from outside: this WMO draws nothing, as collision, trigger and liquid WMOs do."
-
---- What is said of a watertile, a WMO holding nothing but a liquid. The index
--- keeps its liquid type, so a preview of the surface can take this line's place
--- without the pictures being rendered again.
-local LIQUID = "A watertile of liquid type %d. Its surface has no preview yet."
-
--- The liquid type of a watertile, which the index keeps beside its 0; nil for
--- any other WMO.
-local function liquidOf(index, name)
-	if index.liquids and type(name) == "string" then
-		return numbered(index.liquids, stem(name))
-	end
-	return nil
-end
-
 --- What is said of a picture that shows a WMO otherwise than the client shows it
 -- from outside, by the list of the index that holds the picture's number. Glimpse
--- puts the words after the kind, on the line under the name: "WMO, seen only from
--- inside".
+-- puts the words after the kind, on the line under the name: "Object, seen only
+-- from inside".
 local WORDS = {
 	{ list = "collision", text = "invisible: its collision shape" },
 	{ list = "interiors", text = "seen only from inside" },
@@ -125,36 +104,39 @@ local function wordsOf(index, number)
 	return nil
 end
 
+-- The number of a thing's picture, or nil where there is none to show: the index
+-- is not loaded, does not know the thing, or knows it draws nothing.
+local function shownOf(index, id, context)
+	local number = index and pictureOf(index, id, context and context.name)
+	if number == 0 then
+		return nil
+	end
+	return number
+end
+
+-- A line gains a button only where there is a picture to show.
+local function shows(id, context)
+	return shownOf(_G[addonName], id, context) ~= nil
+end
+
 local function show(frame, id, context)
 	local index = _G[addonName]
-	if not index then
-		return false
-	end
-	local number = pictureOf(index, id, context and context.name)
+	local number = shownOf(index, id, context)
 	if not number then
 		return false
 	end
-	local parts = partsOf(frame)
-	if number == 0 then
-		local liquid = liquidOf(index, context and context.name)
-		parts.note:SetText(liquid and string.format(LIQUID, liquid) or NOTHING)
-		parts.note:Show()
-		return true
-	end
-	fit(parts.picture, frame:GetSize())
-	parts.picture:SetTexture(pathOf(number))
-	parts.picture:Show()
+	local picture = pictureFor(frame)
+	fit(picture, frame:GetSize())
+	picture:SetTexture(pathOf(number))
+	picture:Show()
 	return true, wordsOf(index, number)
 end
 
 local function hide(frame)
-	local parts = frame.glimpseWmo
-	if not parts then
-		return
-	end
-	parts.picture:SetTexture(nil)
-	for _, region in pairs(parts) do
-		region:Hide()
+	local picture = frame.glimpseWmo
+	if picture then
+		picture:SetTexture(nil)
+		picture:Hide()
 	end
 end
 
@@ -180,7 +162,7 @@ end
 -- `.lookup wmo` through its file; both carry the file's name, so one provider
 -- serves both kinds.
 if _G.Glimpse and _G.Glimpse.Provide then
-	local provider = { name = "Glimpse WMO pictures", Show = show, Hide = hide }
+	local provider = { name = "Glimpse WMO pictures", Shows = shows, Show = show, Hide = hide }
 	_G.Glimpse.Provide("wmo", provider)
 	_G.Glimpse.Provide("wmoarea", provider)
 end

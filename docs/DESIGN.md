@@ -10,7 +10,7 @@ line, so any server reply carrying one of these links gains the button, whicheve
 
 | Line | Recognised by | Button | Route |
 |---|---|---|---|
-| object, tile, plane | `gameobject_entry:` link not naming a `.wmo` | `[Preview]` | a model's name → the models the client's displays name, then the client's object search → file; a stock entry → shipped table → file |
+| object, tile, plane | `gameobject_entry:` link | `[Preview]` | a model's name → the models the client's displays name, then the client's object search → file; a stock entry → shipped table → file. One whose model is a WMO, by its file name or a stock entry's display, is drawn by an addon such as `Glimpse_WMO`, as for a spell, while it has a picture to show |
 | detail doodad | its four `.m2` names | `[Preview]` | same, four looks |
 | creature | `creature_entry:` link | `[Preview]` | a stock creature's several displays, from a shipped table; otherwise the client draws it from its entry |
 | creature display | `creatureDisplayID:` link | `[Preview]` | the display itself |
@@ -19,13 +19,15 @@ line, so any server reply carrying one of these links gains the button, whicheve
 | enchant | `enchantID:` link | `[Preview]` | a weapon tried on with the enchant |
 | emote | `emoteID:` link | `[Preview]` | the animation on the player's body |
 | area | `area:` link, of an area that has a map | `[Map]` | the client's world map, opened at the area's map: its own, its zone's, or in an instance the dungeon floor named as the area is, else the first; resting on it names the area and the map in text |
+| map | `MapID:` link, of a map the client draws a world map of | `[Map]` | the client's world map, opened at the map's top: of the world maps the client assigns it, the one holding the most of the others, as a continent holds its zones; a dungeon on its first floor; resting on it names the map in text |
 | spell | `spell:` link, and an addon such as Epsilook offering it | `[Preview]` | whatever that addon draws inside Glimpse's hover frame and window |
-| map, teleport, skill, title, faction, blueprint, WMO, WMO area, tile texture | their links (`MapID:`, `tele:`, `skill:`, `title:`, `blueprint_name:`, `gameobject_entry:` naming a `.wmo`), or the line's shape for the last three | `[Preview]`, only while an addon offers the kind | as for a spell |
+| teleport, skill, title, blueprint, faction, WMO area, tile texture | their links (`tele:`, `skill:`, `title:`, `blueprint_name:`), or the line's shape for the last three | `[Preview]`, only while an addon offers the kind | as for a spell |
 | music, ambience, intro music | the line's shape, and its id and name both matching the shipped table | `[Play]` | the sound kit, played and stopped |
 
 No button is added where there is nothing to show: a non-equipment item that is neither mount nor pet, a stock
-enchant with no visual, a kind the player has turned off, and a kind only another addon previews while none offers
-it. Every kind of line `.lookup` prints is read, so an addon can offer any of them.
+enchant with no visual, an area or map with no world map, an object whose WMO the addon drawing it has no picture
+of, a watertile among them, a kind the player has turned off, and a kind only another addon previews while none
+offers it. Every kind of line `.lookup` prints is read, so an addon can offer any of them.
 
 Glimpse does not touch what players post in chat, and it does not attach to item tooltips.
 
@@ -162,7 +164,7 @@ and kind, which every kind wears whoever draws it. Everything inside is the prov
 included, so the provider changes anything in it without Glimpse changing. `context.place` says which it is,
 "hover", which takes no input, or "window". `Show` answers true where it filled the inside; anything else, as when
 it shows the thing in a frame of its own, means Glimpse shows nothing. After the true it may answer a few words
-said of the thing, which Glimpse puts after the kind, as it puts a display's id after an item's: "WMO, seen only
+said of the thing, which Glimpse puts after the kind, as it puts a display's id after an item's: "Object, seen only
 from inside".
 
 Where nothing offers a kind, its lines gain no button. A provider is called protected, and the first fault

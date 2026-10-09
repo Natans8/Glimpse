@@ -60,6 +60,50 @@ def test_the_words_a_provider_says_of_a_thing_are_passed_on_where_they_are_text(
     assert answers('"seen only from inside"') == [False], "nothing is said of a frame not filled"
 
 
+def test_a_line_gains_no_button_where_its_provider_has_nothing_to_show(addon: LuaRuntime) -> None:
+    addon.execute(b"""
+        ASKED_PLACE = nil
+        Glimpse.Provide("wmo", {
+            Shows = function(id, context)
+                ASKED_PLACE = context.place
+                return context.name ~= "laketile_1_water.wmo"
+            end,
+            Show = function() return true end,
+            Hide = function() end,
+        })
+    """)
+    castle = '{ kind = "wmo", id = 1, name = "castle.wmo" }'
+    water = '{ kind = "wmo", id = 1, name = "laketile_1_water.wmo" }'
+    assert evaluate(addon, f"NS.Kinds.Buttons({castle})") == ["Preview"]
+    assert evaluate(addon, "ASKED_PLACE") == "line"
+    assert evaluate(addon, f"NS.Kinds.Buttons({water})") is None
+
+
+def test_a_provider_that_does_not_say_is_taken_to_have_something(addon: LuaRuntime) -> None:
+    offer(addon)
+    assert evaluate(addon, f"NS.Kinds.Buttons({SPELL})") == ["Preview"]
+
+
+def test_a_provider_whose_shows_faults_is_withdrawn_and_the_line_gains_nothing(
+    addon: LuaRuntime,
+) -> None:
+    addon.execute(b"""
+        Glimpse.Provide("spell", {
+            Shows = function() error("broken") end,
+            Show = function() return true end,
+            Hide = function() end,
+        })
+    """)
+    assert evaluate(addon, f"NS.Kinds.Buttons({SPELL})") is None
+    assert evaluate(addon, 'NS.Providers.Has("spell")') is False
+
+
+def test_a_wmo_is_an_object_to_the_player(addon: LuaRuntime) -> None:
+    assert evaluate(addon, 'NS.Kinds.Word({ kind = "wmo" })') == evaluate(
+        addon, 'NS.Kinds.Word({ kind = "object" })'
+    ), "one word, so one switch in the settings"
+
+
 def test_a_provider_is_told_everything_the_line_said(addon: LuaRuntime) -> None:
     offer(addon)
     wmo = '{ kind = "wmo", id = 10010631, name = "6dr_draenei_house2.wmo" }'
@@ -83,6 +127,7 @@ def test_any_kind_that_is_drawn_may_be_offered_and_nothing_else(addon: LuaRuntim
         assert evaluate(addon, f'Glimpse.Provide("{kind}", PROVIDER)') is True, kind
     assert evaluate(addon, 'Glimpse.Provide("music", PROVIDER)') is False, "a sound is played"
     assert evaluate(addon, 'Glimpse.Provide("area", PROVIDER)') is False, "an area opens a map"
+    assert evaluate(addon, 'Glimpse.Provide("map", PROVIDER)') is False, "so does a map"
     assert evaluate(addon, 'Glimpse.Provide("nothing like it", PROVIDER)') is False
     assert evaluate(addon, "Glimpse.Provide(nil, PROVIDER)") is False
 
