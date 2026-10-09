@@ -57,6 +57,10 @@ EXPECTED: dict[str, dict[str | None, int]] = {
     "phase forge npc displays list": {"display": 2, None: 3},
     "phase forge npc list": {"creature": 2, None: 2},
     "doodad near": {"mapdoodad": 7, None: 1},
+    "phase shift area list": {"areasounds": 3, None: 2},
+    "phase shift wmo list": {"areasounds": 3, None: 2},
+    "phase shift area ambience": {"ambience": 1},
+    "phase shift area music": {"music": 1},
 }
 
 
@@ -143,6 +147,26 @@ def test_a_doodad_is_its_model_and_carries_what_replaced_it(addon: LuaRuntime) -
     )
     assert read(rows[2]) == {"kind": "mapdoodad", "id": 820179, "name": "6td_broadleaf_c01.m2"}
     assert read(rows[6]) == {"kind": "mapdoodad", "id": 833676, "name": "6td_shattrathtower.wmo"}
+
+
+def test_an_override_carries_the_sounds_it_sets(addon: LuaRuntime) -> None:
+    read = reader(addon)
+    talador = read(LINES["phase shift area list"][2])
+    assert talador == {
+        "kind": "areasounds",
+        "id": 6662,
+        "name": "Talador",
+        "ids": [1143, 1498, 1130],
+    }, "ambience, music and intro, in the order the line prints them"
+    tower = read(LINES["phase shift wmo list"][2])
+    assert tower == {
+        "kind": "areasounds",
+        "id": 7376,
+        "name": "Shattrath Tower",
+        "ids": [1181, 1527, 1134],
+    }, "a WMO's override, by its root"
+    music = read(LINES["phase shift area music"][0])
+    assert music == {"kind": "music", "id": 156, "name": "Zone-TavernAlliance"}, "not the area"
 
 
 def test_an_object_whose_model_is_a_wmo_is_a_wmo(addon: LuaRuntime) -> None:

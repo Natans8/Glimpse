@@ -1079,5 +1079,25 @@
   "|cff00CCFF|Hdoodad_uid:8832686:918836|h[6td_treestump_b01.m2 - 821144]|h|r (UID: |cff00CCFF8832686|r) (Replaced)",
   "|cff00CCFF|Hdoodad_uid:8706404:0|h[6td_shattrathtower.wmo - 833676]|h|r (UID: |cff00CCFF8706404|r)",
   "Found |cff00CCFF7|r doodads."
+ ],
+ "phase shift area list": [
+  "|cff00CCFF[ShiftArea]|r Area overrides for |cff00CCFF[Pre-Horde Draenor - WIP - 185243]|r:",
+  "|cff00CCFF4710|r - |cffffffff|Harea:4710|h[Farahlon]|h|r (|cffFFFFFFIsle of Conquest|r) (Ambience: |cffFFFFFF496|r, Music: |cffFFFFFF243|r, Intro: |cffFFFFFF1466|r, Skybox: |cffFFFFFF-1|r, Visibility: |cffFFFFFF0.000000|r)",
+  "|cff00CCFF6662|r - |cffffffff|Harea:6662|h[Talador]|h|r (|cffFFFFFFTalador|r) (Ambience: |cffFFFFFF1143|r, Music: |cffFFFFFF1498|r, Intro: |cffFFFFFF1130|r, Skybox: |cff00CCFF0|r, Visibility: |cffFFFFFF0.000000|r)",
+  "|cff00CCFF6797|r - |cffffffff|Harea:6797|h[Gul'var]|h|r (|cffFFFFFFGul'var|r) (Ambience: |cffFFFFFF1191|r, Music: |cff00CCFF1454|r, Intro: |cffFFFFFF0|r, Skybox: |cff00CCFF1002262 |cffffffff|Hspell:1002262|h[Skybox LightData 1768: shadowmoon_overlook_sky_01]|h|r|r, Visibility: |cffFFFFFF0.000000|r)",
+  "|cff00CCFFEnter .phase shift area list next to view the next 50 results.|r"
+ ],
+ "phase shift wmo list": [
+  "|cff00CCFF[ShiftWMO]|r WMO overrides for |cff00CCFF[Pre-Horde Draenor - WIP - 185243]|r:",
+  "|cff00CCFF7301-1-36484|r - |cffffffff|HWMO:7301-1-36484|h[Karabor Harbor]|h|r (|cffFFFFFFKarabor Harbor / Karabor|r) (Ambience: |cff00CCFF0|r, Music: |cffFFFFFF0|r, Intro: |cffFFFFFF0|r)",
+  "|cff00CCFF7376-0-45834|r - |cffffffff|HWMO:7376-0-45834|h[Shattrath Tower]|h|r (|cffFFFFFF / |r) (Ambience: |cffFFFFFF1181|r, Music: |cff00CCFF1527|r, Intro: |cff00CCFF1134|r)",
+  "|cff00CCFF7683-0-ROOT|r - |cffffffff|HWMO:7683-0-ROOT|h[]|h|r (|cffFFFFFF / |r) (Ambience: |cffFFFFFF0|r, Music: |cffFFFFFF0|r, Intro: |cffFFFFFF0|r)",
+  "Found |cff00CCFF3|r WMO overrides."
+ ],
+ "phase shift area ambience": [
+  "|cff00CCFF[ShiftArea]|r Current area |cffffffff|Harea:15000|h[Glimpse Probe]|h|r set to use ambience ID |cff00CCFF28|r (|cff00CCFF[DAY] forestdarkenchantedday, [NIGHT] forestdarkenchantednight|r)"
+ ],
+ "phase shift area music": [
+  "|cff00CCFF[ShiftArea]|r Current area |cffffffff|Harea:15000|h[Glimpse Probe]|h|r set to use music ID |cff00CCFF156|r (|cff00CCFFZone-TavernAlliance|r)"
  ]
 }

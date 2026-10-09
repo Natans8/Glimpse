@@ -207,6 +207,40 @@ local function faction(message)
 	return { kind = "faction", id = tonumber(id), name = name }
 end
 
+-- What a phase overrides of an area or a WMO, as its lists print it: the thing,
+-- then the ambience, music and intro it now has, each 0 for none.
+local function overrides(message)
+	if not message:find("(Ambience: ", 1, true) then
+		return nil
+	end
+	local id, name = message:match("|Harea:(%d+)|h%[(.-)%]|h")
+	if not id then
+		id, name = message:match("|HWMO:(%d+)[^|]*|h%[(.-)%]|h")
+	end
+	local around = message:match("Ambience: |c%x%x%x%x%x%x%x%x(%d+)|r")
+	local music = message:match("Music: |c%x%x%x%x%x%x%x%x(%d+)|r")
+	local intro = message:match("Intro: |c%x%x%x%x%x%x%x%x(%d+)|r")
+	if not (id and around and music and intro) then
+		return nil
+	end
+	local ids = { tonumber(around), tonumber(music), tonumber(intro) }
+	return { kind = "areasounds", id = tonumber(id), name = name, ids = ids }
+end
+
+--- The table each kind of sound is listed in.
+local SOUND_TABLES = { ambience = "Ambience", music = "Music", intro = "Intro" }
+
+-- A reply naming the sound a phase now gives an area: "set to use music ID 156".
+local function setSound(message)
+	local kind, id = message:match("set to use (%a+) ID |cff00CCFF(%d+)|r")
+	local listed = kind and SOUND_TABLES[kind]
+	local row = listed and ns.Data[listed][tonumber(id)]
+	if not row then
+		return nil
+	end
+	return { kind = kind, id = tonumber(id), name = row.name or row.names[1] }
+end
+
 -- A reply naming the creature display it put on the player: a mount or a morph.
 local function worn(message)
 	local id = message:match("^You have mounted |cff00CCFF(%d+)|r%.$")
@@ -273,9 +307,14 @@ function Lines.Maybe(message)
 		or message:find("^You have m") ~= nil
 		or message:find("^|cff00CCFFEnchantment %d") ~= nil
 		or message:find("^ID: |cff00CCFF%d") ~= nil
+		or message:find("(Ambience: ", 1, true) ~= nil
 end
 
 local function read(message)
+	local shaped = overrides(message) or setSound(message)
+	if shaped then
+		return shaped
+	end
 	for linkType, payload, label in message:gmatch("|H([%a_]+):([^|]*)|h(.-)|h") do
 		local reader = LINKS[linkType]
 		if reader then

@@ -231,6 +231,18 @@ MUSIC = "|cff00CCFF156|r - Zone-TavernAlliance"
 AMBIENCE = "|cff00CCFF28|r - [DAY] forestdarkenchantedday, [NIGHT] forestdarkenchantednight"
 
 
+def test_an_override_gains_a_button_for_each_sound_it_sets(chat: LuaRuntime) -> None:
+    def words(line: str) -> list[str]:
+        return [button["word"] for button in cast(list[dict[str, str]], call(chat, "LINKS", line))]
+
+    areas = LINES["phase shift area list"]
+    assert words(areas[2]) == ["Ambience", "Music", "Intro"]
+    assert words(areas[3]) == ["Ambience", "Music"], "no intro set"
+    assert words(LINES["phase shift wmo list"][1]) == [], "a WMO with nothing set"
+    click(chat, areas[2], 2)
+    assert evaluate(chat, "PLAYED") == [49079], "Talador's music, its day kit"
+
+
 def test_clicking_play_plays_and_clicking_again_stops(chat: LuaRuntime) -> None:
     click(chat, MUSIC, 1)
     assert evaluate(chat, "PLAYED") == [4516]

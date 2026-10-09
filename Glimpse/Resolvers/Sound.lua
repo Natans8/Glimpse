@@ -49,3 +49,50 @@ for kind, of in pairs(KINDS) do
 		end,
 	})
 end
+
+--- The sounds a phase sets on an area or a WMO, in the order its lists print them,
+-- each with the word on its button and the table it is listed in.
+local OVERRIDDEN = {
+	{ label = "Ambience", data = "Ambience" },
+	{ label = "Music", data = "Music" },
+	{ label = "Intro", data = "Intro" },
+}
+
+-- A sound for each the line names and the tables list: its day kit, or its night
+-- kit where it has no day kit.
+local function overridden(read)
+	local found = {}
+	for i, of in ipairs(OVERRIDDEN) do
+		local row = ns.Data[of.data][read.ids[i]]
+		if row then
+			local kit = row.day
+			if kit == 0 then
+				kit = row.night
+			end
+			found[#found + 1] = { label = of.label, kit = kit }
+		end
+	end
+	return found
+end
+
+-- An area or a WMO a phase has overridden: a button to play each sound it now has.
+Kinds.Add("areasounds", {
+	word = "Sound",
+	code = "r",
+	draws = false,
+	shows = function(read)
+		return #overridden(read) > 0
+	end,
+	buttons = function(read)
+		local labels = {}
+		for i, sound in ipairs(overridden(read)) do
+			labels[i] = sound.label
+		end
+		return labels
+	end,
+	resolve = function(read, done)
+		local subject = Subject.New(read)
+		subject.sounds = overridden(read)
+		done(subject)
+	end,
+})
