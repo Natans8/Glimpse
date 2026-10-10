@@ -6,10 +6,11 @@ to show. A World of Warcraft 9.2.7 addon for the Epsilon server.
 To install, download the zip from [Releases](https://github.com/Natans8/Glimpse/releases) and unpack it into the
 game's `_retail_/Interface/AddOns` folder. It holds two folders, `Glimpse` and `Glimpse_Data`, and both are needed.
 
-No model frame can draw a WMO, so WMOs are previewed from pictures, a separate download in the same release: take
-`Glimpse_WMO-<version>-256.7z` (256-pixel pictures, about 110 MB) or `Glimpse_WMO-<version>-512.7z` (512-pixel
-pictures, about 395 MB), and unpack its `Glimpse_WMO` folder beside the other two. Use the pictures of the same
-version as the addon. Without them, a WMO's line gains no button.
+No model frame can draw a WMO, so WMOs are previewed from pictures, a separate download from the
+[v0.3 release](https://github.com/Natans8/Glimpse/releases/tag/v0.3): take `Glimpse_WMO-v0.3-256.7z` (256-pixel
+pictures, about 110 MB) or `Glimpse_WMO-v0.3-512.7z` (512-pixel pictures, about 395 MB), and unpack its
+`Glimpse_WMO` folder beside the other two. The pictures are released only when they change, and work with every
+later Glimpse. Without them, a WMO's line gains no button.
 
 Licensed under AGPL-3.0-or-later; `NOTICE` says what that does and does not cover. Made by Nataari, with the help
 of AI.

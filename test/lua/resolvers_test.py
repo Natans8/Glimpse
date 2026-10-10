@@ -152,6 +152,44 @@ def test_a_doodad_shows_the_models_that_are_found(game: LuaRuntime) -> None:
     assert evaluate(game, 'RESOLVE("doodad", { id = 5, names = { "unknown.m2" } })') is None
 
 
+#: A provider for WMOs as the released pictures offer it, with a picture for each name in
+#: `PICTURED`, recording the ids it is asked about.
+WMO_PICTURES = b"""
+    PICTURED, ASKED_IDS = {}, {}
+    Glimpse.Provide("wmo", {
+        Shows = function(id, context)
+            ASKED_IDS[#ASKED_IDS + 1] = id
+            return PICTURED[context.name] == true
+        end,
+        Show = function() return true end,
+        Hide = function() end,
+    })
+"""
+
+
+def test_an_object_named_without_an_extension_is_a_wmo_where_the_pictures_have_it(
+    game: LuaRuntime,
+) -> None:
+    game.execute(WMO_PICTURES)
+    game.execute(b'PICTURED["eps_gilneas_garrison_ip_foundation_v3"] = true')
+
+    def settled(name: str) -> object:
+        read = f'{{ kind = "object", id = 879615, name = "{name}" }}'
+        return evaluate(game, f"NS.Kinds.Settle({read})")
+
+    assert settled("eps_gilneas_garrison_ip_foundation_v3") == {
+        "kind": "wmo",
+        "id": 879615,
+        "name": "eps_gilneas_garrison_ip_foundation_v3",
+    }, "Epsilon's own WMO, named without its extension"
+    assert cast(dict[str, str], settled("eps_unpictured_thing"))["kind"] == "object"
+    game.execute(b'PICTURED["eps_bl_godstatue_01.m2"] = true')
+    assert cast(dict[str, str], settled("eps_bl_godstatue_01.m2"))["kind"] == "object", (
+        "a name with a model's extension is never asked"
+    )
+    assert set(cast(list[int], evaluate(game, "ASKED_IDS"))) == {0}, "only the name is asked of"
+
+
 def test_a_name_is_found_anywhere_among_the_models(game: LuaRuntime) -> None:
     def file(name: str) -> object:
         subject = evaluate(game, f'RESOLVE("object", {{ id = 1, name = "{name}" }})')

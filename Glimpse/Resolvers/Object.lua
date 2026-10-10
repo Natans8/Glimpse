@@ -84,14 +84,25 @@ local function namesModel(name)
 	return name ~= "" and (namesFile(name) or not name:find(" ", 1, true))
 end
 
+-- Whether whoever previews WMOs has one by a name. Only the name is asked of, so
+-- an entry is never taken for one.
+local function aWmo(name)
+	return ns.Providers.Shows({ kind = "wmo", id = 0, name = name })
+end
+
 Kinds.Add("object", {
 	word = "Object",
 	code = "o",
 	-- A stock entry whose display is a WMO is a WMO's line under another name,
-	-- for whoever previews WMOs; no model frame draws one.
+	-- for whoever previews WMOs; no model frame draws one. So is a line naming no
+	-- file but a WMO's, as Epsilon names its own WMO objects after the file without
+	-- its extension: a name the WMO pictures have is a WMO's.
 	recast = function(read)
 		local data = ns.Client.Data()
 		if data and Packed.First(data.wmoObjects, read.id) then
+			return { kind = "wmo", id = read.id, name = read.name }
+		end
+		if not namesFile(read.name) and aWmo(read.name) then
 			return { kind = "wmo", id = read.id, name = read.name }
 		end
 		return nil
