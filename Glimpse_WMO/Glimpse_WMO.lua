@@ -100,15 +100,7 @@ end
 -- The number of a thing's picture, or nil where there is none to show: the index
 -- is not loaded, does not know the thing, or knows it draws nothing.
 local function shownOf(index, id, context)
-	local name = context and context.name
-	if context and context.kind == "mapdoodad" then
-		-- A doodad's id is its file's, not an entry, and only a WMO's has a picture.
-		if type(name) ~= "string" or not name:lower():find("%.wmo$") then
-			return nil
-		end
-		id = nil
-	end
-	local number = index and pictureOf(index, id, name)
+	local number = index and pictureOf(index, id, context and context.name)
 	if number == 0 then
 		return nil
 	end
@@ -159,13 +151,11 @@ _G[addonName].Picture = function(id, name)
 	return nil
 end
 
--- A WMO is named by an object line through its display, by a line of `.lookup
--- wmo` through its file, and by a doodad line through its model; each carries the
--- file's name, so one provider serves all three kinds, and Glimpse draws the
--- doodads that are not WMOs itself.
+-- A WMO is named by an object line through its display, and by a line of
+-- `.lookup wmo` through its file; both carry the file's name, so one provider
+-- serves both kinds.
 if _G.Glimpse and _G.Glimpse.Provide then
 	local provider = { name = "Glimpse WMO pictures", Shows = shows, Show = show, Hide = hide }
 	_G.Glimpse.Provide("wmo", provider)
 	_G.Glimpse.Provide("wmoarea", provider)
-	_G.Glimpse.Provide("mapdoodad", provider)
 end

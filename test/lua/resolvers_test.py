@@ -196,19 +196,58 @@ def test_a_placed_doodad_shows_its_file_and_what_replaced_it(game: LuaRuntime) -
     ], "a file no display names never reaches a model loader"
 
 
-def test_a_placed_wmo_is_left_to_whoever_previews_wmos(game: LuaRuntime) -> None:
+#: A provider for WMOs as the released pictures offer it, with a picture for each name in
+#: `PICTURED`, recording the ids it is asked about.
+WMO_PICTURES = b"""
+    PICTURED, ASKED_IDS = {}, {}
+    Glimpse.Provide("wmo", {
+        Shows = function(id, context)
+            ASKED_IDS[#ASKED_IDS + 1] = id
+            return PICTURED[context.name] == true
+        end,
+        Show = function() return true end,
+        Hide = function() end,
+    })
+"""
+
+
+def test_an_object_named_without_an_extension_is_a_wmo_where_the_pictures_have_it(
+    game: LuaRuntime,
+) -> None:
+    game.execute(WMO_PICTURES)
+    game.execute(b'PICTURED["eps_gilneas_garrison_ip_foundation_v3"] = true')
+
+    def settled(name: str) -> object:
+        read = f'{{ kind = "object", id = 879615, name = "{name}" }}'
+        return evaluate(game, f"NS.Kinds.Settle({read})")
+
+    assert settled("eps_gilneas_garrison_ip_foundation_v3") == {
+        "kind": "wmo",
+        "id": 879615,
+        "name": "eps_gilneas_garrison_ip_foundation_v3",
+    }, "Epsilon's own WMO, named without its extension"
+    assert cast(dict[str, str], settled("eps_unpictured_thing"))["kind"] == "object"
+    game.execute(b'PICTURED["eps_bl_godstatue_01.m2"] = true')
+    assert cast(dict[str, str], settled("eps_bl_godstatue_01.m2"))["kind"] == "object", (
+        "a name with a model's extension is never asked"
+    )
+    assert set(cast(list[int], evaluate(game, "ASKED_IDS"))) == {0}, "only the name is asked of"
+
+
+def test_a_placed_wmo_is_shown_by_whoever_previews_wmos(game: LuaRuntime) -> None:
     tower = '{ kind = "mapdoodad", id = 833676, name = "6td_shattrathtower.wmo" }'
-    assert evaluate(game, f"NS.Kinds.Buttons({tower})") is None
-    game.execute(b"""
-        Glimpse.Provide("mapdoodad", {
-            Shows = function(id, context) return context.name:find("%.wmo$") ~= nil end,
-            Show = function() return true end,
-            Hide = function() end,
-        })
-    """)
-    assert evaluate(game, f"NS.Kinds.Drawer({tower})") == "provider"
+    assert evaluate(game, f"NS.Kinds.Buttons({tower})") is None, "nothing previews WMOs yet"
+    game.execute(WMO_PICTURES)
+    game.execute(b'PICTURED["6td_shattrathtower.wmo"] = true')
+    assert evaluate(game, f"NS.Kinds.Settle({tower})") == {
+        "kind": "wmo",
+        "id": 0,
+        "name": "6td_shattrathtower.wmo",
+        "ids": [833676],
+    }, "its id is its file's, carried aside"
+    assert evaluate(game, f"NS.Kinds.Buttons(NS.Kinds.Settle({tower}))") == ["Preview"]
     bush = '{ kind = "mapdoodad", id = 820157, name = "6td_bush_b01.m2" }'
-    assert evaluate(game, f"NS.Kinds.Drawer({bush})") == "own", "the rest is drawn here"
+    assert evaluate(game, f"NS.Kinds.Settle({bush}).kind") == "mapdoodad", "a model is drawn here"
 
 
 def test_a_name_is_found_anywhere_among_the_models(game: LuaRuntime) -> None:

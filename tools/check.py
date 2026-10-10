@@ -13,6 +13,7 @@ violations, so the tests can show it a violation and watch it fire.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -215,11 +216,42 @@ def toc_violations(addon: Path) -> list[str]:
     ]
 
 
-def module_version_violations(addon_toc: str, module_toc: str) -> list[str]:
-    """Where the WMO pictures' toc does not declare the addon's own version.
+#: The WMO pictures' module as the pictures players have were released with it, in
+#: v0.3: the SHA-256 of each file, its line breaks read as LF. The module is downloaded
+#: with the pictures, hundreds of megabytes, so a change to it reaches no player
+#: without them; it changes only in a release of new pictures, and these change with it.
+WMO_RELEASED = {
+    "Glimpse_WMO.lua": "eb73a777463ca70ba5abe7b87faeb26e516fe05dbdf7acc7dd12bb24562790c2",
+    "Glimpse_WMO.toc": "e97b13097ee82b7ce41ac3fa586bc2e07a11d7ba7f905543ca481d7ab588b821",
+}
 
-    The pictures ship in each of the addon's releases, as archives of their own that
-    the release stamps, so the two tocs must declare one version the same way.
+
+def module_release_violations(files: Mapping[str, bytes], released: Mapping[str, str]) -> list[str]:
+    """Where the WMO pictures' module is not the one released with the pictures.
+
+    A fix of how Glimpse shows a WMO belongs in Glimpse, which players download in a
+    moment, never in the module, which would have them download every picture again.
+    """
+    violations = []
+    for name, digest in sorted(released.items()):
+        content = files.get(name)
+        if content is None:
+            violations.append(f"{name}: missing")
+        elif hashlib.sha256(content.replace(b"\r\n", b"\n")).hexdigest() != digest:
+            violations.append(
+                f"{name}: not as released with the pictures; a fix belongs in Glimpse, and only "
+                "a release of new pictures changes the module and WMO_RELEASED with it"
+            )
+    unreleased = sorted(set(files) - set(released))
+    violations += [f"{name}: not released with the pictures" for name in unreleased]
+    return violations
+
+
+def module_version_violations(addon_toc: str, module_toc: str) -> list[str]:
+    """Where the WMO pictures' toc does not declare a version the way the addon's does.
+
+    The pictures ship in a release of their own, which stamps its toc as the addon's
+    release stamps the addon's, so the two tocs must declare a version the same way.
     """
     declared = [
         re.search(r"^## Version:[ \t]*(\S+)[ \t]*$", toc, flags=re.M)
@@ -341,6 +373,13 @@ def main() -> int:
             if module_toc.is_file()
             else [f"{module_toc.name}: missing"],
         )
+    )
+    tracked = subprocess.run(
+        ["git", "ls-files", "--", MODULE], cwd=ROOT, capture_output=True, text=True, check=False
+    ).stdout.split()
+    module_files = {Path(path).name: (ROOT / path).read_bytes() for path in tracked}
+    results.append(
+        ("WMO pictures' module as released", module_release_violations(module_files, WMO_RELEASED))
     )
     drawn = (ROOT / "tools" / "art.py").read_text(encoding="utf-8")
     results.append(("icons", icon_violations(drawn, sources["Interface/Tools.lua"])))

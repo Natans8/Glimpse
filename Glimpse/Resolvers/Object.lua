@@ -117,6 +117,12 @@ local function standing(look, read)
 	end
 end
 
+-- Whether whoever previews WMOs has one by a name. Only the name is asked of, so
+-- an entry is never taken for one.
+local function aWmo(name)
+	return ns.Providers.Shows({ kind = "wmo", id = 0, name = name })
+end
+
 Kinds.Add("object", {
 	word = "Object",
 	code = "o",
@@ -125,10 +131,15 @@ Kinds.Add("object", {
 		return read.ids ~= nil
 	end,
 	-- A stock entry whose display is a WMO is a WMO's line under another name,
-	-- for whoever previews WMOs; no model frame draws one.
+	-- for whoever previews WMOs; no model frame draws one. So is a line naming no
+	-- file but a WMO's, as Epsilon names its own WMO objects after the file without
+	-- its extension: a name the WMO pictures have is a WMO's.
 	recast = function(read)
 		local data = ns.Client.Data()
 		if data and Packed.First(data.wmoObjects, read.id) then
+			return { kind = "wmo", id = read.id, name = read.name }
+		end
+		if not namesFile(read.name) and aWmo(read.name) then
 			return { kind = "wmo", id = read.id, name = read.name }
 		end
 		return nil
@@ -164,6 +175,14 @@ end
 Kinds.Add("mapdoodad", {
 	word = "Doodad",
 	code = "l",
+	-- A doodad that is a WMO is shown by whoever previews WMOs, by its name alone:
+	-- its id is its file's, which is no entry, so the read carries it aside.
+	recast = function(read)
+		if read.name:lower():find("%.wmo$") and aWmo(read.name) then
+			return { kind = "wmo", id = 0, name = read.name, ids = { read.id } }
+		end
+		return nil
+	end,
 	shows = function(read)
 		return namesFile(read.name)
 	end,

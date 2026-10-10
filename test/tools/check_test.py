@@ -6,6 +6,7 @@ tests are where every guard is watched failing.
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable
 from pathlib import Path
 
@@ -124,3 +125,24 @@ def test_wmo_pictures_share_the_addon_version() -> None:
     assert check.module_version_violations(addon, "## Title: x\n") == [
         "Glimpse_WMO.toc: no ## Version"
     ]
+
+
+def test_the_wmo_module_stays_as_released_with_the_pictures() -> None:
+    released = {"Glimpse_WMO.lua": hashlib.sha256(b"code\n").hexdigest()}
+    assert check.module_release_violations({"Glimpse_WMO.lua": b"code\n"}, released) == []
+    assert check.module_release_violations({"Glimpse_WMO.lua": b"code\r\n"}, released) == [], (
+        "a checkout's line breaks are not a change"
+    )
+    changed = check.module_release_violations({"Glimpse_WMO.lua": b"fixed\n"}, released)
+    assert len(changed) == 1 and "belongs in Glimpse" in changed[0]
+    assert check.module_release_violations({}, released) == ["Glimpse_WMO.lua: missing"]
+    added = {"Glimpse_WMO.lua": b"code\n", "More.lua": b""}
+    assert check.module_release_violations(added, released) == [
+        "More.lua: not released with the pictures"
+    ]
+
+
+def test_the_wmo_module_in_the_repository_is_the_released_one() -> None:
+    module = check.ROOT / check.MODULE
+    files = {name: (module / name).read_bytes() for name in check.WMO_RELEASED}
+    assert check.module_release_violations(files, check.WMO_RELEASED) == []
