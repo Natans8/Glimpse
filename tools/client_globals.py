@@ -15,8 +15,6 @@ uses is named below with the definition to look for, and the file it was found
 in is recorded. A name whose definition is not found stops the run.
 """
 
-from __future__ import annotations
-
 import json
 import re
 import sys

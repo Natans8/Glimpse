@@ -9,8 +9,6 @@ addon, which holds the large tables and loads only when first needed. The
 addon's name is declared here once, and the folders and tocs follow from it.
 """
 
-from __future__ import annotations
-
 import argparse
 import sys
 from pathlib import Path

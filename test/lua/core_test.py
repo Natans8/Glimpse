@@ -1,7 +1,5 @@
 """The small core modules: the packed reader, the guard, and latest-wins asking."""
 
-from __future__ import annotations
-
 from typing import cast
 
 import lua as emit

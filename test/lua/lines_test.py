@@ -5,8 +5,6 @@ The fixture holds every line of each command's reply, the closing "enter
 lines and one of them reads as nothing.
 """
 
-from __future__ import annotations
-
 import re
 from collections import Counter
 from collections.abc import Callable

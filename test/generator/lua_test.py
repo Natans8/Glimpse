@@ -1,7 +1,5 @@
 """The Lua writers: literals, and the packed table's ordering and width guard."""
 
-from __future__ import annotations
-
 import lua
 import pytest
 

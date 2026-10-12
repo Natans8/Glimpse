@@ -1,7 +1,5 @@
 """Settings: a choice, its default, and what a damaged saved file reads as."""
 
-from __future__ import annotations
-
 from support import LuaRuntime, evaluate
 
 

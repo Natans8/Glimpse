@@ -1,7 +1,5 @@
 """Fixtures for the addon's tests: the addon loaded under the client's own Lua."""
 
-from __future__ import annotations
-
 import pytest
 from support import LuaRuntime, load_addon
 

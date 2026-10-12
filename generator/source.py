@@ -10,8 +10,6 @@ zone sound tables the database does not hold are downloaded once from
 wago.tools for the same build and kept under `.cache/`.
 """
 
-from __future__ import annotations
-
 import csv
 import json
 import os

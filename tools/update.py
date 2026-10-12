@@ -18,8 +18,6 @@ Regenerating reads the exploration database another project keeps (see
 client first; this tool cannot tell whether it has been, and says so.
 """
 
-from __future__ import annotations
-
 import argparse
 import subprocess
 import sys

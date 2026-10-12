@@ -8,8 +8,6 @@ The packed tables are decoded here in Python, apart from the addon's own
 reader, so the two are checked against each other by the addon's tests.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable, Iterator
 from typing import cast
 

@@ -1,7 +1,5 @@
 """The WMO pictures' provider: what it draws on a lent frame for each kind of index entry."""
 
-from __future__ import annotations
-
 from typing import cast
 
 from support import ROOT, LuaRuntime, Plain, evaluate, new_runtime, plain

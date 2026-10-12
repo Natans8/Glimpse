@@ -1,7 +1,5 @@
 """The icon sheet: the committed file is what the drawing gives, and its order is guarded."""
 
-from __future__ import annotations
-
 import art
 import check
 from PIL import Image

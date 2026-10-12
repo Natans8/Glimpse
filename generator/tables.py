@@ -1,7 +1,5 @@
 """The tables the addon ships, read from the client's own and the stock server's."""
 
-from __future__ import annotations
-
 from collections.abc import Iterable, Mapping, Set
 from typing import NamedTuple
 

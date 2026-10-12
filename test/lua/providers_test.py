@@ -1,7 +1,5 @@
 """The door other addons preview a kind through, in frames this addon lends them."""
 
-from __future__ import annotations
-
 from typing import cast
 
 from support import LuaRuntime, evaluate

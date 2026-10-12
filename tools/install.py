@@ -8,8 +8,6 @@ nothing else in the AddOns folder. The data addon is copied where it has been
 built.
 """
 
-from __future__ import annotations
-
 import argparse
 import shutil
 import sys

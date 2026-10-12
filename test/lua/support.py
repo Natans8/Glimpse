@@ -4,8 +4,6 @@
 protocols of exactly the calls the tests make.
 """
 
-from __future__ import annotations
-
 import json
 from collections.abc import Iterable
 from pathlib import Path

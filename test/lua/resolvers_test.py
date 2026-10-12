@@ -1,7 +1,5 @@
 """The resolvers over a client that answers as the game was seen to answer."""
 
-from __future__ import annotations
-
 from typing import cast
 
 import pytest

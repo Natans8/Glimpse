@@ -4,8 +4,6 @@ A guard fails open: when its pattern stops matching, it passes for ever. These
 tests are where every guard is watched failing.
 """
 
-from __future__ import annotations
-
 import hashlib
 from collections.abc import Callable
 from pathlib import Path

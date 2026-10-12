@@ -13,8 +13,6 @@ Each icon is drawn several times its size and scaled down, which is what
 smooths its edges.
 """
 
-from __future__ import annotations
-
 import math
 from collections.abc import Callable
 from pathlib import Path

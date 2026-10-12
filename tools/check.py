@@ -10,8 +10,6 @@ may reach the client. Each guard is a function from source text to a list of
 violations, so the tests can show it a violation and watch it fire.
 """
 
-from __future__ import annotations
-
 import argparse
 import hashlib
 import json

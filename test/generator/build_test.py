@@ -1,7 +1,5 @@
 """The generator's declarations agree with each other and with what is committed."""
 
-from __future__ import annotations
-
 import build
 import check
 import client_globals
