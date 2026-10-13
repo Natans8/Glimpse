@@ -71,18 +71,10 @@ function Stage.New(parent)
 	self.model:SetAllPoints()
 	self.model:SetLight(unpack(LIGHT))
 
-	-- An emote waits for the body to load. Set on a body still loading, the
-	-- client takes a staff in hand with the wrong one.
 	self.model:SetScript(
 		"OnModelLoaded",
 		ns.Safely.Wrap(function()
-			self.loaded = true
-			local pose = self.pose
-			if pose then
-				self.pose = nil
-				self:Perform(pose.animation)
-				self.model:SetSheathed(not pose.wields)
-			end
+			self:Loaded()
 		end)
 	)
 
@@ -182,28 +174,56 @@ function Stage:Turn(radians)
 	end
 end
 
---- Have the body perform an animation, once it has loaded.
+--- Have the body perform an animation, once it has loaded, with its weapons
+-- in hand or away as the animation asks. The animation is set before the
+-- weapons move: in the other order, a staff is taken in hand with the wrong one.
 --
 -- An animation at or past the client's limit is refused by `SetAnimation`, so it
 -- is started through the sequence clock, which has no such check. The frame
 -- then replays its idle over anything else it finds itself playing, unless it
 -- was just told its facing: `SetRotation` holds that replay off for a tenth of
 -- a second, so it is told again each frame. It is told the facing it already
--- has, since a different one would turn the body with a turning animation.
+-- has, since a different one would turn the body with a turning animation. On
+-- this route the weapons move first, and the animation starts on the first
+-- frame after the body loads, and again whenever it loads again, since a load
+-- puts the body back at rest.
 -- @param animation an animation id
-function Stage:Perform(animation)
+-- @param wields whether the animation takes the weapons in hand
+function Stage:Perform(animation, wields)
 	local model = self.model
 	if animation < ns.Client.AnimationLimit() then
 		model:SetAnimation(animation)
+		model:SetSheathed(not wields)
 		return
 	end
-	model:SetSequenceTime(animation, 0)
+	model:SetSheathed(not wields)
+	self.held = animation
+	self.starting = true
 	model:SetScript(
 		"OnUpdate",
 		ns.Safely.Wrap(function()
 			model:SetRotation(model:GetFacing())
+			if self.starting then
+				self.starting = false
+				model:SetSequenceTime(self.held, 0)
+			end
 		end)
 	)
+end
+
+--- Take up what waited for the model to load. An emote waits for the body: set
+-- on a body still loading, the client takes a staff in hand with the wrong one.
+-- A body holding an animation the frame refuses starts it afresh.
+function Stage:Loaded()
+	self.loaded = true
+	local pose = self.pose
+	if pose then
+		self.pose = nil
+		self:Perform(pose.animation, pose.wields)
+	end
+	if self.held then
+		self.starting = true
+	end
 end
 
 local function stopRetrying(self)
@@ -340,7 +360,7 @@ end
 --- Draw nothing.
 function Stage:Clear()
 	stopRetrying(self)
-	self.pose = nil
+	self.pose, self.held, self.starting = nil, nil, nil
 	self.model:SetScript("OnUpdate", nil)
 	self.model:SetAlpha(1)
 	self.model:SetCamDistanceScale(1)
