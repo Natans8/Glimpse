@@ -191,6 +191,24 @@ def test_a_display_is_read_under_each_name_the_server_links_it_by(addon: LuaRunt
         assert read(line) == {"kind": "display", "id": 46897, "name": "46897"}, link
 
 
+def test_a_display_label_repeating_its_number_is_named_by_the_number_once(
+    addon: LuaRuntime,
+) -> None:
+    read = reader(addon)
+    line = "Display: |cff00CCFF|HdisplayID:46897|h46897 (46897)|h|r"
+    assert read(line) == {"kind": "display", "id": 46897, "name": "46897"}
+
+
+def test_a_creatures_display_is_the_first_its_line_names_after_it(addon: LuaRuntime) -> None:
+    read = reader(addon)
+    line = (
+        "|cff00CCFF|Hcreature_entry:16998|h[Mr. Bigglesworth - 16998]|h|r"
+        " |cff00CCFF|HdisplayID:46897|h46897 (46897)|h|r, |cff00CCFF|HdisplayID:11|h11|h|r"
+    )
+    found = read(line)
+    assert found is not None and found["ids"] == [46897]
+
+
 def test_a_skybox_line_is_read_for_whoever_offers_skyboxes(addon: LuaRuntime) -> None:
     read = reader(addon)
     line = "|cff00CCFF|HskyboxID:2248|h[2248 - legionnexus_netherskybox01]|h|r"

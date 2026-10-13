@@ -19,7 +19,9 @@ MODEL = b"""
         end
         function model:GetFacing() return FACING end
         local told = { "SetAnimation", "SetSequenceTime", "SetRotation", "SetScript" }
-        told[#told + 1] = "SetSheathed"
+        for _, name in ipairs({ "SetSheathed", "SetAlpha", "SetCamDistanceScale", "ClearModel" }) do
+            told[#told + 1] = name
+        end
         for _, name in ipairs(told) do
             model[name] = function(_, ...) CALLS[#CALLS + 1] = { name, ... } end
         end
@@ -31,7 +33,12 @@ MODEL = b"""
 
 def stage(game: LuaRuntime) -> None:
     game.execute(MODEL)
-    game.execute(b"STAGE = setmetatable({ model = CreateFrame() }, NS.Stage)")
+    game.execute(
+        b"""
+        local nothing = { ClearModel = function() end, Hide = function() end }
+        STAGE = setmetatable({ model = CreateFrame(), actor = nothing, scene = nothing }, NS.Stage)
+        """
+    )
 
 
 def test_the_limit_is_read_from_the_clients_refusal(addon: LuaRuntime) -> None:
@@ -76,19 +83,31 @@ def test_an_animation_past_the_limit_runs_on_the_sequence_clock_with_the_idle_he
         STAGE:Perform(1744, false)
         """
     )
-    assert evaluate(addon, "CALLS") == [["SetSheathed", True]], "the weapons move first"
+    assert evaluate(addon, "CALLS") == [], "nothing until the frames"
     assert evaluate(addon, "SCRIPT") == "OnUpdate", "the rest happens on the frames"
-    addon.execute(b"CALLS = {}; ON_UPDATE(MODEL); ON_UPDATE(MODEL)")
+    addon.execute(b"CALLS = {}; ON_UPDATE(MODEL); ON_UPDATE(MODEL); ON_UPDATE(MODEL)")
     assert evaluate(addon, "CALLS") == [
         ["SetRotation", 1.5],
         ["SetSequenceTime", 1744, 0],
         ["SetRotation", 1.5],
-    ], "the hold every frame, the animation once, after the first hold"
-    addon.execute(b"CALLS = {}; FACING = 2.5; STAGE:Loaded(); ON_UPDATE(MODEL)")
+        ["SetSheathed", True],
+        ["SetRotation", 1.5],
+    ], "the hold every frame, the animation once after the first, the weapons once after it"
+    addon.execute(b"CALLS = {}; FACING = 2.5; STAGE:Loaded(); ON_UPDATE(MODEL); ON_UPDATE(MODEL)")
     assert evaluate(addon, "CALLS") == [
         ["SetRotation", 2.5],
         ["SetSequenceTime", 1744, 0],
-    ], "a load again starts it again, at the facing the body has"
+        ["SetRotation", 2.5],
+    ], "a load again starts it again at the facing the body has, and leaves the weapons"
+
+
+def test_clearing_the_stage_ends_the_sequence_clock_route(addon: LuaRuntime) -> None:
+    stage(addon)
+    addon.execute(b"STAGE:Perform(1744, false); CALLS = {}; STAGE:Clear()")
+    assert evaluate(addon, "CALLS[1]") == ["SetScript", "OnUpdate"], "the per-frame hold is dropped"
+    assert evaluate(addon, "{ STAGE.held, STAGE.starting, STAGE.sheathing }") == []
+    addon.execute(b"CALLS = {}; STAGE:Loaded()")
+    assert evaluate(addon, "CALLS") == [], "a later load starts nothing"
 
 
 def test_a_load_with_nothing_held_starts_nothing(addon: LuaRuntime) -> None:

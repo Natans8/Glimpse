@@ -184,9 +184,9 @@ end
 -- was just told its facing: `SetRotation` holds that replay off for a tenth of
 -- a second, so it is told again each frame. It is told the facing it already
 -- has, since a different one would turn the body with a turning animation. On
--- this route the weapons move first, and the animation starts on the first
--- frame after the body loads, and again whenever it loads again, since a load
--- puts the body back at rest.
+-- this route the animation starts on the first frame after the body loads, the
+-- weapons move on the frame after that, and the animation starts again whenever
+-- the body loads again, since a load puts it back at rest.
 -- @param animation an animation id
 -- @param wields whether the animation takes the weapons in hand
 function Stage:Perform(animation, wields)
@@ -196,9 +196,7 @@ function Stage:Perform(animation, wields)
 		model:SetSheathed(not wields)
 		return
 	end
-	model:SetSheathed(not wields)
-	self.held = animation
-	self.starting = true
+	self.held, self.starting, self.sheathing = animation, true, not wields
 	model:SetScript(
 		"OnUpdate",
 		ns.Safely.Wrap(function()
@@ -206,6 +204,9 @@ function Stage:Perform(animation, wields)
 			if self.starting then
 				self.starting = false
 				model:SetSequenceTime(self.held, 0)
+			elseif self.sheathing ~= nil then
+				model:SetSheathed(self.sheathing)
+				self.sheathing = nil
 			end
 		end)
 	)
@@ -220,8 +221,7 @@ function Stage:Loaded()
 	if pose then
 		self.pose = nil
 		self:Perform(pose.animation, pose.wields)
-	end
-	if self.held then
+	elseif self.held then
 		self.starting = true
 	end
 end
@@ -360,7 +360,7 @@ end
 --- Draw nothing.
 function Stage:Clear()
 	stopRetrying(self)
-	self.pose, self.held, self.starting = nil, nil, nil
+	self.pose, self.held, self.starting, self.sheathing = nil, nil, nil, nil
 	self.model:SetScript("OnUpdate", nil)
 	self.model:SetAlpha(1)
 	self.model:SetCamDistanceScale(1)

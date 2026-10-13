@@ -12,8 +12,9 @@ local _, ns = ...
 -- addon previews, so such an addon can offer any of them.
 --
 -- A read is `{ kind, id, name }`, with `names` for a detail doodad's models and
--- `ids` for the other ids a line gives, as a replaced doodad its replacement's
--- file. A read is shared between callers and is not changed.
+-- `ids` for the other ids a line gives: a replaced doodad its replacement's
+-- file, a spawned object its GUID, a spawned creature the display it stands in.
+-- A read is shared between callers and is not changed.
 local Lines = {}
 ns.Lines = Lines
 
@@ -64,7 +65,11 @@ end
 local function numbered(kind)
 	return function(payload, label)
 		local name = unbracket(label)
-		return { kind = kind, id = tonumber(payload), name = name:match("^%d+ %- (.+)$") or name }
+		return {
+			kind = kind,
+			id = tonumber(payload),
+			name = name:match("^%d+ %- (.+)$") or name:match("^(%d+) %(%d+%)$") or name,
+		}
 	end
 end
 
@@ -345,9 +350,10 @@ local function read(message)
 				if guid then
 					found.ids = { tonumber(guid) }
 				end
-				-- A line of a spawned creature says which display it stands in, which
-				-- is the creature as it is rather than as its entry might spawn it.
-				local display = found.kind == "creature" and message:match("|HdisplayID:(%d+)|h")
+				-- A line of a spawned creature says, after naming it, which display it
+				-- stands in: the creature as it is rather than as its entry might spawn it.
+				local display = found.kind == "creature"
+					and message:match("|Hcreature_entry:%d+|h.-|HdisplayID:(%d+)|h")
 				if display then
 					found.ids = { tonumber(display) }
 				end

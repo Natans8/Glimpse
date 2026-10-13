@@ -26,8 +26,7 @@ line, so any server reply carrying one of these links gains the button, whicheve
 
 No button is added where there is nothing to show: a non-equipment item that is neither mount nor pet, a stock
 enchant with no visual, an area with no world map, an object whose WMO the addon drawing it has no picture of, a
-watertile among them, a kind the player has turned off, and a kind only another addon previews while none
-offers it. Every kind of line `.lookup` prints is read, so an addon can offer any of them.
+kind the player has turned off, and a kind only another addon previews while none offers it. Every kind of line `.lookup` prints is read, so an addon can offer any of them.
 
 Glimpse does not touch what players post in chat, and it does not attach to item tooltips.
 
