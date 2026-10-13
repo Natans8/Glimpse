@@ -195,7 +195,9 @@ def test_a_skybox_line_is_read_for_whoever_offers_skyboxes(addon: LuaRuntime) ->
     read = reader(addon)
     line = "|cff00CCFF|HskyboxID:2248|h[2248 - legionnexus_netherskybox01]|h|r"
     assert read(line) == {"kind": "skybox", "id": 2248, "name": "legionnexus_netherskybox01"}
-    assert evaluate(addon, 'NS.Kinds.Of({ kind = "skybox", id = 2248 })') is None, "offered by nobody"
+    assert evaluate(addon, 'NS.Kinds.Of({ kind = "skybox", id = 2248 })') is None, (
+        "offered by nobody"
+    )
 
 
 def test_an_object_whose_model_is_a_wmo_is_a_wmo(addon: LuaRuntime) -> None:
