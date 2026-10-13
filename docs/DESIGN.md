@@ -200,6 +200,15 @@ A file that would reach a model loader is emitted only when it is known to be an
 separate folder so that a player who never previews an object or a creature never loads it; the main
 addon says once, in chat, when it is missing, turned off or from another version.
 
+What each release added to the shipped data, so a reader can tell a table's age without the log:
+
+| release | data |
+|---|---|
+| v0.1 | every table above, format 14: the sound, enchant, area and emote tables in `Glimpse`; models, objects, creatures and the displays of a playable race's body in `Glimpse_Data` |
+| v0.2 | no change |
+| v0.3 | `wmoObjects`, format 15: the stock objects whose display is a WMO; the `Glimpse_WMO` pictures, 17,975 appearances, with `liquids` and `collision` in its index |
+| v0.4 | no change to `Glimpse` or `Glimpse_Data`; the `Glimpse_WMO` pictures re-rendered where water is drawn, 1,038 pictures, and the 307 watertiles given their surface pictures |
+
 ## Settings
 
 Preview on hover; the hover picture's size; whether it turns; whether a creature's several displays show
