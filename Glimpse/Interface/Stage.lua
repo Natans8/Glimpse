@@ -196,17 +196,18 @@ function Stage:Perform(animation, wields)
 		model:SetSheathed(not wields)
 		return
 	end
-	self.held, self.starting, self.sheathing = animation, true, not wields
+	local clock = { animation = animation, sheathed = not wields, starting = true }
+	self.clock = clock
 	model:SetScript(
 		"OnUpdate",
 		ns.Safely.Wrap(function()
 			model:SetRotation(model:GetFacing())
-			if self.starting then
-				self.starting = false
-				model:SetSequenceTime(self.held, 0)
-			elseif self.sheathing ~= nil then
-				model:SetSheathed(self.sheathing)
-				self.sheathing = nil
+			if clock.starting then
+				clock.starting = false
+				model:SetSequenceTime(clock.animation, 0)
+			elseif clock.sheathed ~= nil then
+				model:SetSheathed(clock.sheathed)
+				clock.sheathed = nil
 			end
 		end)
 	)
@@ -221,8 +222,8 @@ function Stage:Loaded()
 	if pose then
 		self.pose = nil
 		self:Perform(pose.animation, pose.wields)
-	elseif self.held then
-		self.starting = true
+	elseif self.clock then
+		self.clock.starting = true
 	end
 end
 
@@ -360,7 +361,7 @@ end
 --- Draw nothing.
 function Stage:Clear()
 	stopRetrying(self)
-	self.pose, self.held, self.starting, self.sheathing = nil, nil, nil, nil
+	self.pose, self.clock = nil, nil
 	self.model:SetScript("OnUpdate", nil)
 	self.model:SetAlpha(1)
 	self.model:SetCamDistanceScale(1)

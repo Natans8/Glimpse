@@ -105,7 +105,7 @@ def test_clearing_the_stage_ends_the_sequence_clock_route(addon: LuaRuntime) -> 
     stage(addon)
     addon.execute(b"STAGE:Perform(1744, false); CALLS = {}; STAGE:Clear()")
     assert evaluate(addon, "CALLS[1]") == ["SetScript", "OnUpdate"], "the per-frame hold is dropped"
-    assert evaluate(addon, "{ STAGE.held, STAGE.starting, STAGE.sheathing }") == []
+    assert evaluate(addon, "STAGE.clock") is None
     addon.execute(b"CALLS = {}; STAGE:Loaded()")
     assert evaluate(addon, "CALLS") == [], "a later load starts nothing"
 
@@ -114,4 +114,4 @@ def test_a_load_with_nothing_held_starts_nothing(addon: LuaRuntime) -> None:
     stage(addon)
     addon.execute(b"STAGE:Loaded()")
     assert evaluate(addon, "STAGE.loaded") is True
-    assert evaluate(addon, "STAGE.starting") is None
+    assert evaluate(addon, "STAGE.clock") is None
