@@ -59,6 +59,13 @@ These were established in game and decide the routes above.
 - A model frame plays nothing for a flying animation; a body on the ground plays its ground twin instead.
 - On a body that has loaded, an animation that takes the weapons in hand puts a staff in the wrong hand unless
   the animation is set first and the weapons moved after it.
+- A model frame's `SetAnimation`, `HasAnimation`, `FreezeAnimation` and `SetSequence` refuse any animation at or
+  past the count the client was built with, 1,726 on Epsilon's, though Epsilon's own animation table holds 1,858:
+  the animations it added (cooking, shovelling, the two-handed idle) are past the count. The game plays them
+  through the emote state. The frame plays them through `SetSequenceTime`, which has no such check, and then
+  replays its idle over them unless `SetRotation` has just held that replay off, so the stage calls it every
+  frame with the facing the body already has; a different facing would turn the body with a turning animation.
+  The count is read at runtime from the frame's own refusal, so a client that accepts more needs no new data.
 - Zone music, ambience and intro ids are not sound kit ids; nothing on the client plays them directly.
 
 ## Layers

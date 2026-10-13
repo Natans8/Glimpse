@@ -208,6 +208,27 @@ function Client.ObjectRecord(guid)
 	return record
 end
 
+local limit = nil
+
+--- How many animations a model frame's `SetAnimation` accepts: an animation at or past this
+-- it refuses with an error. Read once from the refusal itself, so a client that accepts more
+-- is followed without a new table.
+-- @return the count, or `math.huge` where the frame refuses nothing
+function Client.AnimationLimit()
+	if limit then
+		return limit
+	end
+	local model = _G.CreateFrame("DressUpModel")
+	model:Hide()
+	local accepted, message = pcall(model.HasAnimation, model, 2 ^ 30)
+	if accepted then
+		limit = math.huge
+	else
+		limit = tonumber(tostring(message):match("0 %- (%d+)")) or ns.Data.AnimationCount
+	end
+	return limit
+end
+
 --- A spell's name, as the client gives it.
 -- @param spell a spell id
 -- @return the name, or nil where the client has no such spell

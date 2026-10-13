@@ -80,7 +80,7 @@ function Stage.New(parent)
 			local pose = self.pose
 			if pose then
 				self.pose = nil
-				self.model:SetAnimation(pose.animation)
+				self:Perform(pose.animation)
 				self.model:SetSheathed(not pose.wields)
 			end
 		end)
@@ -180,6 +180,30 @@ function Stage:Turn(radians)
 	elseif self.presentation.drawer == "model" then
 		self.model:SetFacing(facing)
 	end
+end
+
+--- Have the body perform an animation, once it has loaded.
+--
+-- An animation at or past the client's limit is refused by `SetAnimation`, so it
+-- is started through the sequence clock, which has no such check. The frame
+-- then replays its idle over anything else it finds itself playing, unless it
+-- was just told its facing: `SetRotation` holds that replay off for a tenth of
+-- a second, so it is told again each frame. It is told the facing it already
+-- has, since a different one would turn the body with a turning animation.
+-- @param animation an animation id
+function Stage:Perform(animation)
+	local model = self.model
+	if animation < ns.Client.AnimationLimit() then
+		model:SetAnimation(animation)
+		return
+	end
+	model:SetSequenceTime(animation, 0)
+	model:SetScript(
+		"OnUpdate",
+		ns.Safely.Wrap(function()
+			model:SetRotation(model:GetFacing())
+		end)
+	)
 end
 
 local function stopRetrying(self)
@@ -317,6 +341,7 @@ end
 function Stage:Clear()
 	stopRetrying(self)
 	self.pose = nil
+	self.model:SetScript("OnUpdate", nil)
 	self.model:SetAlpha(1)
 	self.model:SetCamDistanceScale(1)
 	self.presentation = nil
