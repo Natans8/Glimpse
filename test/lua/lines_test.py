@@ -178,10 +178,24 @@ def test_an_override_carries_the_sounds_it_sets(addon: LuaRuntime) -> None:
 def test_a_creature_in_an_outfit_is_not_read_since_it_cannot_be_drawn(addon: LuaRuntime) -> None:
     read = reader(addon)
     plain = read(LINES["npc info of a creature"][0])
-    assert plain == {"kind": "creature", "id": 16998, "name": "Mr. Bigglesworth"}, (
-        "its entry left off"
+    assert plain == {"kind": "creature", "id": 16998, "name": "Mr. Bigglesworth", "ids": [46897]}, (
+        "its entry left off, and the display it stands in carried"
     )
     assert read(LINES["npc info of an outfit"][0]) is None, "58232 drawn, 11455984 worn"
+
+
+def test_a_display_is_read_under_each_name_the_server_links_it_by(addon: LuaRuntime) -> None:
+    read = reader(addon)
+    for link in ("displayID", "nativeID"):
+        line = f"Display: |cff00CCFF|H{link}:46897|h46897|h|r"
+        assert read(line) == {"kind": "display", "id": 46897, "name": "46897"}, link
+
+
+def test_a_skybox_line_is_read_for_whoever_offers_skyboxes(addon: LuaRuntime) -> None:
+    read = reader(addon)
+    line = "|cff00CCFF|HskyboxID:2248|h[2248 - legionnexus_netherskybox01]|h|r"
+    assert read(line) == {"kind": "skybox", "id": 2248, "name": "legionnexus_netherskybox01"}
+    assert evaluate(addon, 'NS.Kinds.Of({ kind = "skybox", id = 2248 })') is None, "offered by nobody"
 
 
 def test_an_object_whose_model_is_a_wmo_is_a_wmo(addon: LuaRuntime) -> None:

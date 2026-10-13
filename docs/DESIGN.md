@@ -13,14 +13,15 @@ line, so any server reply carrying one of these links gains the button, whicheve
 | object, tile, plane | `gameobject_entry:` link | `[Preview]` | a model's name → the models the client's displays name, then the client's object search → file; a stock entry → shipped table → file. One whose model is a WMO, by its file name or a stock entry's display, is drawn by an addon such as `Glimpse_WMO`, as for a spell, while it has a picture to show |
 | detail doodad | its four `.m2` names | `[Preview]` | same, four looks |
 | creature | `creature_entry:` link | `[Preview]` | a stock creature's several displays, from a shipped table; otherwise the client draws it from its entry |
-| creature display | `creatureDisplayID:` link | `[Preview]` | the display itself |
+| spawned creature | `creature_entry:` link beside a `displayID:` link, as `.npc info` prints | `[Preview]` | the one display it stands in, since a spawned creature is itself and not its entry's roll |
+| creature display | `creatureDisplayID:`, `displayID:` or `nativeID:` link | `[Preview]` | the display itself |
 | equipment | `item:` link the client calls dressable | `[Preview]` | worn on an undressed body, turned to the hand or back that carries it |
 | mount or pet item | `item:` link of that class | `[Preview]` | the item's mount or pet, once the item has loaded |
 | enchant | `enchantID:` link | `[Preview]` | a weapon tried on with the enchant |
 | emote | `emoteID:` link | `[Preview]` | the animation on the player's body |
 | area | `area:` link, of an area that has a map | `[Map]` | the client's world map, opened at the area's map: its own, its zone's, or in an instance the dungeon floor named as the area is, else the first; resting on it names the area and the map in text |
 | spell | `spell:` link, and an addon such as Epsilook offering it | `[Preview]` | whatever that addon draws inside Glimpse's hover frame and window |
-| map, teleport, skill, title, blueprint, faction, WMO area, tile texture | their links (`MapID:`, `tele:`, `skill:`, `title:`, `blueprint_name:`), or the line's shape for the last three | `[Preview]`, only while an addon offers the kind | as for a spell |
+| map, teleport, skill, title, blueprint, skybox, faction, WMO area, tile texture | their links (`MapID:`, `tele:`, `skill:`, `title:`, `blueprint_name:`, `skyboxID:`), or the line's shape for the last three | `[Preview]`, only while an addon offers the kind | as for a spell |
 | music, ambience, intro music | the line's shape, and its id and name both matching the shipped table | `[Play]` | the sound kit, played and stopped |
 
 No button is added where there is nothing to show: a non-equipment item that is neither mount nor pet, a stock
@@ -138,6 +139,13 @@ A layer knows only the layers above it in this list.
 GLink is the addon that appends `[Spawn]`, `[Learn]` and the rest. Glimpse works with it and without it, and
 shares nothing with it. Glimpse's links use their own scheme and are spelled so that none of GLink's patterns
 match them, because GLink stops a click it half-recognises from reaching anyone else.
+
+Every link GLink acts on that has something to look at or hear, Glimpse reads: the object entry and the spawned
+object's GUID (as it stands), the creature entry and the spawned creature's display, the three names of a creature
+display, the emote, the enchant, the item, the spell, the teleport, the blueprint, the skybox, the forged creature
+and the placed doodad. The rest name nothing drawable and gain no button: a phase, a phase port, a copied URL,
+a position, and the paging line. A template and a thing spawned from it are different kinds of line to Glimpse as
+they are to the server: the entry previews what would spawn, the GUID or the display what did.
 
 Glimpse's button always comes after GLink's. Players click GLink's buttons by habit, so their place on the line
 does not move. Two things hold the order: GLink is an optional dependency, so it loads and registers its filter

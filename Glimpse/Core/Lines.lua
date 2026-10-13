@@ -102,6 +102,11 @@ local LINKS = {
 	-- A creature a phase forged, as its list of them names it.
 	phase_npc = named("creature"),
 	creatureDisplayID = numbered("display"),
+	-- A creature display under the other names the server links it by: what a
+	-- creature is drawn from, and what it is natively.
+	displayID = numbered("display"),
+	nativeID = numbered("display"),
+	skyboxID = numbered("skybox"),
 	enchantID = numbered("enchant"),
 	item = function(payload, label)
 		return { kind = "item", id = tonumber(payload:match("^%d+")), name = unbracket(label) }
@@ -339,6 +344,12 @@ local function read(message)
 				local guid = found.kind == "object" and message:match("|Hgameobject_GUID:(%d+)|h")
 				if guid then
 					found.ids = { tonumber(guid) }
+				end
+				-- A line of a spawned creature says which display it stands in, which
+				-- is the creature as it is rather than as its entry might spawn it.
+				local display = found.kind == "creature" and message:match("|HdisplayID:(%d+)|h")
+				if display then
+					found.ids = { tonumber(display) }
 				end
 				return found
 			end

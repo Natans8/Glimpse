@@ -273,6 +273,11 @@ def test_a_creature_with_one_display_is_drawn_from_its_entry(game: LuaRuntime) -
     assert evaluate(game, "ANSWERED") is True
 
 
+def test_a_spawned_creature_is_drawn_in_the_display_it_stands_in(game: LuaRuntime) -> None:
+    looks = evaluate(game, 'RESOLVE("creature", { id = 68, name = "Guard", ids = { 5446 } }).looks')
+    assert looks == [{"draw": "display", "value": 5446}], "not the entry's several, the one it has"
+
+
 def test_a_creature_with_several_displays_has_them_all(game: LuaRuntime) -> None:
     looks = evaluate(game, 'RESOLVE("creature", { id = 68, name = "Guard" }).looks')
     assert looks == [

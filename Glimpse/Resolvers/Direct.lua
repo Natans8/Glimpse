@@ -4,9 +4,10 @@ local _, ns = ...
 -- display, a weapon enchant, and an emote through its animation.
 local Subject, Kinds, Packed = ns.Subject, ns.Kinds, ns.Packed
 
--- A stock creature that spawns with one of several displays has them all as its
--- looks. Any other is drawn from its entry, the client choosing its display as
--- it does when one spawns; drawing it again may show another.
+-- A spawned creature whose line says which display it stands in is drawn in
+-- that one. A stock creature that spawns with one of several displays has them
+-- all as its looks. Any other is drawn from its entry, the client choosing its
+-- display as it does when one spawns; drawing it again may show another.
 Kinds.Add("creature", {
 	word = "Creature",
 	code = "c",
@@ -14,7 +15,9 @@ Kinds.Add("creature", {
 		local subject = Subject.New(read)
 		local data = ns.Client.Data()
 		local displays = data and Packed.Find(data.creatures, read.id) or {}
-		if #displays > 1 then
+		if read.ids then
+			Subject.Display(subject, read.ids[1], data)
+		elseif #displays > 1 then
 			for _, row in ipairs(displays) do
 				Subject.Display(subject, row[1], data)
 			end

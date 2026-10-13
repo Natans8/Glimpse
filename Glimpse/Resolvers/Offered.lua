@@ -27,6 +27,7 @@ local OFFERED = {
 	{ "wmo", "Object", "w" },
 	{ "wmoarea", "WMO area", "g" },
 	{ "texture", "Texture", "x" },
+	{ "skybox", "Skybox", "y" },
 }
 
 for _, kind in ipairs(OFFERED) do
