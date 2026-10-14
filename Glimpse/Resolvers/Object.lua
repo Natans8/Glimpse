@@ -89,29 +89,42 @@ local function step(percent, steps)
 	return math.max(0, math.min(steps, math.floor(percent * steps / 100 + 0.5)))
 end
 
--- The kit Epsilon plays on an object to tint it. Its tints are one grid: each colour
--- on 21 steps, the opacity and the saturation on fifths, and the kit is the place in
--- the grid; an object made wholly transparent is the grid's first kit. The record
--- gives transparency as `.gob tint` takes it, 0 for none.
-local function tintKit(tint)
-	local alpha = step(100 - tint.transparency, 5)
+-- A colour's place on Epsilon's grid of 21 steps a channel.
+local function gridColour(colour)
+	return step(colour.red, 20) + 21 * step(colour.green, 20) + 441 * step(colour.blue, 20)
+end
+
+-- The kit Epsilon plays on an object to tint it or lay a colour over it. Both are
+-- one grid: each colour on 21 steps, the opacity and the saturation or strength on
+-- fifths, the overlays after the tints, and the kit is the place in the grid; an
+-- object made wholly transparent is the grid's first kit. The record gives
+-- transparency as `.gob tint` and `.gob overlay` take it, 0 for none.
+local function colourKit(record)
+	local colour = record.tint or record.overlay
+	local alpha = step(100 - colour.transparency, 5)
 	if alpha == 0 then
 		return 167000
 	end
-	local colour = step(tint.red, 20) + 21 * step(tint.green, 20) + 441 * step(tint.blue, 20)
-	return 167001 + (5 - alpha) * 46305 + step(100 - tint.saturation, 5) * 9261 + colour
+	if record.tint then
+		return 167001
+			+ (5 - alpha) * 46305
+			+ step(100 - colour.saturation, 5) * 9261
+			+ gridColour(colour)
+	end
+	local strength = math.max(1, step(colour.strength, 5))
+	return 398526 + (5 - alpha) * 46305 + (5 - strength) * 9261 + gridColour(colour)
 end
 
--- An object's look as the server says the spawned object stands: tinted, drawn with
--- the kit that tints it, or carrying a spell, named after its kind. An object no
--- record has come for is drawn as its model alone.
+-- An object's look as the server says the spawned object stands: tinted or
+-- overlaid, drawn with the kit that colours it, or carrying a spell, named after
+-- its kind. An object no record has come for is drawn as its model alone.
 local function standing(look, read)
 	local record = read.ids and ns.Client.ObjectRecord(read.ids[1])
 	if not record then
 		return
 	end
-	if record.tint then
-		look.draw, look.kit = "tinted", tintKit(record.tint)
+	if record.tint or record.overlay then
+		look.draw, look.kit = "tinted", colourKit(record)
 	end
 	if record.spell ~= 0 then
 		look.name = "with " .. (ns.Client.SpellName(record.spell) or ("spell " .. record.spell))

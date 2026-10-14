@@ -211,11 +211,13 @@ objects:SetScript(
 )
 
 --- What the server last said of an object: the model it draws, its scale, its
--- tint and the spell it carries. A tint is the percentages typed for it, its
--- transparency 0 for none.
+-- tint or overlay and the spell it carries. A tint or an overlay is the percentages
+-- typed for it, its transparency 0 for none; the record keeps either in one place,
+-- with a field saying which.
 -- @param guid the object's GUID, as its line prints it
--- @return `{ file, scale, spell, tint }`, `spell` 0 for none and `tint` nil for none
---   or `{ red, green, blue, transparency, saturation }`; or nil where no record has come
+-- @return `{ file, scale, spell, tint, overlay }`, `spell` 0 for none, `tint` nil for none
+--   or `{ red, green, blue, transparency, saturation }`, `overlay` nil for none or
+--   `{ red, green, blue, transparency, strength }`; or nil where no record has come
 function Client.ObjectRecord(guid)
 	local message = records[tostring(guid)]
 	if not message then
@@ -230,14 +232,18 @@ function Client.ObjectRecord(guid)
 		scale = tonumber(fields[18]) or 1,
 		spell = tonumber(fields[17]) or 0,
 	}
+	local colour = {
+		red = tonumber(fields[13]) or 100,
+		green = tonumber(fields[14]) or 100,
+		blue = tonumber(fields[15]) or 100,
+		transparency = tonumber(fields[16]) or 0,
+	}
 	if fields[12] == "1" then
-		record.tint = {
-			red = tonumber(fields[13]) or 100,
-			green = tonumber(fields[14]) or 100,
-			blue = tonumber(fields[15]) or 100,
-			transparency = tonumber(fields[16]) or 0,
-			saturation = tonumber(fields[21]) or 100,
-		}
+		colour.saturation = tonumber(fields[21]) or 100
+		record.tint = colour
+	elseif fields[12] == "2" then
+		colour.strength = tonumber(fields[21]) or 100
+		record.overlay = colour
 	end
 	return record
 end

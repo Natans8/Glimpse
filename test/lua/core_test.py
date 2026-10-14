@@ -153,6 +153,31 @@ def test_the_servers_record_of_an_object_is_kept_by_its_guid() -> None:
     assert evaluate(runtime, "NS.Client.ObjectRecord(1)") is None, "nothing came for it"
 
 
+#: The server's record of a chair spawned and given `.gob overlay 100 0 0`, captured in game:
+#: the field that reads 1 for a tint reads 2 for an overlay, with the colour after it.
+OVERLAID_CHAIR = "".join(
+    [
+        *("96172", "716709", "6dr_draenei_chair02.m2", "875053", "3302.94", "3111.85", "32.064"),
+        *("2.21472", "0", "-0", "126.894", "2", "100", "0", "0", "0", "0", "1", "0", "5", "100"),
+        *("203676832464112986", "3170539134909147456", "1", ""),
+    ]
+)
+
+
+def test_an_overlay_is_read_from_the_record_beside_a_tint() -> None:
+    runtime = load_addon()
+    runtime.globals()[b"RECORD"] = OVERLAID_CHAIR.encode()
+    runtime.execute(b"""
+        HANDLERS.CHAT_MSG_ADDON(nil, "CHAT_MSG_ADDON", "EPSILON_OBJ_INFO", RECORD, "WHISPER", "x")
+    """)
+    assert evaluate(runtime, "NS.Client.ObjectRecord(96172)") == {
+        "file": 875053,
+        "scale": 1,
+        "spell": 0,
+        "overlay": {"red": 100, "green": 0, "blue": 0, "transparency": 0, "strength": 100},
+    }
+
+
 def test_a_subject_that_depends_on_the_servers_word_is_found_afresh() -> None:
     runtime = load_addon()
     runtime.execute(b"""
