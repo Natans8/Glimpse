@@ -164,7 +164,7 @@ OVERLAID_CHAIR = "".join(
 )
 
 
-def test_an_overlay_is_read_from_the_record_beside_a_tint() -> None:
+def test_an_overlay_is_not_taken_for_a_tint() -> None:
     runtime = load_addon()
     runtime.globals()[b"RECORD"] = OVERLAID_CHAIR.encode()
     runtime.execute(b"""
@@ -174,8 +174,7 @@ def test_an_overlay_is_read_from_the_record_beside_a_tint() -> None:
         "file": 875053,
         "scale": 1,
         "spell": 0,
-        "overlay": {"red": 100, "green": 0, "blue": 0, "transparency": 0, "strength": 100},
-    }
+    }, "no frame draws an overlay, so the object is its model alone"
 
 
 def test_a_subject_that_depends_on_the_servers_word_is_found_afresh() -> None:

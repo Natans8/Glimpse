@@ -163,11 +163,6 @@ def test_a_spawned_object_is_drawn_as_the_server_says_it_stands(game: LuaRuntime
             [3] = { file = 999901, scale = 1, spell = 0,
                 tint = { red = 20, green = 40, blue = 60, transparency = 100, saturation = 80 } },
             [4] = { file = 999901, scale = 1, spell = 116 },
-            -- `.gob overlay 100 0 0` as the server recorded it: strength 100, transparency 0.
-            [6] = { file = 999901, scale = 1, spell = 0,
-                overlay = { red = 100, green = 0, blue = 0, transparency = 0, strength = 100 } },
-            [7] = { file = 999901, scale = 1, spell = 0,
-                overlay = { red = 20, green = 40, blue = 60, transparency = 60, strength = 40 } },
         }
         NS.Client.ObjectRecord = function(guid) return STANDING[guid] end
         NS.Client.SpellName = function(id) return id == 116 and "Frostbolt" or nil end
@@ -186,12 +181,6 @@ def test_a_spawned_object_is_drawn_as_the_server_says_it_stands(game: LuaRuntime
     assert look(3) == {"draw": "tinted", "value": 999901, "kit": 167000}, "wholly transparent"
     assert look(4) == {"draw": "file", "value": 999901, "name": "with Frostbolt"}
     assert look(5) == {"draw": "file", "value": 999901}, "no record has come for it"
-    assert look(6) == {"draw": "tinted", "value": 999901, "kit": 398546}, (
-        "an overlay: the grid's second half, full strength, wholly opaque"
-    )
-    assert look(7) == {"draw": "tinted", "value": 999901, "kit": 570688}, (
-        "20 40 60 overlaid, two fifths opaque, at two fifths' strength"
-    )
 
 
 def test_a_placed_doodad_shows_its_model_and_what_replaced_it(game: LuaRuntime) -> None:
