@@ -300,6 +300,14 @@ def creature_displays(con: duckdb.DuckDBPyConnection) -> list[tuple[int, ...]]:
     return [(int(creature), int(display)) for creature, display in rows]
 
 
+def last_stock_creature(con: duckdb.DuckDBPyConnection) -> int:
+    """The highest stock creature entry. A phase's forged NPCs are numbered far past it."""
+    (last,) = con.execute(f"SELECT max(entry) FROM {SCHEMA}.tdb_creature_template").fetchone() or (
+        0,
+    )
+    return int(last)
+
+
 #: The invisible stalker's two model files, with a name over it and without. An NPC dressed in
 #: an outfit reaches a client standing in a display of one of these, and so does a stock
 #: creature that is only ever a trigger nobody is meant to see.

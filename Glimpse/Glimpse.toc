@@ -8,6 +8,7 @@
 ## SavedVariables: GlimpseSettings, GlimpseFaults
 
 Data\Formats.lua
+Data\Creatures.lua
 Data\Sounds.lua
 Data\Enchants.lua
 Data\Emotes.lua

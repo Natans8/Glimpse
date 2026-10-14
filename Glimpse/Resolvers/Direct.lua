@@ -38,6 +38,12 @@ Kinds.Add("creature", {
 		if read.ids then
 			return not unseen(data, read.ids[1])
 		end
+		-- An entry past the last stock creature is a phase's forged NPC, named here by its
+		-- entry alone. It may wear an outfit, which neither the line nor the client tells and
+		-- no frame draws, so it gains no button; a line naming what it stands in still does.
+		if read.id > ns.Data.LastStockCreature then
+			return false
+		end
 		return not (data and Packed.First(data.unseenCreatures, read.id))
 	end,
 	resolve = function(read, done)

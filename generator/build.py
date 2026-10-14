@@ -59,6 +59,7 @@ CODE: tuple[str, ...] = (
 #: The generated data files of the main addon, in load order.
 DATA = (
     "Data/Formats.lua",
+    "Data/Creatures.lua",
     "Data/Sounds.lua",
     "Data/Enchants.lua",
     "Data/Emotes.lua",
@@ -134,6 +135,8 @@ def main_data(con: duckdb.DuckDBPyConnection) -> dict[str, str]:
     unruled = tables.unruled_emotes(tables.emotes(con, epsilon_emotes()), animations)
     return {
         "Data/Formats.lua": head + f"ns.Data.Format = {DATA_FORMAT}\n",
+        "Data/Creatures.lua": head
+        + f"ns.Data.LastStockCreature = {tables.last_stock_creature(con)}\n",
         "Data/Sounds.lua": head + sounds,
         "Data/Enchants.lua": head + f"ns.Data.EnchantsWithoutVisual = {lua.plain(enchants)}\n",
         "Data/Areas.lua": head + f"ns.Data.AreaMaps = {lua.plain(tables.area_maps(con))}\n",

@@ -320,6 +320,15 @@ def test_a_creature_standing_in_the_invisible_stalker_gains_no_button(game: LuaR
     )
 
 
+def test_a_forged_npc_named_by_its_entry_alone_gains_no_button(game: LuaRuntime) -> None:
+    listed = '{ kind = "creature", id = 2637828, name = "NPC 268" }'
+    assert evaluate(game, f"NS.Kinds.Buttons({listed})") is None, "it may wear an outfit"
+    spawned = '{ kind = "creature", id = 2634994, name = "NPC 268", ids = { 1000 } }'
+    assert evaluate(game, f"NS.Kinds.Buttons({spawned})") == ["Preview"], "a spawn in a display"
+    stock = '{ kind = "creature", id = 184093, name = "Spirit Wolf" }'
+    assert evaluate(game, f"NS.Kinds.Buttons({stock})") == ["Preview"]
+
+
 def test_a_creature_spawning_as_the_stalker_or_as_something_shows_only_the_something(
     game: LuaRuntime,
 ) -> None:
