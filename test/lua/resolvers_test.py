@@ -154,12 +154,14 @@ def test_a_doodad_shows_the_models_that_are_found(game: LuaRuntime) -> None:
 def test_a_spawned_object_is_drawn_as_the_server_says_it_stands(game: LuaRuntime) -> None:
     game.execute(b"""
         STANDING = {
+            -- `.gob tint 100 0 0` as the server recorded it: no transparency typed, 0.
             [1] = { file = 999901, scale = 1, spell = 0,
-                tint = { red = 100, green = 0, blue = 0, transparency = 100, saturation = 100 } },
+                tint = { red = 100, green = 0, blue = 0, transparency = 0, saturation = 100 } },
+            -- `.gob tint 20 40 60 80 60`: saturation 80, transparency 60.
             [2] = { file = 999901, scale = 1, spell = 0,
                 tint = { red = 20, green = 40, blue = 60, transparency = 60, saturation = 80 } },
             [3] = { file = 999901, scale = 1, spell = 0,
-                tint = { red = 20, green = 40, blue = 60, transparency = 0, saturation = 80 } },
+                tint = { red = 20, green = 40, blue = 60, transparency = 100, saturation = 80 } },
             [4] = { file = 999901, scale = 1, spell = 116 },
         }
         NS.Client.ObjectRecord = function(guid) return STANDING[guid] end
@@ -170,9 +172,11 @@ def test_a_spawned_object_is_drawn_as_the_server_says_it_stands(game: LuaRuntime
         pillow = f'{{ id = 1, name = "7nb_nightborn_floorpillow03.m2", ids = {{ {guid} }} }}'
         return evaluate(game, f'RESOLVE("object", {pillow}).looks[1]')
 
-    assert look(1) == {"draw": "tinted", "value": 999901, "kit": 167021}, "the red proven in game"
-    assert look(2) == {"draw": "tinted", "value": 999901, "kit": 274336}, (
-        "20 40 60 on the grid, three fifths opaque, a fifth desaturated"
+    assert look(1) == {"draw": "tinted", "value": 999901, "kit": 167021}, (
+        "the red proven in game, wholly opaque"
+    )
+    assert look(2) == {"draw": "tinted", "value": 999901, "kit": 320641}, (
+        "20 40 60 on the grid, two fifths opaque, a fifth desaturated"
     )
     assert look(3) == {"draw": "tinted", "value": 999901, "kit": 167000}, "wholly transparent"
     assert look(4) == {"draw": "file", "value": 999901, "name": "with Frostbolt"}

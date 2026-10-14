@@ -90,10 +90,11 @@ local function step(percent, steps)
 end
 
 -- The kit Epsilon plays on an object to tint it. Its tints are one grid: each colour
--- on 21 steps, the transparency and the saturation on fifths, and the kit is the
--- place in the grid; an object made wholly transparent is the grid's first kit.
+-- on 21 steps, the opacity and the saturation on fifths, and the kit is the place in
+-- the grid; an object made wholly transparent is the grid's first kit. The record
+-- gives transparency as `.gob tint` takes it, 0 for none.
 local function tintKit(tint)
-	local alpha = step(tint.transparency, 5)
+	local alpha = step(100 - tint.transparency, 5)
 	if alpha == 0 then
 		return 167000
 	end

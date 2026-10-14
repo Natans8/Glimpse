@@ -178,7 +178,8 @@ objects:SetScript(
 )
 
 --- What the server last said of an object: the model it draws, its scale, its
--- tint and the spell it carries. A tint is the percentages typed for it.
+-- tint and the spell it carries. A tint is the percentages typed for it, its
+-- transparency 0 for none.
 -- @param guid the object's GUID, as its line prints it
 -- @return `{ file, scale, spell, tint }`, `spell` 0 for none and `tint` nil for none
 --   or `{ red, green, blue, transparency, saturation }`; or nil where no record has come
@@ -201,7 +202,7 @@ function Client.ObjectRecord(guid)
 			red = tonumber(fields[13]) or 100,
 			green = tonumber(fields[14]) or 100,
 			blue = tonumber(fields[15]) or 100,
-			transparency = tonumber(fields[16]) or 100,
+			transparency = tonumber(fields[16]) or 0,
 			saturation = tonumber(fields[21]) or 100,
 		}
 	end
