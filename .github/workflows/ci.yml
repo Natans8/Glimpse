@@ -9,7 +9,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # CI runs the requires-python floor, which every compiled dependency has a
+      # wheel for; a machine may run newer.
       - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          python-version: "3.14"
       - uses: JohnnyMorganz/stylua-action@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
