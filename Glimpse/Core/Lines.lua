@@ -368,7 +368,7 @@ function Lines.Split(message)
 end
 
 --- What a line names on rows of their own, after the row that names the line:
--- each model a detail doodad lists, read on the first row that lists it.
+-- each model a detail doodad lists, on every row that lists it.
 -- @param message the line as the server sent it
 -- @param own the line's own read
 -- @return a read for each such row, by its number in `Lines.Split`, or nil
@@ -377,11 +377,10 @@ function Lines.Rows(message, own)
 	if own.kind ~= "doodad" then
 		return nil
 	end
-	local reads, seen = {}, {}
+	local reads = {}
 	for index, row in ipairs(Lines.Split(message)) do
 		local name = index > 1 and row.text:match("|cff00CCFF([%w_%-%.]+%.m2)|r")
-		if name and not seen[name] then
-			seen[name] = true
+		if name then
 			reads[index] = { kind = "doodad", id = own.id, name = name, names = { name } }
 		end
 	end

@@ -11,7 +11,7 @@ line, so any server reply carrying one of these links gains the button, whicheve
 | Line | Recognised by | Button | Route |
 |---|---|---|---|
 | object, tile, plane | `gameobject_entry:` link | `[Preview]` | a model's name → the models the client's displays name, then the client's object search → file; a stock entry → shipped table → file. One whose model is a WMO, by its file name or a stock entry's display, is drawn by an addon such as `Glimpse_WMO`, as for a spell, while it has a picture to show |
-| detail doodad | its four `.m2` names | `[Preview]` | same, four looks |
+| detail doodad | its four `.m2` names, one to a row | `[Preview]` on the detail's row, and on each model's row | same: the detail's button has the four as its looks, a model's row that model alone, a model listed twice on each of its rows |
 | creature | `creature_entry:` link | `[Preview]` | a stock creature's several displays, from a shipped table; otherwise the client draws it from its entry |
 | spawned creature | `creature_entry:` link beside a `displayID:` link, as `.npc info` prints | `[Preview]` | the one display it stands in, since a spawned creature is itself and not its entry's roll |
 | creature display | `creatureDisplayID:`, `displayID:` or `nativeID:` link | `[Preview]` | the display itself |

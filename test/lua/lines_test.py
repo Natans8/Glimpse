@@ -5,6 +5,7 @@ The fixture holds every line of each command's reply, the closing "enter
 lines and one of them reads as nothing.
 """
 
+import json
 import re
 from collections import Counter
 from collections.abc import Callable
@@ -341,3 +342,42 @@ def test_text_that_is_no_line_of_ours_reads_as_nothing(addon: LuaRuntime) -> Non
     read = reader(addon)
     for text in ("", "hello", "|Hplayer:Someone|h[Someone]|h says hi", "|Hgameobject_entry:|h[]|h"):
         assert read(text) is None
+
+
+#: Every read a line gives, its own and its rows', each with the key a subject is
+#: kept and found by.
+KEYED = b"""
+    function KEYED(message)
+        local found = {}
+        local own = NS.Lines.Read(message)
+        if not own then
+            return found
+        end
+        local reads = { own }
+        for _, row in pairs(NS.Lines.Rows(message, own) or {}) do
+            reads[#reads + 1] = row
+        end
+        for _, read in ipairs(reads) do
+            found[#found + 1] = {
+                read = read,
+                key = NS.Subject.Key(read),
+                subject = NS.Subject.Key(NS.Subject.New(read)),
+            }
+        end
+        return found
+    end
+"""
+
+
+def test_two_different_reads_never_share_a_key(addon: LuaRuntime) -> None:
+    """A preview is kept and found again by its key, so two reads sharing one show one subject."""
+    addon.execute(KEYED)
+    keyed: dict[str, object] = {}
+    for found in LINES.values():
+        for line in found:
+            for each in cast(
+                list[dict[str, object]], evaluate(addon, f"KEYED({json.dumps(line)})")
+            ):
+                assert each["key"] == each["subject"], "a read and its subject share a key"
+                key = cast(str, each["key"])
+                assert keyed.setdefault(key, each["read"]) == each["read"], key

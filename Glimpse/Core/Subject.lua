@@ -18,20 +18,31 @@ ns.Subject = Subject
 -- @param read the read it answers
 -- @return the subject
 function Subject.New(read)
-	return { kind = read.kind, id = read.id, name = read.name, ids = read.ids, looks = {} }
+	return {
+		kind = read.kind,
+		id = read.id,
+		name = read.name,
+		names = read.names,
+		ids = read.ids,
+		looks = {},
+	}
 end
 
---- What tells one subject from another: its kind, its id, and the other ids its
--- line gave, so two objects of one entry standing differently are two. A read has
--- the same key as the subject resolved from it.
+--- What tells one subject from another: everything a resolver reads of a read.
+-- That is its kind and its id, its name, which may name the model, the models a
+-- detail doodad's row names, and the other ids its line gave. So each row of a
+-- detail doodad is its own, as are two objects of one entry standing differently.
+-- A read has the same key as the subject resolved from it.
 -- @param of a read or a subject
 -- @return the key
 function Subject.Key(of)
-	local key = of.kind .. ":" .. of.id
-	if of.ids then
-		key = key .. ":" .. table.concat(of.ids, ",")
-	end
-	return key
+	return table.concat({
+		of.kind,
+		of.id,
+		of.name or "",
+		table.concat(of.names or {}, ","),
+		table.concat(of.ids or {}, ","),
+	}, ":")
 end
 
 --- Add a look to a subject.

@@ -115,9 +115,17 @@ def test_a_line_in_rows_gains_a_button_on_each_row_that_names_a_thing(chat: LuaR
         assert back == {"kind": "doodad", "id": 93365, "name": model[1], "names": [model[1]]}
 
 
-def test_a_model_a_detail_lists_twice_gains_one_button(chat: LuaRuntime) -> None:
+def test_a_model_a_detail_lists_twice_gains_a_button_on_each_row(chat: LuaRuntime) -> None:
     rows = rows_shown(chat, LINES["lookup detaildoodad grass"][0])
-    assert [len(links) for _, links in rows] == [1, 1, 0, 0, 0]
+    assert [len(links) for _, links in rows] == [1, 1, 1, 1, 1]
+
+
+def test_every_row_of_every_detail_names_a_model_and_gains_its_button(chat: LuaRuntime) -> None:
+    for line in LINES["lookup detaildoodad grass"]:
+        if not line.startswith("Detail ID: "):
+            continue
+        rows = rows_shown(chat, line)
+        assert all(len(links) == 1 for _, links in rows), line
 
 
 def test_the_filter_gives_the_same_answer_each_time_it_is_asked(chat: LuaRuntime) -> None:

@@ -1,5 +1,6 @@
 """The resolvers over a client that answers as the game was seen to answer."""
 
+import json
 from typing import cast
 
 import pytest
@@ -420,3 +421,26 @@ def test_without_the_data_what_only_the_data_names_gains_no_button(game: LuaRunt
     pillow = '{ kind = "object", id = 253044, name = "Pillow" }'
     assert evaluate(game, f"RESOLVE('object', {door})") is None, "the search does not hold it"
     assert evaluate(game, f"NS.Kinds.Of({pillow})") is None, "a stock entry named in words"
+
+
+def test_each_row_of_a_detail_shows_its_own_model_when_asked_in_turn(game: LuaRuntime) -> None:
+    """Resting on one row and then the next, as the pointer moves down the line."""
+    line = (
+        "Detail ID: |cff00CCFF31042|r:\r"
+        "Doodad 1: |cff00CCFF6dr_draenei_chair02.m2|r\r"
+        "Doodad 2: |cff00CCFF0xp_scale_ruler01.m2|r\r"
+        "Doodad 3: |cff00CCFF6dr_draenei_chair02.m2|r"
+    )
+    game.execute(
+        f"""
+        local line = {json.dumps(line)}
+        local rows = NS.Lines.Rows(line, NS.Lines.Read(line))
+        DRAWN = {{}}
+        for index = 2, 4 do
+            NS.Async.Ask("peek", rows[index], function(subject)
+                DRAWN[#DRAWN + 1] = subject.looks[1].value
+            end)
+        end
+        """.encode()
+    )
+    assert evaluate(game, "DRAWN") == [875053, 2351343, 875053]
