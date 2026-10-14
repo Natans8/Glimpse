@@ -168,3 +168,40 @@ def test_a_subject_that_depends_on_the_servers_word_is_found_afresh() -> None:
         ask({ kind = "object", id = 801862, name = "fern", ids = { 96105 } })
     """)
     assert evaluate(runtime, "ASKED") == 3, "an entry's model is kept, a spawned object's is not"
+
+
+#: The client's item wait as the client gives it: it calls back once the item has loaded and
+#: says nothing where the server has no such item. `LOADED` keeps each callback by item.
+ITEMS = b"""
+    LOADED, GOT = {}, {}
+    Item = {
+        CreateFromItemID = function(_, id)
+            return {
+                ContinueWithCancelOnItemLoad = function(_, fn)
+                    LOADED[id] = fn
+                    return function() LOADED[id] = nil end
+                end,
+            }
+        end,
+    }
+    local function wait(id)
+        return NS.Client.WhenItemLoads(id, function() GOT[#GOT + 1] = "loaded " .. id end,
+            function() GOT[#GOT + 1] = "refused " .. id end)
+    end
+    WAIT = wait
+"""
+
+
+def test_an_item_wait_hears_the_server_refuse_the_item() -> None:
+    runtime = load_addon()
+    runtime.execute(ITEMS)
+    runtime.execute(b"""
+        WAIT(5); WAIT(6); WAIT(7)()
+        HANDLERS.ITEM_DATA_LOAD_RESULT(nil, "ITEM_DATA_LOAD_RESULT", 5, false)
+        LOADED[6]()
+        HANDLERS.ITEM_DATA_LOAD_RESULT(nil, "ITEM_DATA_LOAD_RESULT", 6, false)
+        HANDLERS.ITEM_DATA_LOAD_RESULT(nil, "ITEM_DATA_LOAD_RESULT", 7, false)
+    """)
+    assert evaluate(runtime, "GOT") == ["refused 5", "loaded 6"], (
+        "a refusal ends its wait; a wait already over or cancelled hears nothing"
+    )

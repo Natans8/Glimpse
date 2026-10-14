@@ -115,3 +115,71 @@ def test_a_load_with_nothing_held_starts_nothing(addon: LuaRuntime) -> None:
     addon.execute(b"STAGE:Loaded()")
     assert evaluate(addon, "STAGE.loaded") is True
     assert evaluate(addon, "STAGE.clock") is None
+
+
+#: A model frame that draws a creature once the client has it: `HAS` names the creatures the
+#: client holds and `FILES` the model file each draws, 124640 being the invisible stalker an
+#: NPC in an outfit stands in. Its frame script is kept as `ON_UPDATE`, nil once taken off.
+DRAWING = b"""
+    CALLS, HAS, FILES, SAID = {}, {}, { [32] = 126077, [2372187] = 124640 }, 0
+    function CreateFrame()
+        local model = { file = 0 }
+        function model:SetScript(name, handler)
+            if name == "OnUpdate" then ON_UPDATE = handler end
+        end
+        function model:SetCreature(entry)
+            CALLS[#CALLS + 1] = { "SetCreature", entry }
+            if HAS[entry] then self.file = FILES[entry] end
+        end
+        function model:GetModelFileID() return self.file end
+        function model:ClearModel() self.file = 0 end
+        function model:SetAlpha(alpha) ALPHA = alpha end
+        function model:SetModel(file) CALLS[#CALLS + 1] = { "SetModel", file } end
+        function model:ApplySpellVisualKit(kit, oneShot)
+            CALLS[#CALLS + 1] = { "ApplySpellVisualKit", kit, oneShot }
+        end
+        for _, name in ipairs({ "Show", "Hide", "SetFacing", "SetCamDistanceScale" }) do
+            model[name] = function() end
+        end
+        return model
+    end
+    local nothing = { ClearModel = function() end, Hide = function() end }
+    STAGE = setmetatable({ model = CreateFrame(), actor = nothing, scene = nothing }, NS.Stage)
+    STAGE:WhenNothing(function() SAID = SAID + 1 end)
+"""
+
+
+def test_a_tint_is_given_on_the_frame_after_the_model_loads(addon: LuaRuntime) -> None:
+    addon.execute(DRAWING)
+    addon.execute(b'STAGE:Show({ draw = "tinted", value = 875053, kit = 167021 })')
+    assert evaluate(addon, "CALLS") == [["SetModel", 875053]], "no kit before the model loads"
+    assert evaluate(addon, "ON_UPDATE") is None, "and nothing is counted down meanwhile"
+    addon.execute(b"STAGE:Loaded()")
+    assert evaluate(addon, "#CALLS") == 1, "a kit given on the load itself is dropped"
+    addon.execute(b"ON_UPDATE()")
+    assert evaluate(addon, "CALLS[2]") == ["ApplySpellVisualKit", 167021, False]
+    assert evaluate(addon, "ON_UPDATE") is None, "given once"
+
+
+def test_a_creature_the_client_has_not_seen_is_asked_for_each_frame_until_it_is_held(
+    addon: LuaRuntime,
+) -> None:
+    addon.execute(DRAWING)
+    addon.execute(b'STAGE:Show({ draw = "creature", value = 32 })')
+    assert evaluate(addon, "ALPHA") == 0, "unseen while it is not held"
+    addon.execute(b"ON_UPDATE(); ON_UPDATE()")
+    assert evaluate(addon, "#CALLS") == 3, "asked again on each frame"
+    addon.execute(b"HAS[32] = true; ON_UPDATE()")
+    assert evaluate(addon, "ALPHA") == 1
+    assert evaluate(addon, "ON_UPDATE") is None, "and no more once held"
+    assert evaluate(addon, "SAID") == 0
+
+
+def test_a_creature_the_client_draws_as_the_invisible_stalker_shows_nothing(
+    addon: LuaRuntime,
+) -> None:
+    addon.execute(DRAWING)
+    addon.execute(b'HAS[2372187] = true; STAGE:Show({ draw = "creature", value = 2372187 })')
+    assert evaluate(addon, "SAID") == 1, "said at once, with nothing counted down"
+    assert evaluate(addon, "ALPHA") == 0
+    assert evaluate(addon, "ON_UPDATE") is None

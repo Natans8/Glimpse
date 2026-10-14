@@ -23,16 +23,12 @@ ns.Stage = Stage
 --- The item an enchant is shown on where the player holds no weapon.
 local PLAIN_SWORD = 25
 
---- How often, and how many times, a creature is asked for again. Asked for a
--- creature it has not seen, the client draws the frame's earlier display
--- again and reports that display as the frame's own; asked again a moment
--- later, it draws the creature.
-local RETRY_SECONDS, RETRIES = 0.1, 5
-
---- How long after a model is given its tint: the wait that drew one in game.
-local TINT_SECONDS = 1
-
 local MAIN_HAND = 16
+
+--- The model files the client draws for a creature with nothing to show: the
+-- invisible stalker, which is what an NPC dressed in an outfit stands in as far
+-- as any client but the server's own view of it is concerned.
+local NOTHING_SHOWN = { [124640] = true, [124642] = true }
 
 --- The client's model scene whose camera the scene takes: an orbit camera.
 local SCENE_CAMERA = 114
@@ -64,6 +60,10 @@ function Stage.New(parent)
 	self.actor:SetUseCenterForOrigin(true, true, true)
 	self.actor:SetOnModelLoadedCallback(ns.Safely.Wrap(function()
 		self.loaded = true
+		if NOTHING_SHOWN[self.actor:GetModelFileID()] then
+			self:Nothing()
+			return
+		end
 		self:Fit()
 	end))
 
@@ -213,24 +213,39 @@ function Stage:Perform(animation, wields)
 	)
 end
 
+-- Call `step` on each frame the model frame draws until it answers true. What
+-- the stage waits for is always something the client does, a load or a frame
+-- drawn, never a length of time.
+local function everyFrame(self, step)
+	local model = self.model
+	model:SetScript(
+		"OnUpdate",
+		ns.Safely.Wrap(function()
+			if step() then
+				model:SetScript("OnUpdate", nil)
+			end
+		end)
+	)
+end
+
 --- Take up what waited for the model to load. An emote waits for the body: set
 -- on a body still loading, the client takes a staff in hand with the wrong one.
--- A body holding an animation the frame refuses starts it afresh.
+-- A body holding an animation the frame refuses starts it afresh. A tint waits
+-- for the frame after the load: a kit given to a model not yet drawn is dropped.
 function Stage:Loaded()
 	self.loaded = true
-	local pose = self.pose
+	local pose, kit = self.pose, self.kit
 	if pose then
 		self.pose = nil
 		self:Perform(pose.animation, pose.wields)
 	elseif self.clock then
 		self.clock.starting = true
-	end
-end
-
-local function stopRetrying(self)
-	if self.retry then
-		self.retry:Cancel()
-		self.retry = nil
+	elseif kit then
+		self.kit = nil
+		everyFrame(self, function()
+			self.model:ApplySpellVisualKit(kit, false)
+			return true
+		end)
 	end
 end
 
@@ -239,6 +254,36 @@ end
 local function holdsModel(model)
 	local file = model:GetModelFileID()
 	return file ~= nil and file ~= 0
+end
+
+-- Ask the model frame for something until it holds a model, unseen meanwhile.
+-- Asked for a creature it has not seen, the client sends for it and draws
+-- nothing until it is asked again once it has it, so it is asked again on each
+-- frame until then. The frame was emptied before, so an earlier creature is
+-- never shown under the new one's name. A model that shows nothing stays unseen,
+-- and the stage says so.
+local function untilHeld(self, ask)
+	local model = self.model
+	model:SetAlpha(0)
+	local function held()
+		if not holdsModel(model) then
+			return false
+		end
+		if NOTHING_SHOWN[model:GetModelFileID()] then
+			self:Nothing()
+		else
+			model:SetAlpha(1)
+		end
+		return true
+	end
+	ask(model)
+	if held() then
+		return
+	end
+	everyFrame(self, function()
+		ask(model)
+		return held()
+	end)
 end
 
 -- The player's body, wearing only what the look puts on it.
@@ -255,63 +300,21 @@ local DRAW = {
 	display = function(self, display)
 		self.actor:SetModelByCreatureDisplayID(display)
 	end,
-	-- A kit given before the model has drawn is dropped, and a model not seen is
-	-- not drawn, so the model is shown as it is and tinted a moment later.
+	-- The model is shown as it is and tinted once it has loaded and been drawn,
+	-- since a model not seen is not drawn and a kit given to one undrawn is dropped.
 	tinted = function(self, file, look)
-		local model = self.model
-		model:SetModel(file)
-		self.retry = _G.C_Timer.NewTimer(
-			TINT_SECONDS,
-			ns.Safely.Wrap(function()
-				self.retry = nil
-				model:ApplySpellVisualKit(look.kit, false)
-			end)
-		)
+		self.kit = look.kit
+		self.model:SetModel(file)
 	end,
-	-- The frame is emptied first and stays unseen until it holds a model, so an
-	-- earlier creature is never shown under the new one's name, and one the client
-	-- never loads, as a forged creature in an outfit, shows nothing at all.
 	creature = function(self, entry)
-		local model = self.model
-		model:ClearModel()
-		model:SetCreature(entry)
-		if holdsModel(model) then
-			return
-		end
-		model:SetAlpha(0)
-		local asked = 0
-		self.retry = _G.C_Timer.NewTicker(
-			RETRY_SECONDS,
-			ns.Safely.Wrap(function()
-				asked = asked + 1
-				model:SetCreature(entry)
-				if holdsModel(model) then
-					stopRetrying(self)
-					model:SetAlpha(1)
-				elseif asked == RETRIES then
-					stopRetrying(self)
-					if self.nothing then
-						self.nothing()
-					end
-				end
-			end),
-			RETRIES
-		)
+		untilHeld(self, function(model)
+			model:SetCreature(entry)
+		end)
 	end,
-	-- A display is drawn again a moment later, for the same reason a creature is
-	-- asked for again, and the frame is unseen until then.
 	character = function(self, display)
-		local model = self.model
-		model:SetAlpha(0)
-		model:SetDisplayInfo(display)
-		self.retry = _G.C_Timer.NewTimer(
-			RETRY_SECONDS * 2,
-			ns.Safely.Wrap(function()
-				self.retry = nil
-				model:SetDisplayInfo(display)
-				model:SetAlpha(1)
-			end)
-		)
+		untilHeld(self, function(model)
+			model:SetDisplayInfo(display)
+		end)
 	end,
 	tryon = function(self, item)
 		body(self.model)
@@ -333,11 +336,18 @@ local DRAW = {
 	end,
 }
 
---- Say what is done when a look turns out to draw nothing at all, as a creature
--- the client never loads does, so whoever shows the stage can say so.
+--- Say what is done when a look turns out to show nothing at all, as an NPC in an
+-- outfit does, so whoever shows the stage can say so.
 -- @param nothing a function called with no arguments
 function Stage:WhenNothing(nothing)
 	self.nothing = nothing
+end
+
+--- The look shows nothing: say so, where anyone asked.
+function Stage:Nothing()
+	if self.nothing then
+		self.nothing()
+	end
 end
 
 --- Draw a look, replacing whatever was drawn.
@@ -360,8 +370,7 @@ end
 
 --- Draw nothing.
 function Stage:Clear()
-	stopRetrying(self)
-	self.pose, self.clock = nil, nil
+	self.pose, self.clock, self.kit = nil, nil, nil
 	self.model:SetScript("OnUpdate", nil)
 	self.model:SetAlpha(1)
 	self.model:SetCamDistanceScale(1)

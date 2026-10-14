@@ -24,7 +24,7 @@ CLEAN = {
     + 'frame:SetScript("OnUpdate", ns.Safely.Wrap(function() end))\n',
     "Client.lua": HEAD
     + 'local frame = _G.CreateFrame("Frame")\nframe:RegisterEvent("SOUNDKIT_FINISHED")\n'
-    + "local timer = _G.C_Timer.NewTimer(1, f)\nlocal epsilon = _G.C_Epsilon\n"
+    + "local item = _G.Item:CreateFromItemID(id)\nlocal epsilon = _G.C_Epsilon\n"
     + '_G.hooksecurefunc("SetItemRef", f)\nlocal wide = _G.UIParent:GetWidth()\n',
 }
 
@@ -56,6 +56,9 @@ def test_clean_sources_pass(name: str, guard: Guard) -> None:
         (check.client_violations, "Client.lua", "return _G.GetItemInfoInstantly(id)"),
         (check.client_violations, "Interface/Chat.lua", 'hooksecurefunc("SetItemReference", f)'),
         (check.client_violations, "Client.lua", 'frame:RegisterEvent("SOUND_FINISHED")'),
+        (check.wait_violations, "Interface/Stage.lua", "self.retry = _G.C_Timer.NewTimer(1, tint)"),
+        (check.wait_violations, "Interface/Peek.lua", "C_Timer.After(0, fill)"),
+        (check.wait_violations, "Interface/Stage.lua", "self.total = self.total + elapsed"),
         (check.callback_violations, "Interface/Peek.lua", 'frame:SetScript("OnUpdate", function()'),
         (
             check.callback_violations,

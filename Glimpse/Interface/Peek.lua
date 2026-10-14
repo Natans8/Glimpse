@@ -38,14 +38,10 @@ local SPIN = 1
 -- turn, so the turn carries its front past the viewer first.
 local START = -math.rad(45)
 
---- How long a look may take to arrive before the first card says there is none.
-local PATIENCE = 4
-
 local cards = {} -- every card made so far; the first is the hover frame itself
 local shown = 0 -- how many of them hold a look
 local side -- "RIGHT" or "LEFT": which way from the pointer the row runs
 local reach -- how wide the screen is from the pointer that way
-local waiting
 
 -- A card: a panel, a stage filling it, the words over its lower edge, and an
 -- inside to lend in their place.
@@ -210,13 +206,9 @@ local function clear()
 	shown = 0
 end
 
--- The wait is over: no spinner, and no word still to come that there is nothing.
+-- The answer is in: no spinner.
 local function settle()
 	cards[1].spinner:Hide()
-	if waiting then
-		waiting:Cancel()
-		waiting = nil
-	end
 end
 
 -- Lend the first card's inside to the addon that previews the read's kind, under
@@ -259,13 +251,6 @@ function Peek.Show(read, lent)
 	first.caption:SetText("")
 	first.spinner:Show()
 	first.frame:Show()
-	waiting = _G.C_Timer.NewTimer(
-		PATIENCE,
-		ns.Safely.Wrap(function()
-			first.spinner:Hide()
-			first.caption:SetText(Presentations.NOTHING)
-		end)
-	)
 	Async.Ask("peek", read, function(subject)
 		settle()
 		if not (subject and subject.looks[1]) then

@@ -193,6 +193,30 @@ def callback_violations(sources: Sources) -> list[str]:
     return found
 
 
+#: A wait on the clock: any timer, or a frame script adding up the time that has passed.
+CLOCKS = (
+    r"\bC_Timer\b",
+    r"\b([\w.]+)\s*=\s*\1\s*\+\s*elapsed\b",
+)
+
+
+def wait_violations(sources: Sources) -> list[str]:
+    """Waits on a length of time, where the wait should be on something the client does.
+
+    A model load, a drawn frame, an event: the client says when what was asked of it
+    is done. A wait of a fixed length is a guess that holds on one machine on one
+    evening, and the player sees it as a delay.
+    """
+    found = []
+    for name, text in sources.items():
+        stripped = strip_comments(text)
+        for pattern in CLOCKS:
+            for hit in re.finditer(pattern, stripped):
+                number = stripped.count("\n", 0, hit.start()) + 1
+                found.append(f"{name}:{number}: waits on the clock: {hit.group(0)}")
+    return found
+
+
 def toc_violations(addon: Path) -> list[str]:
     """Files the toc names that do not exist, and Lua or XML files it does not name."""
     toc = addon / f"{addon.name}.toc"
@@ -299,6 +323,7 @@ GUARDS: Sequence[tuple[str, Callable[[Sources], list[str]]]] = (
     ("layers", layer_violations),
     ("only what the 9.2.7 client has", client_violations),
     ("every callback guarded", callback_violations),
+    ("waits on the client, never the clock", wait_violations),
 )
 
 #: The WMO pictures, an addon of their own beside this one. Its hand-written Lua is held to the
@@ -310,6 +335,7 @@ MODULE_GUARDS = frozenset(
         "declared globals only",
         "one door to the model loader",
         "only what the 9.2.7 client has",
+        "waits on the client, never the clock",
     }
 )
 

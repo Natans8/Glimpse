@@ -67,12 +67,45 @@ function Client.ItemKind(id)
 	return "equipment", slot
 end
 
---- Call `fn` once the item's record has arrived from the server.
+-- Every item wait not yet over, with the item it waits for. The client's own wait
+-- drops its callback without a word where the server has no such item, so the
+-- server's answer is heard here too.
+local waits = {}
+
+local items = _G.CreateFrame("Frame")
+items:RegisterEvent("ITEM_DATA_LOAD_RESULT")
+items:SetScript(
+	"OnEvent",
+	ns.Safely.Wrap(function(_, _, id, success)
+		if success then
+			return
+		end
+		for wait, item in pairs(waits) do
+			if item == id then
+				waits[wait] = nil
+				wait.refused()
+			end
+		end
+	end)
+)
+
+--- Call `fn` once the item's record has arrived from the server, or `refused`
+-- where the server says it has no such item.
 -- @param id the item id
 -- @param fn called with no arguments
+-- @param refused called with no arguments
 -- @return a function that cancels the wait
-function Client.WhenItemLoads(id, fn)
-	return _G.Item:CreateFromItemID(id):ContinueWithCancelOnItemLoad(fn)
+function Client.WhenItemLoads(id, fn, refused)
+	local wait = { refused = refused }
+	waits[wait] = id
+	local cancel = _G.Item:CreateFromItemID(id):ContinueWithCancelOnItemLoad(function()
+		waits[wait] = nil
+		fn()
+	end)
+	return function()
+		waits[wait] = nil
+		cancel()
+	end
 end
 
 --- The displays of the mount an item teaches. Valid once the item has loaded.

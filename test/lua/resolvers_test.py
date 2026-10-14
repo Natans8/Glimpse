@@ -11,7 +11,7 @@ from support import LuaRuntime, evaluate
 #: like the client's, returns every record whose name holds what is asked.
 #: `STOCK` is the data addon's table of stock objects.
 CLIENT = b"""
-    HOLD, CANCELS = {}, 0
+    HOLD, REFUSE, CANCELS = {}, {}, 0
     RECORDS = {
         { display = -14856, file = 875053, name = "6dr_draenei_chair02.m2\\r" },
         {
@@ -58,8 +58,8 @@ CLIENT = b"""
             if slot then return "equipment", slot end
             return ({ [25470] = "mount", [8485] = "pet" })[id]
         end,
-        WhenItemLoads = function(id, fn)
-            HOLD[id] = fn
+        WhenItemLoads = function(id, fn, refused)
+            HOLD[id], REFUSE[id] = fn, refused
             return function() CANCELS = CANCELS + 1 end
         end,
         MountDisplaysOfItem = function(id) return id == 25470 and { 17697 } or {} end,
@@ -313,6 +313,12 @@ def test_a_mount_item_waits_for_the_item_to_load(game: LuaRuntime) -> None:
     assert evaluate(game, "ANSWERED") is False
     game.execute(b"HOLD[25470]()")
     assert evaluate(game, "RESULT.looks") == [{"draw": "display", "value": 17697}]
+
+
+def test_an_item_the_server_has_no_record_of_has_nothing_to_show(game: LuaRuntime) -> None:
+    game.execute(b'RESOLVE("item", { id = 25470, name = "Golden Gryphon" }) REFUSE[25470]()')
+    assert evaluate(game, "ANSWERED") is True
+    assert evaluate(game, "RESULT") is None
 
 
 def test_a_pet_item_shows_its_pet_and_can_be_cancelled(game: LuaRuntime) -> None:

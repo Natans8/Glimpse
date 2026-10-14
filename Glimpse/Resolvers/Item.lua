@@ -4,7 +4,8 @@ local _, ns = ...
 --
 -- What an item is comes from the client at once. Which mount or pet it
 -- teaches is known only after the item's record has arrived, so those wait
--- for it. An item that is none of these has nothing to show.
+-- for it, and have nothing to show where the server has no record of the item.
+-- An item that is none of these has nothing to show.
 local Subject, Kinds = ns.Subject, ns.Kinds
 
 --- Which client function lists the displays an item of each kind teaches.
@@ -32,6 +33,8 @@ Kinds.Add("item", {
 				Subject.Display(subject, display, data)
 			end
 			Subject.Answer(subject, done)
+		end, function()
+			done(nil)
 		end)
 	end,
 })
