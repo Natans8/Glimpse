@@ -71,7 +71,7 @@ local lastMessage, lastOff, lastShown
 -- the kinds turned off are the same table; turning one on or off makes another.
 -- A fault leaves the line as it came.
 local filter = Safely.Wrap(function(_, _, message, ...)
-	if type(message) ~= "string" or not Lines.Maybe(message) then
+	if type(message) ~= "string" then
 		return false
 	end
 	local off = ns.Settings.Get("off")

@@ -8,7 +8,7 @@ local _, ns = ...
 -- eye level. The canonical view of a presentation is what the hover frame
 -- shows, since the hover frame takes no input.
 --
--- A row may inherit another and change what differs. Angles are in degrees.
+-- Angles are in degrees.
 --
 --   drawer    "scene" or "model": the widget that draws it
 --   yaw       how far the subject is turned from facing the viewer
@@ -23,21 +23,21 @@ ns.Presentations = Presentations
 local ROWS = {
 	prop = { drawer = "scene", yaw = 30, pitch = 20 },
 	-- A tinted thing is drawn by a model frame, the widget its tint is proven on.
-	tinted = { inherits = "prop", drawer = "model" },
+	tinted = { drawer = "model", yaw = 30, pitch = 20 },
 	-- A figure is drawn by a model frame, the one widget that draws every
 	-- playable race's display whole.
 	figure = { drawer = "model", yaw = 25, pitch = 5 },
-	creature = { inherits = "figure", varies = true },
+	creature = { drawer = "model", yaw = 25, pitch = 5, varies = true },
 	-- A display is seen as a figure is, but drawn by the scene, whose camera is
 	-- fitted to its size; a character's display is a figure.
-	display = { inherits = "figure", drawer = "scene" },
-	wearable = { inherits = "figure", body = true },
+	display = { drawer = "scene", yaw = 25, pitch = 5 },
+	wearable = { drawer = "model", yaw = 25, pitch = 5, body = true },
 	-- Worn things are turned so the part of the body that carries them faces
 	-- the viewer: the weapon hand, the shield arm, the back.
-	held = { inherits = "wearable", yaw = 92 },
-	offhand = { inherits = "wearable", yaw = -40 },
-	back = { inherits = "wearable", yaw = 195 },
-	motion = { inherits = "wearable", yaw = 0, still = true },
+	held = { drawer = "model", yaw = 92, pitch = 5, body = true },
+	offhand = { drawer = "model", yaw = -40, pitch = 5, body = true },
+	back = { drawer = "model", yaw = 195, pitch = 5, body = true },
+	motion = { drawer = "model", yaw = 0, pitch = 5, body = true, still = true },
 }
 
 --- Which presentation each way of drawing a look takes.
@@ -67,36 +67,15 @@ local BY_SLOT = {
 	INVTYPE_CLOAK = "back",
 }
 
-local function flatten(name)
-	local row = ROWS[name]
-	if not row.inherits then
-		return row
-	end
-	local flat = {}
-	for key, value in pairs(flatten(row.inherits)) do
-		flat[key] = value
-	end
-	for key, value in pairs(row) do
-		flat[key] = value
-	end
-	flat.inherits = nil
-	return flat
-end
-
-local FLAT = {}
-for name in pairs(ROWS) do
-	FLAT[name] = flatten(name)
-end
-
 --- The presentation of a look.
 -- @param look a look from a subject
--- @return its presentation row, with what it inherits filled in
+-- @return its presentation row
 function Presentations.Of(look)
 	-- Only a worn thing is turned by its slot; a slot never changes how a look is drawn.
 	if look.draw == "tryon" and BY_SLOT[look.slot] then
-		return FLAT[BY_SLOT[look.slot]]
+		return ROWS[BY_SLOT[look.slot]]
 	end
-	return FLAT[BY_DRAW[look.draw]]
+	return ROWS[BY_DRAW[look.draw]]
 end
 
 --- What is said where a subject has nothing to draw.

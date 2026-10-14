@@ -95,15 +95,6 @@ def test_every_captured_command_is_covered() -> None:
     assert set(LINES) - set(EXPECTED) == UNCOVERED
 
 
-def test_a_read_line_is_one_maybe_admits(addon: LuaRuntime) -> None:
-    read = reader(addon)
-    maybe = cast(Callable[[bytes], bool], addon.eval(b"NS.Lines.Maybe"))
-    for found in LINES.values():
-        for line in found:
-            if read(line):
-                assert maybe(line.encode("utf-8")), line
-
-
 def test_an_object_name_loses_its_tag_and_its_entry(addon: LuaRuntime) -> None:
     read = reader(addon)
     tagged = next(line for line in LINES["gobject near"] if "[bfa 8.0]" in line)
@@ -350,4 +341,3 @@ def test_text_that_is_no_line_of_ours_reads_as_nothing(addon: LuaRuntime) -> Non
     read = reader(addon)
     for text in ("", "hello", "|Hplayer:Someone|h[Someone]|h says hi", "|Hgameobject_entry:|h[]|h"):
         assert read(text) is None
-    assert evaluate(addon, 'NS.Lines.Maybe("an ordinary system line")') is False

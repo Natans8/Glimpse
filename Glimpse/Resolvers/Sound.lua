@@ -17,6 +17,15 @@ local function sounds(day, night)
 	return { { label = "Day", kit = day }, { label = "Night", kit = night } }
 end
 
+-- The word on each sound's button.
+local function labels(list)
+	local found = {}
+	for i, sound in ipairs(list) do
+		found[i] = sound.label
+	end
+	return found
+end
+
 --- Each kind of sound: the shipped table that lists it, and its letter in a link.
 local KINDS = {
 	music = { data = "Music", code = "u" },
@@ -36,11 +45,7 @@ for kind, of in pairs(KINDS) do
 		code = of.code,
 		draws = false,
 		buttons = function(read)
-			local labels = {}
-			for i, sound in ipairs(soundsOf(read)) do
-				labels[i] = sound.label
-			end
-			return labels
+			return labels(soundsOf(read))
 		end,
 		resolve = function(read, done)
 			local subject = Subject.New(read)
@@ -84,11 +89,7 @@ Kinds.Add("areasounds", {
 		return #overridden(read) > 0
 	end,
 	buttons = function(read)
-		local labels = {}
-		for i, sound in ipairs(overridden(read)) do
-			labels[i] = sound.label
-		end
-		return labels
+		return labels(overridden(read))
 	end,
 	resolve = function(read, done)
 		local subject = Subject.New(read)

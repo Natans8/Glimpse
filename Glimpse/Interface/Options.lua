@@ -156,9 +156,10 @@ local function build()
 	title:SetPoint("TOPLEFT", 16, -16)
 	title:SetText(addonName)
 
-	local rows = {}
+	-- Each control and switch is put as the settings stand, whenever one is used.
 	local show
 
+	local rows = {}
 	local above = title
 	for index, control in ipairs(CONTROLS) do
 		local widget, put = BUILD[control.kind](panel, control, function()
@@ -167,6 +168,17 @@ local function build()
 		widget:SetPoint("TOPLEFT", above, "BOTTOMLEFT", 0, -GAP[control.kind])
 		rows[index] = { control = control, widget = widget, put = put }
 		above = widget
+	end
+
+	local heading = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+	heading:SetPoint("TOPLEFT", above, "BOTTOMLEFT", 0, -24)
+	heading:SetText("Preview these")
+	local switches = {}
+	for index, group in ipairs(groups()) do
+		local button, put = kindSwitch(panel, group, function()
+			show()
+		end)
+		switches[index] = { button = button, put = put }
 	end
 
 	show = function()
@@ -180,22 +192,7 @@ local function build()
 				row.widget:SetAlpha(0.5)
 			end
 		end
-	end
-
-	local heading = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-	heading:SetPoint("TOPLEFT", above, "BOTTOMLEFT", 0, -24)
-	heading:SetText("Preview these")
-	local switches = {}
-	for index, group in ipairs(groups()) do
-		local button, put = kindSwitch(panel, group, function()
-			show()
-		end)
-		switches[index] = { button = button, put = put }
-	end
-	-- The switches shown fill the columns in order, with no gap where one is not.
-	local showSettings = show
-	show = function()
-		showSettings()
+		-- The switches shown fill the columns in order, with no gap where one is not.
 		local shown = 0
 		for _, switch in ipairs(switches) do
 			if switch.put() then

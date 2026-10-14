@@ -132,12 +132,6 @@ local LINKS = {
 	doodad_deleted_uid = placed,
 }
 
--- The start of each link this file reads, for asking of a line without reading it.
-local PREFIXES = {}
-for linkType in pairs(LINKS) do
-	PREFIXES[#PREFIXES + 1] = "|H" .. linkType .. ":"
-end
-
 local function sameName(a, b)
 	return a:lower() == b:lower()
 end
@@ -301,27 +295,6 @@ local function wmoArea(message)
 		return nil
 	end
 	return { kind = "wmoarea", id = tonumber(id), name = name }
-end
-
---- Whether a line could be one this addon reads. Cheap, and creates nothing,
--- so it can be asked of every system line before the line is read.
--- @param message the line
--- @return true where reading it is worth the work
-function Lines.Maybe(message)
-	for i = 1, #PREFIXES do
-		if message:find(PREFIXES[i], 1, true) then
-			return true
-		end
-	end
-	return message:find("^|cff00CCFF%d") ~= nil
-		or message:find("^Detail ID: ") ~= nil
-		or message:find("^%d+ %- |cff00CCFF%[") ~= nil
-		or message:find("^|T%d") ~= nil
-		or message:find(".wmo|r - RootId: ", 1, true) ~= nil
-		or message:find("^You have m") ~= nil
-		or message:find("^|cff00CCFFEnchantment %d") ~= nil
-		or message:find("^ID: |cff00CCFF%d") ~= nil
-		or message:find("(Ambience: ", 1, true) ~= nil
 end
 
 -- Whether a line is `.npc info`'s of a creature in an outfit: it prints the display

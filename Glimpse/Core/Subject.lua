@@ -74,14 +74,3 @@ function Subject.Answer(subject, done)
 		done(nil)
 	end
 end
-
---- A resolver for a kind whose one look is its own id, drawn a given way.
--- @param draw how the look is drawn
--- @return a resolver
-function Subject.Direct(draw)
-	return function(read, done)
-		local subject = Subject.New(read)
-		Subject.Look(subject, draw, read.id)
-		done(subject)
-	end
-end

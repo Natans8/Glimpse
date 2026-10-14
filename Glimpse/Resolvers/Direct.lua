@@ -46,7 +46,11 @@ Kinds.Add("enchant", {
 	shows = function(read)
 		return not ns.Data.EnchantsWithoutVisual[read.id]
 	end,
-	resolve = Subject.Direct("enchant"),
+	resolve = function(read, done)
+		local subject = Subject.New(read)
+		Subject.Look(subject, "enchant", read.id)
+		done(subject)
+	end,
 })
 
 -- The animation an emote plays. The client's own emotes and the exceptions are
