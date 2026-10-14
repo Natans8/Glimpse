@@ -86,7 +86,7 @@ end)
 
 --- Act on a read as a click on its button does: a button that draws opens the
 -- window, unless its kind does something of its own, and a sound's button plays
--- it, or with the right button stops every sound. A kind the player has turned
+-- it, or with the right button stops the sound playing. A kind the player has turned
 -- off since the line was printed does nothing.
 -- @param read a read from a line or a link
 -- @param index which of the read's buttons, counted from one
@@ -105,7 +105,7 @@ function Chat.Open(read, index, button)
 		return true
 	end
 	if button == "RightButton" then
-		ns.Playback.StopAll()
+		ns.Playback.Stop()
 		return true
 	end
 	Async.Ask("click", read, function(subject)

@@ -275,29 +275,13 @@ def test_another_sound_stops_the_one_before(chat: LuaRuntime) -> None:
     assert evaluate(chat, "STOPPED") == [1]
 
 
-def test_music_and_an_ambience_play_together(chat: LuaRuntime) -> None:
+def test_a_right_click_on_any_sound_stops_the_sound_playing(chat: LuaRuntime) -> None:
     click(chat, MUSIC, 1)
-    click(chat, AMBIENCE, 1)
-    assert evaluate(chat, "PLAYED") == [4516, 4170]
-    assert evaluate(chat, "STOPPED") == [], "each on its own channel"
-
-
-def test_intro_music_takes_the_music_channel(chat: LuaRuntime) -> None:
-    talador = LINES["phase shift area list"][2]
-    click(chat, talador, 1)
-    click(chat, talador, 2)
-    click(chat, talador, 3)
-    assert evaluate(chat, "STOPPED") == [2], "the intro stops the music, and the ambience plays on"
-
-
-def test_a_right_click_on_any_sound_stops_every_sound(chat: LuaRuntime) -> None:
-    click(chat, MUSIC, 1)
-    click(chat, AMBIENCE, 1)
     click(chat, AMBIENCE, 2, "RightButton")
-    assert sorted(cast(list[int], evaluate(chat, "STOPPED"))) == [1, 2]
-    assert evaluate(chat, "PLAYED") == [4516, 4170], "nothing new is started"
+    assert evaluate(chat, "STOPPED") == [1]
+    assert evaluate(chat, "PLAYED") == [4516], "nothing new is started"
     click(chat, MUSIC, 1, "RightButton")
-    assert sorted(cast(list[int], evaluate(chat, "STOPPED"))) == [1, 2], "nothing left to stop"
+    assert evaluate(chat, "STOPPED") == [1], "nothing left to stop"
 
 
 def test_a_sound_that_ended_by_itself_plays_again(chat: LuaRuntime) -> None:
@@ -403,7 +387,7 @@ def test_resting_on_a_sound_button_says_what_a_click_does(chat: LuaRuntime) -> N
     assert evaluate(chat, "TOOLTIP") == [
         "Zone-TavernAlliance",
         "Click to stop",
-        "Right-click to stop every sound",
+        "Right-click to stop the sound playing",
     ]
     chat.execute(b'HANDLERS.SOUNDKIT_FINISHED(nil, "SOUNDKIT_FINISHED", 1)')
     assert evaluate(chat, "TOOLTIP") == ["Zone-TavernAlliance", "Click to play"]

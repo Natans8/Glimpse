@@ -5,22 +5,16 @@ local _, ns = ...
 -- Each entry has a day kit and a night kit. One button is offered where they
 -- are the same or only one exists, two where they differ. The line gains a
 -- button for each, so a sound is chosen and played from the line itself.
---
--- Each sound plays on a channel, as a zone plays its music and its ambience
--- together: intro music is music, so it takes music's channel.
 local Subject, Kinds = ns.Subject, ns.Kinds
 
-local function sounds(day, night, channel)
+local function sounds(day, night)
 	if day == 0 then
 		day, night = night, 0
 	end
 	if night == 0 or night == day then
-		return { { label = Kinds.PLAY, kit = day, channel = channel } }
+		return { { label = Kinds.PLAY, kit = day } }
 	end
-	return {
-		{ label = "Day", kit = day, channel = channel },
-		{ label = "Night", kit = night, channel = channel },
-	}
+	return { { label = "Day", kit = day }, { label = "Night", kit = night } }
 end
 
 -- The word on each sound's button.
@@ -32,11 +26,11 @@ local function labels(list)
 	return found
 end
 
---- Each kind of sound: the shipped table that lists it, its letter in a link, and its channel.
+--- Each kind of sound: the shipped table that lists it, and its letter in a link.
 local KINDS = {
-	music = { data = "Music", code = "u", channel = "music" },
-	intro = { data = "Intro", code = "n", channel = "music" },
-	ambience = { data = "Ambience", code = "a", channel = "ambience" },
+	music = { data = "Music", code = "u" },
+	intro = { data = "Intro", code = "n" },
+	ambience = { data = "Ambience", code = "a" },
 }
 
 -- Lines reads a sound line only where its id is in the kind's table, so the
@@ -44,7 +38,7 @@ local KINDS = {
 for kind, of in pairs(KINDS) do
 	local function soundsOf(read)
 		local row = ns.Data[of.data][read.id]
-		return sounds(row.day, row.night, of.channel)
+		return sounds(row.day, row.night)
 	end
 	Kinds.Add(kind, {
 		word = "Sound",
@@ -62,11 +56,11 @@ for kind, of in pairs(KINDS) do
 end
 
 --- The sounds a phase sets on an area or a WMO, in the order its lists print them,
--- each with the word on its button, the table it is listed in, and its channel.
+-- each with the word on its button and the table it is listed in.
 local OVERRIDDEN = {
-	{ label = "Ambience", data = "Ambience", channel = "ambience" },
-	{ label = "Music", data = "Music", channel = "music" },
-	{ label = "Intro", data = "Intro", channel = "music" },
+	{ label = "Ambience", data = "Ambience" },
+	{ label = "Music", data = "Music" },
+	{ label = "Intro", data = "Intro" },
 }
 
 -- A sound for each the line names and the tables list: its day kit, or its night
@@ -80,7 +74,7 @@ local function overridden(read)
 			if kit == 0 then
 				kit = row.night
 			end
-			found[#found + 1] = { label = of.label, kit = kit, channel = of.channel }
+			found[#found + 1] = { label = of.label, kit = kit }
 		end
 	end
 	return found

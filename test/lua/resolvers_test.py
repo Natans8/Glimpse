@@ -326,14 +326,14 @@ def test_an_item_that_is_nothing_previewable_has_nothing_to_show(game: LuaRuntim
 def test_zone_sounds_offer_one_button_or_two(game: LuaRuntime) -> None:
     assert evaluate(
         game, 'RESOLVE("music", { id = 156, name = "Zone-TavernAlliance" }).sounds'
-    ) == [{"label": "Play", "kit": 4516, "channel": "music"}]
+    ) == [{"label": "Play", "kit": 4516}]
     assert evaluate(game, 'RESOLVE("ambience", { id = 28, name = "forest" }).sounds') == [
-        {"label": "Day", "kit": 4170, "channel": "ambience"},
-        {"label": "Night", "kit": 4171, "channel": "ambience"},
+        {"label": "Day", "kit": 4170},
+        {"label": "Night", "kit": 4171},
     ]
     assert evaluate(game, 'RESOLVE("intro", { id = 122, name = "Stormwind" }).sounds') == [
-        {"label": "Play", "kit": 6837, "channel": "music"}
-    ], "intro music is music"
+        {"label": "Play", "kit": 6837}
+    ]
 
 
 def test_an_emote_the_table_lacks_follows_the_servers_rule(game: LuaRuntime) -> None:
