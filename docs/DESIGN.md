@@ -194,7 +194,9 @@ Generated from Epsilon's client tables and the stock server's world tables by `g
 | stock enchants that have no visual | `Glimpse` |
 | area → map: its own, its zone's, or its instance's dungeon floor (floor names from `UiMapGroupMember`) | `Glimpse` |
 | emote → animation; the animations that take weapons in hand; flying animation → its ground twin | `Glimpse` |
+| the last stock creature entry, past which an entry is a phase's forged NPC | `Glimpse` |
 | model name → file; gameobject entry → model; creature → its displays; the displays of a playable race's body | `Glimpse_Data`, loaded on demand |
+| the displays drawing the invisible stalker; the stock creatures that only ever spawn as one | `Glimpse_Data`, loaded on demand |
 
 A file that would reach a model loader is emitted only when it is known to be an `.m2`. The data addon is a
 separate folder so that a player who never previews an object or a creature never loads it; the main
@@ -207,7 +209,7 @@ What each release added to the shipped data, so a reader can tell a table's age 
 | v0.1 | every table above, format 14: the sound, enchant, area and emote tables in `Glimpse`; models, objects, creatures and the displays of a playable race's body in `Glimpse_Data` |
 | v0.2 | no change |
 | v0.3 | `wmoObjects`, format 15: the stock objects whose display is a WMO; the `Glimpse_WMO` pictures, 17,975 appearances, with `liquids` and `collision` in its index |
-| v0.4 | no change to `Glimpse` or `Glimpse_Data`; the `Glimpse_WMO` pictures re-rendered where water is drawn, 1,038 pictures, and the 307 watertiles given their surface pictures |
+| v0.4 | `stalkers` and `unseenCreatures`, format 16: the 843 displays drawing the invisible stalker and the 18,075 stock creatures that only ever spawn as one, in `Glimpse_Data`; the last stock creature entry, 195,823, in `Glimpse`; the `Glimpse_WMO` pictures re-rendered where water is drawn, 1,038 pictures, and the 307 watertiles given their surface pictures |
 
 ## Settings
 

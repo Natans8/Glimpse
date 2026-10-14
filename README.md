@@ -7,8 +7,8 @@ To install, download the zip from [Releases](https://github.com/Natans8/Glimpse/
 game's `_retail_/Interface/AddOns` folder. It holds two folders, `Glimpse` and `Glimpse_Data`, and both are needed.
 
 No model frame can draw a WMO, so WMOs are previewed from pictures, a separate download from the
-[v0.3 release](https://github.com/Natans8/Glimpse/releases/tag/v0.3): take `Glimpse_WMO-v0.3-256.7z` (256-pixel
-pictures, about 110 MB) or `Glimpse_WMO-v0.3-512.7z` (512-pixel pictures, about 395 MB), and unpack its
+[v0.4 release](https://github.com/Natans8/Glimpse/releases/tag/v0.4): take `Glimpse_WMO-v0.4-256.7z` (256-pixel
+pictures, about 110 MB) or `Glimpse_WMO-v0.4-512.7z` (512-pixel pictures, about 397 MB), and unpack its
 `Glimpse_WMO` folder beside the other two. The pictures are released only when they change, and work with every
 later Glimpse. Without them, a WMO's line gains no button.
 
