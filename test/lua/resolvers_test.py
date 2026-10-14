@@ -26,11 +26,16 @@ CLIENT = b"""
         widths = { 6, 7 }, offsets = { 0, 0 },
         records = "2360830926294" .. "2530440999901" .. "7167090000001",
     }
-    -- Stormwind City Guard's four displays, the last of them a character's.
+    -- Stormwind City Guard's four displays, the last of them a character's; then Coilfang
+    -- Underbog Hydra Trigger's two, an Infernal's and the invisible stalker's.
     CREATURES = {
         widths = { 6, 6 }, offsets = { 0, 0 },
-        records = "000068003167" .. "000068005446" .. "000068099389" .. "000068099391",
+        records = "000068003167" .. "000068005446" .. "000068099389" .. "000068099391"
+            .. "020167001126" .. "020167011686",
     }
+    -- The invisible stalker's display, and Event Generator 001, which only ever spawns as it.
+    STALKERS = { widths = { 6 }, offsets = { 0 }, records = "011686" }
+    UNSEEN = { widths = { 6 }, offsets = { 0 }, records = "002334" }
     CHARACTERS = { widths = { 7 }, offsets = { 0 }, records = "0099391" }
     -- Ship (The Bravery), whose display is a WMO.
     WMO_OBJECTS = { widths = { 6 }, offsets = { 0 }, records = "176310" }
@@ -42,6 +47,8 @@ CLIENT = b"""
         creatures = CREATURES,
         characters = CHARACTERS,
         wmoObjects = WMO_OBJECTS,
+        stalkers = STALKERS,
+        unseenCreatures = UNSEEN,
     }
     NS.Client = {
         SearchObjects = function(query)
@@ -297,6 +304,29 @@ def test_a_creature_with_several_displays_has_them_all(game: LuaRuntime) -> None
         *({"draw": "display", "value": value} for value in (3167, 5446, 99389)),
         {"draw": "character", "value": 99391},
     ], "a character's display is told apart, for a model frame to draw"
+
+
+def test_a_creature_standing_in_the_invisible_stalker_gains_no_button(game: LuaRuntime) -> None:
+    outfit = (
+        '{ kind = "creature", id = 2372187, name = "Shattrath City Peacekeeper", ids = { 11686 } }'
+    )
+    assert evaluate(game, f"NS.Kinds.Buttons({outfit})") is None, "a spawn in an outfit"
+    shown = '{ kind = "creature", id = 68, name = "Guard", ids = { 5446 } }'
+    assert evaluate(game, f"NS.Kinds.Buttons({shown})") == ["Preview"]
+    trigger = '{ kind = "creature", id = 2334, name = "Event Generator 001" }'
+    assert evaluate(game, f"NS.Kinds.Buttons({trigger})") is None, "only ever the stalker"
+    assert (
+        evaluate(game, 'NS.Kinds.Buttons({ kind = "display", id = 11686, name = "11686" })') is None
+    )
+
+
+def test_a_creature_spawning_as_the_stalker_or_as_something_shows_only_the_something(
+    game: LuaRuntime,
+) -> None:
+    hydra = '{ id = 20167, name = "Coilfang Underbog Hydra Trigger" }'
+    assert evaluate(game, f'RESOLVE("creature", {hydra}).looks') == [
+        {"draw": "display", "value": 1126}
+    ], "the Infernal alone, not the entry, which may spawn as the stalker"
 
 
 def test_equipment_resolves_at_once(game: LuaRuntime) -> None:

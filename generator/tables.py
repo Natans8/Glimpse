@@ -300,6 +300,45 @@ def creature_displays(con: duckdb.DuckDBPyConnection) -> list[tuple[int, ...]]:
     return [(int(creature), int(display)) for creature, display in rows]
 
 
+#: The invisible stalker's two model files, with a name over it and without. An NPC dressed in
+#: an outfit reaches a client standing in a display of one of these, and so does a stock
+#: creature that is only ever a trigger nobody is meant to see.
+STALKER_FILES = (124640, 124642)
+
+
+def stalker_displays(con: duckdb.DuckDBPyConnection) -> list[tuple[int]]:
+    """Every creature display drawing the invisible stalker, which shows nothing, ascending."""
+    files = ", ".join(str(file) for file in STALKER_FILES)
+    rows = con.execute(
+        f"""
+        SELECT d."ID"
+        FROM {SCHEMA}."CreatureDisplayInfo" d
+        JOIN {SCHEMA}."CreatureModelData" m ON m."ID" = d."ModelID"
+        WHERE m."FileDataID" IN ({files})
+        ORDER BY 1
+        """
+    ).fetchall()
+    return [(int(display),) for (display,) in rows]
+
+
+def unseen_creatures(con: duckdb.DuckDBPyConnection) -> list[tuple[int]]:
+    """Every stock creature that spawns only ever as the invisible stalker, ascending."""
+    files = ", ".join(str(file) for file in STALKER_FILES)
+    rows = con.execute(
+        f"""
+        SELECT t."CreatureID"
+        FROM {SCHEMA}.tdb_creature_template_model t
+        JOIN {SCHEMA}."CreatureDisplayInfo" d ON d."ID" = t."CreatureDisplayID"
+        JOIN {SCHEMA}."CreatureModelData" m ON m."ID" = d."ModelID"
+        WHERE t."Probability" > 0
+        GROUP BY 1
+        HAVING bool_and(m."FileDataID" IN ({files}))
+        ORDER BY 1
+        """
+    ).fetchall()
+    return [(int(creature),) for (creature,) in rows]
+
+
 #: The animation flags under which the client takes a body's weapons in hand: melee weapons,
 #: then a bow. The table shows which: the first is on every attack, parry, block and ready
 #: stance with a weapon, and on fishing, and on no unarmed one; the second on the bow's.

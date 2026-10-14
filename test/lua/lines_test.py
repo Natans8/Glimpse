@@ -176,6 +176,34 @@ def test_a_creature_in_an_outfit_is_not_read_since_it_cannot_be_drawn(addon: Lua
     assert read(LINES["npc info of an outfit"][0]) is None, "58232 drawn, 11455984 worn"
 
 
+#: `.npc spawn`'s reply as the game printed it, the display this spawn stands in plain after
+#: the GUID; and the same reply of an NPC in an outfit, which prints the stalker it stands in.
+SPAWNED = (
+    "Spawned creature |cff00CCFF|Hcreature_entry:{entry}|h[{name} - {entry}]|h|r (GUID: "
+    "|cff00CCFF|HNPC_GUID:19647814|h19647814|h|r) (DisplayID: |cff00CCFF{display}|r) at X: "
+    "|cff00CCFF2763.060547|r Y: |cff00CCFF3377.739258|r Z: |cff00CCFF70.565628|r on map "
+    "|cff00CCFF1116|r with orientation |cff00CCFF4.827839|r."
+)
+
+
+def test_a_spawned_creature_carries_the_display_it_stands_in(addon: LuaRuntime) -> None:
+    read = reader(addon)
+    cat = SPAWNED.format(entry=16998, name="Mr. Bigglesworth", display=46897)
+    assert read(cat) == {
+        "kind": "creature",
+        "id": 16998,
+        "name": "Mr. Bigglesworth",
+        "ids": [46897],
+    }
+    outfit = SPAWNED.format(entry=2372187, name="Shattrath City Peacekeeper", display=11686)
+    assert read(outfit) == {
+        "kind": "creature",
+        "id": 2372187,
+        "name": "Shattrath City Peacekeeper",
+        "ids": [11686],
+    }, "the stalker, which the kind then gives no button"
+
+
 def test_a_display_is_read_under_each_name_the_server_links_it_by(addon: LuaRuntime) -> None:
     read = reader(addon)
     for link in ("displayID", "nativeID"):

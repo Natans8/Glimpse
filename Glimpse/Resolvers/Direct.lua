@@ -4,33 +4,67 @@ local _, ns = ...
 -- display, a weapon enchant, and an emote through its animation.
 local Subject, Kinds, Packed = ns.Subject, ns.Kinds, ns.Packed
 
+-- Whether a display draws the invisible stalker, which shows nothing. An NPC
+-- dressed in an outfit stands in one as far as any client can see.
+local function unseen(data, display)
+	return data ~= nil and Packed.First(data.stalkers, display) ~= nil
+end
+
+-- The displays a stock creature spawns with that show something, and how many it
+-- spawns with in all.
+local function shownDisplays(data, entry)
+	local all = data and Packed.Find(data.creatures, entry) or {}
+	local shown = {}
+	for _, row in ipairs(all) do
+		if not unseen(data, row[1]) then
+			shown[#shown + 1] = row[1]
+		end
+	end
+	return shown, #all
+end
+
 -- A spawned creature whose line says which display it stands in is drawn in
--- that one. A stock creature that spawns with one of several displays has them
--- all as its looks. Any other is drawn from its entry, the client choosing its
--- display as it does when one spawns; drawing it again may show another.
+-- that one, and has nothing to show where that is the stalker: it stands in an
+-- outfit, whatever else its template holds. A stock creature that spawns with
+-- several displays has the ones that show something as its looks, and one that
+-- only ever spawns as the stalker has none. Any other is drawn from its entry,
+-- the client choosing its display as it does when one spawns; drawing it again
+-- may show another.
 Kinds.Add("creature", {
 	word = "Creature",
 	code = "c",
+	shows = function(read)
+		local data = ns.Client.Data()
+		if read.ids then
+			return not unseen(data, read.ids[1])
+		end
+		return not (data and Packed.First(data.unseenCreatures, read.id))
+	end,
 	resolve = function(read, done)
 		local subject = Subject.New(read)
 		local data = ns.Client.Data()
-		local displays = data and Packed.Find(data.creatures, read.id) or {}
+		local shown, all = shownDisplays(data, read.id)
 		if read.ids then
-			Subject.Display(subject, read.ids[1], data)
-		elseif #displays > 1 then
-			for _, row in ipairs(displays) do
-				Subject.Display(subject, row[1], data)
+			if not unseen(data, read.ids[1]) then
+				Subject.Display(subject, read.ids[1], data)
+			end
+		elseif #shown > 1 or #shown < all then
+			for _, display in ipairs(shown) do
+				Subject.Display(subject, display, data)
 			end
 		else
 			Subject.Look(subject, "creature", read.id)
 		end
-		done(subject)
+		Subject.Answer(subject, done)
 	end,
 })
 
 Kinds.Add("display", {
 	word = "Display",
 	code = "v",
+	shows = function(read)
+		return not unseen(ns.Client.Data(), read.id)
+	end,
 	resolve = function(read, done)
 		local subject = Subject.New(read)
 		Subject.Display(subject, read.id, ns.Client.Data())

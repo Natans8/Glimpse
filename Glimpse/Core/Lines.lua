@@ -326,8 +326,14 @@ local function read(message)
 				end
 				-- A line of a spawned creature says, after naming it, which display it
 				-- stands in: the creature as it is rather than as its entry might spawn it.
+				-- `.npc info` links it; the spawn reply prints it plain.
 				local display = found.kind == "creature"
-					and message:match("|Hcreature_entry:%d+|h.-|HdisplayID:(%d+)|h")
+					and (
+						message:match("|Hcreature_entry:%d+|h.-|HdisplayID:(%d+)|h")
+						or message:match(
+							"|Hcreature_entry:%d+|h.-%(DisplayID: |c%x%x%x%x%x%x%x%x(%d+)|r%)"
+						)
+					)
 				if display then
 					found.ids = { tonumber(display) }
 				end

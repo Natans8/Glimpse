@@ -171,6 +171,17 @@ def test_a_characters_display_is_listed_and_a_beasts_is_not(
     assert 17697 not in characters, "a golden gryphon's"
 
 
+def test_the_invisible_stalker_and_the_creatures_only_ever_it_are_listed(
+    built: tuple[dict[str, object], float],
+) -> None:
+    stalkers = {display for (display,) in rows(built[0]["stalkers"])}
+    assert 11686 in stalkers, "the stalker an NPC in an outfit stands in"
+    assert 1126 not in stalkers, "an Infernal"
+    unseen = {creature for (creature,) in rows(built[0]["unseenCreatures"])}
+    assert 2334 in unseen, "Event Generator 001"
+    assert 20167 not in unseen, "Coilfang Underbog Hydra Trigger, sometimes an Infernal"
+
+
 def test_both_addons_carry_the_same_data_format(
     data: LuaRuntime, built: tuple[dict[str, object], float]
 ) -> None:

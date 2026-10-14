@@ -136,9 +136,14 @@ def test_only_a_whole_provider_is_taken(addon: LuaRuntime) -> None:
     assert evaluate(addon, f"NS.Kinds.Buttons({SPELL})") is None
 
 
+#: The data addon not there, as a player may have it: a creature is then drawn from its entry.
+NO_DATA = b"NS.Client.Data = function() return nil end"
+
+
 def test_an_offered_kind_this_addon_draws_is_previewed_by_the_one_that_offers_it(
     addon: LuaRuntime,
 ) -> None:
+    addon.execute(NO_DATA)
     creature = '{ kind = "creature", id = 184093, name = "Spirit Wolf" }'
     assert evaluate(addon, f"NS.Kinds.Drawer({creature})") == "own"
     offer_kind(addon, "creature")
@@ -150,6 +155,7 @@ def test_an_offered_kind_this_addon_draws_is_previewed_by_the_one_that_offers_it
 
 
 def test_a_line_the_offering_addon_has_nothing_for_is_drawn_here(addon: LuaRuntime) -> None:
+    addon.execute(NO_DATA)
     addon.execute(b"""
         Glimpse.Provide("creature", {
             Shows = function(id) return id == 1 end,
