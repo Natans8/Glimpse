@@ -169,14 +169,16 @@ local function aModel(file)
 	return data ~= nil and data.models:find("=" .. file .. ";", 1, true) ~= nil
 end
 
--- A doodad placed on the map, drawn from the file its line names; a replaced one
--- beside what replaced it, where that is a model. A WMO is left to whoever
--- previews WMOs, so a doodad here is a model by its name.
+-- A doodad placed on the map, drawn from the model its line names, as a detail
+-- doodad's is; a replaced one beside what replaced it, where that is a model. The
+-- number the line prints after the name is not the model's file (it names terrain
+-- files), so it never reaches a model loader. A WMO is left to whoever previews
+-- WMOs, so a doodad here is a model by its name.
 Kinds.Add("mapdoodad", {
 	word = "Doodad",
 	code = "l",
 	-- A doodad that is a WMO is shown by whoever previews WMOs, by its name alone:
-	-- its id is its file's, which is no entry, so the read carries it aside.
+	-- its id is the number its line prints, which is no entry, so the read carries it aside.
 	recast = function(read)
 		if read.name:lower():find("%.wmo$") and aWmo(read.name) then
 			return { kind = "wmo", id = 0, name = read.name, ids = { read.id } }
@@ -184,17 +186,20 @@ Kinds.Add("mapdoodad", {
 		return nil
 	end,
 	shows = function(read)
-		return namesFile(read.name)
+		return namesFile(read.name) and searched(read.name) ~= nil
 	end,
 	resolve = function(read, done)
 		local subject = Subject.New(read)
-		local before = Subject.Look(subject, "file", read.id)
-		local replacement = read.ids and read.ids[1]
-		if replacement and aModel(replacement) then
-			before.name = "before"
-			Subject.Look(subject, "file", replacement).name = "after"
-		elseif replacement then
-			before.name = "replaced by file " .. replacement
+		local row = searched(read.name)
+		if row then
+			local before = Subject.Look(subject, "file", row.file)
+			local replacement = read.ids and read.ids[1]
+			if replacement and aModel(replacement) then
+				before.name = "before"
+				Subject.Look(subject, "file", replacement).name = "after"
+			elseif replacement then
+				before.name = "replaced by file " .. replacement
+			end
 		end
 		Subject.Answer(subject, done)
 	end,

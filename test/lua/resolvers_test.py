@@ -37,7 +37,7 @@ CLIENT = b"""
     -- The data addon: the models the client's displays name and the stock objects.
     DATA = {
         models = ";0xp_scale_ruler01=2351343;6dr_draenei_karabor_bigdoor=926294;"
-            .. "7nb_nightborn_floorpillow03=999901;zm_last_one=7;",
+            .. "6td_treestump_b01=920823;7nb_nightborn_floorpillow03=999901;zm_last_one=7;",
         objects = STOCK,
         creatures = CREATURES,
         characters = CHARACTERS,
@@ -179,20 +179,28 @@ def test_a_spawned_object_is_drawn_as_the_server_says_it_stands(game: LuaRuntime
     assert look(5) == {"draw": "file", "value": 999901}, "no record has come for it"
 
 
-def test_a_placed_doodad_shows_its_file_and_what_replaced_it(game: LuaRuntime) -> None:
+def test_a_placed_doodad_shows_its_model_and_what_replaced_it(game: LuaRuntime) -> None:
+    # 821144 is what `.doodad near` printed after this stump's name: a terrain file,
+    # GunDrak_29_30_tex0.adt, which crashed the client when it reached a model loader.
     stump = '{ id = 821144, name = "6td_treestump_b01.m2" }'
     assert evaluate(game, f'RESOLVE("mapdoodad", {stump}).looks') == [
-        {"draw": "file", "value": 821144}
-    ]
+        {"draw": "file", "value": 920823}
+    ], "drawn from its name, never from the number its line prints"
     replaced = '{ id = 821144, name = "6td_treestump_b01.m2", ids = { 999901 } }'
     assert evaluate(game, f'RESOLVE("mapdoodad", {replaced}).looks') == [
-        {"draw": "file", "value": 821144, "name": "before"},
+        {"draw": "file", "value": 920823, "name": "before"},
         {"draw": "file", "value": 999901, "name": "after"},
     ]
     unknown = '{ id = 821144, name = "6td_treestump_b01.m2", ids = { 123 } }'
     assert evaluate(game, f'RESOLVE("mapdoodad", {unknown}).looks') == [
-        {"draw": "file", "value": 821144, "name": "replaced by file 123"}
+        {"draw": "file", "value": 920823, "name": "replaced by file 123"}
     ], "a file no display names never reaches a model loader"
+
+
+def test_a_placed_doodad_whose_model_is_found_nowhere_gains_no_button(game: LuaRuntime) -> None:
+    lost = '{ kind = "mapdoodad", id = 821144, name = "6sm_freriedragon_incubator04.m2" }'
+    assert evaluate(game, f"NS.Kinds.Of({lost})") is None
+    assert evaluate(game, f"RESOLVE('mapdoodad', {lost})") is None
 
 
 #: A provider for WMOs as the released pictures offer it, with a picture for each name in

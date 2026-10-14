@@ -73,8 +73,9 @@ local function numbered(kind)
 	end
 end
 
--- A doodad placed on the map: its model's name and file, and in the link the file
--- that replaced it, 0 where none did; a deleted one carries -1 there.
+-- A doodad placed on the map: its model's name, then a number that is not the
+-- model's file (it names terrain files), kept as the read's id; and in the link the
+-- file that replaced it, 0 where none did; a deleted one carries -1 there.
 local function placed(payload, label)
 	local name, file = unbracket(label):match("^(.-) %- (%d+)$")
 	if not file then
