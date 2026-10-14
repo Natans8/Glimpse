@@ -86,11 +86,13 @@ end)
 
 --- Act on a read as a click on its button does: a button that draws opens the
 -- window, unless its kind does something of its own, and a sound's button plays
--- it. A kind the player has turned off since the line was printed does nothing.
+-- it, or with the right button stops every sound. A kind the player has turned
+-- off since the line was printed does nothing.
 -- @param read a read from a line or a link
 -- @param index which of the read's buttons, counted from one
+-- @param button optional; the mouse button, as the client names it ("RightButton")
 -- @return true where anything was done
-function Chat.Open(read, index)
+function Chat.Open(read, index, button)
 	local drawer = drawerOf(read)
 	if not drawer then
 		return false
@@ -100,6 +102,10 @@ function Chat.Open(read, index)
 	end
 	if drawer == "provider" or Kinds.Draws(read) then
 		ns.Window.Toggle(read, drawer == "provider")
+		return true
+	end
+	if button == "RightButton" then
+		ns.Playback.StopAll()
 		return true
 	end
 	Async.Ask("click", read, function(subject)
@@ -182,10 +188,10 @@ function Chat.Install()
 	_G.hooksecurefunc("FCF_OpenTemporaryWindow", Safely.Wrap(hookFrames))
 	_G.hooksecurefunc(
 		"SetItemRef",
-		Safely.Wrap(function(link)
+		Safely.Wrap(function(link, _, button)
 			local read, index = Links.Read(link)
 			if read then
-				Chat.Open(read, index)
+				Chat.Open(read, index, button)
 			end
 		end)
 	)
