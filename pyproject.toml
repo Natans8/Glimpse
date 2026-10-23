@@ -5,7 +5,7 @@ description = "Previews for Epsilon's .lookup results: the addon's generator, ch
 license = "AGPL-3.0-or-later"
 requires-python = ">=3.14"
 dependencies = [
-    "duckdb>=1.5.6",
+    "duckdb>=2.0.0",
 ]
 
 [dependency-groups]
