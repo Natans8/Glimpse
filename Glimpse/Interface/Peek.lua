@@ -104,10 +104,12 @@ local function card()
 	}
 end
 
+--- What the first card says a click on the button does.
+local OPEN = "Click to open"
+
 local function build()
 	local first = card()
 	first.frame:SetClampedToScreen(true)
-	first.hint:SetText("Click to open")
 	first.spinner = _G.CreateFrame("Frame", nil, first.over, "LoadingSpinnerTemplate")
 	first.spinner:SetSize(36, 36)
 	first.spinner:SetPoint("CENTER")
@@ -232,7 +234,9 @@ end
 --- Show a read at the pointer.
 -- @param read the read to show
 -- @param lent true where the addon that offers the read's kind previews it
-function Peek.Show(read, lent)
+-- @param asked true where another addon asked, which owns what a click on its own
+--   button does, so the frame does not say a click opens it
+function Peek.Show(read, lent, asked)
 	if not cards[1] then
 		build()
 	end
@@ -240,6 +244,11 @@ function Peek.Show(read, lent)
 	settle()
 	clear()
 	place()
+	if asked then
+		first.hint:SetText("")
+	else
+		first.hint:SetText(OPEN)
+	end
 	first.frame:SetScript("OnUpdate", nil)
 	if lent then
 		Async.Cancel("peek")

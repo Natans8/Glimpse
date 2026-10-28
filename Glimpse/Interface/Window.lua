@@ -282,10 +282,11 @@ local function empty(self)
 end
 
 -- What the line over the name says: the thing's kind and id, then the words the
--- addon that shows it said of it, where it said any.
+-- addon that shows it said of it, where it said any. A read another addon gave
+-- without an id carries 0, which names nothing.
 local function heading(read, words)
 	local line = Kinds.Word(read)
-	if read.id then
+	if read.id and read.id ~= 0 then
 		line = line .. " " .. read.id
 	end
 	if words then

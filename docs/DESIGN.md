@@ -131,7 +131,8 @@ A layer knows only the layers above it in this list.
 - **Chat** is one filter on system messages plus hover and click hooks on the chat frames.
 - **Start** installs the chat hooks and the settings panel at login, and says to the player what the addon has
   to say: a fault, a data folder that is missing or from another version.
-- **API** is the one global the addon creates, `Glimpse`, the door other addons offer previews through.
+- **API** is the one global the addon creates, `Glimpse`, the door other addons offer previews through and ask
+  for them through.
 
 ## Beside GLink
 
@@ -183,6 +184,30 @@ invisible: its collision shape".
 Where nothing offers a kind, its lines gain no button. A provider is called protected, and the first fault
 withdraws it for the session, saying nothing, since the fault is its own. Offering nil withdraws an offer. An
 addon offering at its own load lists Glimpse in `OptionalDeps`, so Glimpse has loaded first.
+
+The door opens the other way too: an addon with things of its own to list, as Furnish lists a WMO's doodad sets,
+asks Glimpse to show one.
+
+```lua
+Glimpse.Peek({ kind = "models", name = "6dr_draenei_house2's Set_Restaurant",
+    models = { { file = 875053, count = 9 }, { file = 876957, count = 1 } } })
+Glimpse.Unpeek()
+Glimpse.Open({ kind = "wmo", name = "6dr_draenei_house2" })
+```
+
+`Peek` shows the hover frame at the pointer as resting on a button does, `Unpeek` takes it down, and `Open` does
+what a click on the button does, which opens the window or closes the one showing that thing. Each takes the read a
+line would have given: its `kind`, `id` and `name`, and for `models` a list of model files with how many of each
+there are, most numerous first. Glimpse copies and checks those fields and keeps nothing of the caller's table. The
+player's choices hold as they do on a line: a kind turned off shows nothing, and a peek shows nothing while the
+hover is off. `Peek` and `Open` answer true where something was shown or done, and an addon finds the door by
+`Glimpse.Peek` being a function, so it stays silent beside an older Glimpse. A peek another addon asks for does not
+say that a click opens it, since the click is that addon's.
+
+`models` is a kind of its own, drawn by Glimpse: each model is a look, as a creature's displays are, so the hover
+frame gives each a card where the player has asked for that, and its caption counts how many of it there are. Each
+file must be one the client's displays name, since a list from another addon says nothing of what its files are,
+and a list is cut at 64 models.
 
 ## Data
 

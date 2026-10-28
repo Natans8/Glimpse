@@ -23,8 +23,10 @@ local SEPARATOR = "|cffADFFFF -|r "
 -- changes something; these only show, and the colour says so.
 Chat.COLOUR = "|cffC8A8FF"
 
--- Who previews a read, where the player has not turned its kind off.
-local function drawerOf(read)
+--- Who previews a read, where the player has not turned its kind off.
+-- @param read a settled read
+-- @return "provider", "own", or nil where nothing is shown for it
+function Chat.Drawer(read)
 	if not ns.Settings.On(read.kind) then
 		return nil
 	end
@@ -33,7 +35,7 @@ end
 
 -- The buttons a read gains, as text to put after what names it, or nil.
 local function buttonsOf(read)
-	local words = drawerOf(read) and Kinds.Buttons(read)
+	local words = Chat.Drawer(read) and Kinds.Buttons(read)
 	if not words then
 		return nil
 	end
@@ -93,7 +95,7 @@ end)
 -- @param button optional; the mouse button, as the client names it ("RightButton")
 -- @return true where anything was done
 function Chat.Open(read, index, button)
-	local drawer = drawerOf(read)
+	local drawer = Chat.Drawer(read)
 	if not drawer then
 		return false
 	end
@@ -133,7 +135,7 @@ end
 -- The pointer came to rest on a link in a chat frame.
 local function entered(chat, link)
 	local read, index = Links.Read(link)
-	local drawer = read and drawerOf(read)
+	local drawer = read and Chat.Drawer(read)
 	if not drawer then
 		return
 	end

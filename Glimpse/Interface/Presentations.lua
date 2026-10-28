@@ -93,22 +93,35 @@ local function place(look, index, count)
 	return counted .. " " .. index .. " of " .. count
 end
 
---- Where a look stands among several of a kind.
+-- How many of a look its subject holds, where it holds several: "×12".
+local function howMany(look)
+	if look.count and look.count > 1 then
+		return "×" .. look.count
+	end
+	return nil
+end
+
+--- Where a look stands among several of a kind, and how many of it there are.
 -- @param look the look
 -- @param index its place among the subject's looks
 -- @param count how many looks the subject has
--- @return the words: "Display 5446, 2 of 3", "Model 2 of 3"
+-- @return the words: "Display 5446, 2 of 3", "Model 2 of 3", "Model 2 of 18, ×12"
 function Presentations.Place(look, index, count)
-	return (place(look, index, count):gsub("^%l", string.upper))
+	local words = place(look, index, count):gsub("^%l", string.upper)
+	local many = howMany(look)
+	if many then
+		words = words .. ", " .. many
+	end
+	return words
 end
 
 --- What is said of a look beside its picture: what kind of thing it is, then
 -- the look's own name where it has one, its place among several, or the display
--- it is where the line did not name it.
+-- it is where the line did not name it, then how many of it there are.
 -- @param subject the subject shown
 -- @param index which of its looks is shown
 -- @return the line: "Creature", "Emote", "Item, display 5446, 2 of 3",
---   "Item, display 17697"
+--   "Item, display 17697", "Object, model 1 of 18, ×12"
 function Presentations.Caption(subject, index)
 	local look, count = subject.looks[index], #subject.looks
 	local parts = { ns.Kinds.Word(subject) }
@@ -119,6 +132,7 @@ function Presentations.Caption(subject, index)
 	elseif COUNTED[look.draw] == "display" and look.value ~= subject.id then
 		parts[2] = "display " .. look.value
 	end
+	parts[#parts + 1] = howMany(look)
 	return table.concat(parts, ", ")
 end
 

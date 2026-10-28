@@ -220,3 +220,40 @@ Kinds.Add("doodad", {
 		Subject.Answer(subject, done)
 	end,
 })
+
+--- The most models one read may name. A longer list keeps its first, which the addon
+-- asking puts most numerous first.
+local MOST_MODELS = 64
+
+-- The models a read names that the client's displays name too, each once. The list
+-- comes from another addon, and only a model may reach a model loader.
+local function named(read)
+	local kept, seen = {}, {}
+	for _, each in ipairs(read.models or {}) do
+		if #kept == MOST_MODELS then
+			break
+		end
+		if not seen[each.file] and aModel(each.file) then
+			seen[each.file] = true
+			kept[#kept + 1] = each
+		end
+	end
+	return kept
+end
+
+-- The models another addon asks this one to show, as a WMO's doodad set holds them:
+-- each model once with how many of it there are, in the order that addon gives.
+Kinds.Add("models", {
+	word = "Object",
+	code = "j",
+	shows = function(read)
+		return named(read)[1] ~= nil
+	end,
+	resolve = function(read, done)
+		local subject = Subject.New(read)
+		for _, each in ipairs(named(read)) do
+			Subject.Look(subject, "file", each.file).count = each.count
+		end
+		Subject.Answer(subject, done)
+	end,
+})

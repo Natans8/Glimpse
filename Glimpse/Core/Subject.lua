@@ -9,7 +9,8 @@ local _, ns = ...
 --   looks   { { draw, value, ... }, ... }         one thing to draw each; `draw` is "file",
 --                                                 "creature", "display", "character", "tryon",
 --                                                 "enchant" or "animation". A look may carry a
---                                                 `name` of its own.
+--                                                 `name` of its own, and a `count` of how many
+--                                                 of it its subject holds.
 --   sounds  { { label, kit }, ... }               sound kits to play
 local Subject = {}
 ns.Subject = Subject
@@ -24,15 +25,25 @@ function Subject.New(read)
 		name = read.name,
 		names = read.names,
 		ids = read.ids,
+		models = read.models,
 		looks = {},
 	}
 end
 
+-- The models a read names, as one part of its key.
+local function modelsKey(models)
+	local parts = {}
+	for index, each in ipairs(models or {}) do
+		parts[index] = each.file .. "x" .. each.count
+	end
+	return table.concat(parts, ",")
+end
+
 --- What tells one subject from another: everything a resolver reads of a read.
 -- That is its kind and its id, its name, which may name the model, the models a
--- detail doodad's row names, and the other ids its line gave. So each row of a
--- detail doodad is its own, as are two objects of one entry standing differently.
--- A read has the same key as the subject resolved from it.
+-- detail doodad's row names, the other ids its line gave, and the models another
+-- addon listed. So each row of a detail doodad is its own, as are two objects of one
+-- entry standing differently. A read has the same key as the subject resolved from it.
 -- @param of a read or a subject
 -- @return the key
 function Subject.Key(of)
@@ -42,6 +53,7 @@ function Subject.Key(of)
 		of.name or "",
 		table.concat(of.names or {}, ","),
 		table.concat(of.ids or {}, ","),
+		modelsKey(of.models),
 	}, ":")
 end
 
