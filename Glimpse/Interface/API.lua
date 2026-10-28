@@ -12,11 +12,13 @@ local _, ns = ...
 --                                     anything was done
 --
 -- A read says what a line would have said of the thing: its `kind`, its `id` and its
--- `name`, and for the `models` kind the list `models = { { file = , count = }, ... }`,
--- most numerous first. Only those fields are read, each checked, and the table is not
--- kept. The player's choices hold: a kind turned off shows nothing, and neither does a
--- peek while the hover is turned off. A fault in the door is this addon's own; it is
--- reported once and never raised into the addon that called.
+-- `name`; where a kind's line carries more, its `names` (the models a detail doodad's
+-- row names) and its `ids` (a spawned object's GUID, a spawned creature's display); and
+-- for the `models` kind the list `models = { { file = , count = }, ... }`, most numerous
+-- first. Only those fields are read, each checked, and the table is not kept. The
+-- player's choices hold: a kind turned off shows nothing, and neither does a peek while
+-- the hover is turned off. A fault in the door is this addon's own; it is reported once
+-- and never raised into the addon that called.
 --
 -- An addon calling at its own load lists this one in its `OptionalDeps`, so this one
 -- has loaded first.
@@ -41,13 +43,42 @@ local function modelsOf(list)
 	return models
 end
 
+-- The values of a list that are of one type and pass a check; nil where none are, as a
+-- line that names none leaves the field out.
+local function listOf(list, kind, check)
+	if type(list) ~= "table" then
+		return nil
+	end
+	local kept = {}
+	for _, value in ipairs(list) do
+		if type(value) == kind and check(value) then
+			kept[#kept + 1] = value
+		end
+	end
+	if kept[1] == nil then
+		return nil
+	end
+	return kept
+end
+
+local function anything()
+	return true
+end
+
 -- A read of this addon's own from the one another addon gave, or nil where it names
 -- no kind this addon knows.
 local function readOf(given)
 	if type(given) ~= "table" or not Kinds.Known(given.kind) then
 		return nil
 	end
-	local read = { kind = given.kind, id = 0, name = "", models = modelsOf(given.models) }
+	local read = {
+		kind = given.kind,
+		id = 0,
+		name = "",
+		names = listOf(given.names, "string", anything),
+		ids = listOf(given.ids, "number", whole),
+		models = modelsOf(given.models),
+	}
 	if type(given.id) == "number" then
 		read.id = given.id
 	end

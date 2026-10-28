@@ -197,8 +197,9 @@ Glimpse.Open({ kind = "wmo", name = "6dr_draenei_house2" })
 
 `Peek` shows the hover frame at the pointer as resting on a button does, `Unpeek` takes it down, and `Open` does
 what a click on the button does, which opens the window or closes the one showing that thing. Each takes the read a
-line would have given: its `kind`, `id` and `name`, and for `models` a list of model files with how many of each
-there are, most numerous first. Glimpse copies and checks those fields and keeps nothing of the caller's table. The
+line would have given: its `kind`, `id` and `name`; the `names` a detail doodad's row carries and the `ids` a
+spawned object or creature's line carries, so a spawned object is drawn as it stands; and for `models` a list of
+model files with how many of each there are, most numerous first. Glimpse copies and checks those fields and keeps nothing of the caller's table. The
 player's choices hold as they do on a line: a kind turned off shows nothing, and a peek shows nothing while the
 hover is off. `Peek` and `Open` answer true where something was shown or done, and an addon finds the door by
 `Glimpse.Peek` being a function, so it stays silent beside an older Glimpse. A peek another addon asks for does not

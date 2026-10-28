@@ -21,6 +21,9 @@ CLIENT = b"""
     DATA = {
         models = ";6dr_draenei_barrel02=876957;6dr_draenei_chair01=875053;"
             .. "6td_treestump_b01=920823;",
+        -- No stock objects, and none whose display is a WMO.
+        objects = { widths = { 6, 7 }, offsets = { 0, 0 }, records = "" },
+        wmoObjects = { widths = { 6 }, offsets = { 0 }, records = "" },
     }
     NS.Client.Data = function() return DATA end
     SET = {
@@ -102,6 +105,37 @@ def test_a_read_is_copied_and_checked(door: LuaRuntime) -> None:
     door.execute(b"Glimpse.Peek(SET); SET.name = 'changed after'; SET.models[1].file = 1")
     assert evaluate(door, "PEEKED[1].read.name") == "6dr_draenei_house2's Set_Restaurant"
     assert evaluate(door, "PEEKED[1].read.models[1].file") == 875053, "the table is not kept"
+
+
+def test_a_read_carries_the_names_and_ids_a_line_would(door: LuaRuntime) -> None:
+    names = '{ "6dr_draenei_chair01.m2", 7, "6td_treestump_b01.m2" }'
+    assert evaluate(door, f'Glimpse.Peek({{ kind = "doodad", id = 5, names = {names} }})') is True
+    assert evaluate(door, "PEEKED[1].read.names") == [
+        "6dr_draenei_chair01.m2",
+        "6td_treestump_b01.m2",
+    ], "only the names that are text"
+    spawned = (
+        '{ kind = "object", id = 1, name = "6dr_draenei_chair01.m2", ids = { 81024, -1, "x" } }'
+    )
+    assert evaluate(door, f"Glimpse.Peek({spawned})") is True
+    assert evaluate(door, "PEEKED[2].read.ids") == [81024], "only whole numbers"
+    assert (
+        evaluate(
+            door,
+            'Glimpse.Peek({ kind = "object", name = "6dr_draenei_chair01.m2", ids = { "x" } })',
+        )
+        is True
+    )
+    assert evaluate(door, "PEEKED[3].read.ids") is None, "a list of nothing is left out"
+
+
+def test_a_detail_doodad_asked_for_without_names_has_nothing_to_show(door: LuaRuntime) -> None:
+    door.execute(b"""
+        NS.Client.SearchObjects = function() return {} end
+        NS.Kinds.Resolve({ kind = "doodad", id = 5, name = "" },
+            function(subject) RESOLVED = subject end)
+    """)
+    assert evaluate(door, "RESOLVED") is None
 
 
 def test_the_players_choices_hold(door: LuaRuntime) -> None:

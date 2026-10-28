@@ -209,9 +209,10 @@ Kinds.Add("mapdoodad", {
 Kinds.Add("doodad", {
 	word = "Detail doodad",
 	code = "d",
+	-- Another addon may ask for one without the names its line would have carried.
 	resolve = function(read, done)
 		local subject = Subject.New(read)
-		for _, name in ipairs(read.names) do
+		for _, name in ipairs(read.names or {}) do
 			local row = searched(name)
 			if row then
 				Subject.Look(subject, "file", row.file).name = name
