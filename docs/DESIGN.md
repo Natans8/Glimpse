@@ -205,6 +205,12 @@ hover is off. `Peek` and `Open` answer true where something was shown or done, a
 `Glimpse.Peek` being a function, so it stays silent beside an older Glimpse. A peek another addon asks for does not
 say that a click opens it, since the click is that addon's.
 
+An addon that wants Glimpse's frame for something of its own declares a kind by offering it with a `word`,
+`Glimpse.Provide("scene", { word = "Set", Show = ..., Hide = ... })`, and then peeks or opens with that kind.
+Glimpse lends the frame as for any offered kind, under the thing's name and the word given, and the kind has a
+switch in the settings like any other. No line names it and no link carries it: it is shown only where its addon
+asks. A kind Glimpse knows keeps its own word, and an offer with no `Show` or `Hide` declares nothing.
+
 `models` is a kind of its own, drawn by Glimpse: each model is a look, as a creature's displays are, so the hover
 frame gives each a card where the player has asked for that, and its caption counts how many of it there are. Each
 file must be one the client's displays name, since a list from another addon says nothing of what its files are,

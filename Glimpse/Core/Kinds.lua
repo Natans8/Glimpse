@@ -5,7 +5,8 @@ local _, ns = ...
 -- A kind is one row, added by the file that knows how to resolve it:
 --
 --   word      what the kind is called to the player: "Creature"
---   code      the one letter that stands for the kind in the links this addon writes
+--   code      the one letter that stands for the kind in the links this addon writes;
+--             absent for a kind another addon declared, which no line names
 --   button    optional; the word on the button the line gains, "Preview" where absent
 --   buttons   optional, in place of `button`; `buttons(read)` gives the words of several
 --   resolve  `resolve(read, done)`: answer with a subject or with nil, at once or later,
@@ -45,7 +46,9 @@ local order = {} -- every kind, in the order it was added
 -- @param row its row
 function Kinds.Add(name, row)
 	rows[name] = row
-	named[row.code] = name
+	if row.code then
+		named[row.code] = name
+	end
 	order[#order + 1] = name
 end
 

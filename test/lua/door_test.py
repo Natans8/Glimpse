@@ -162,6 +162,44 @@ def test_a_kind_another_addon_previews_is_lent_through_the_door(door: LuaRuntime
     assert evaluate(door, 'Glimpse.Peek({ kind = "wmo", name = "a lake tile" })') is False
 
 
+#: An addon's own provider for a kind of its own, recording the frames it fills.
+SCENE = b"""
+    FILLED = {}
+    SCENE = {
+        name = "Another addon",
+        word = "Set",
+        Show = function(frame, id, context)
+            FILLED[#FILLED + 1] = context.place .. " " .. context.name
+            return true
+        end,
+        Hide = function() end,
+    }
+"""
+
+
+def test_an_addon_draws_a_kind_of_its_own_in_this_addons_frame(door: LuaRuntime) -> None:
+    door.execute(SCENE)
+    assert evaluate(door, 'Glimpse.Provide("scene", SCENE)') is True
+    assert evaluate(door, 'NS.Kinds.Word({ kind = "scene" })') == "Set"
+    assert evaluate(door, 'Glimpse.Peek({ kind = "scene", name = "Restaurant" })') is True
+    assert evaluate(door, "PEEKED[1].lent") is True, (
+        "the frame is lent, nothing of this addon's drawn"
+    )
+    assert evaluate(door, 'NS.Kinds.Code("scene")') is None, "no line names it, so no letter"
+
+
+def test_a_kind_is_declared_only_with_a_word_and_a_whole_provider(door: LuaRuntime) -> None:
+    door.execute(SCENE)
+    door.execute(b"WORDLESS = { Show = SCENE.Show, Hide = SCENE.Hide }")
+    assert evaluate(door, 'Glimpse.Provide("scene", WORDLESS)') is False
+    assert evaluate(door, 'Glimpse.Provide("scene", { word = "Set" })') is False
+    assert evaluate(door, 'NS.Kinds.Known("scene")') is False
+    assert evaluate(door, 'Glimpse.Provide("object", SCENE)') is True
+    assert evaluate(door, 'NS.Kinds.Word({ kind = "object" })') == "Object", (
+        "a kind this addon knows keeps its own word"
+    )
+
+
 def test_a_fault_in_the_door_is_never_raised_into_the_caller(door: LuaRuntime) -> None:
     door.execute(b"""
         ANNOUNCED = 0

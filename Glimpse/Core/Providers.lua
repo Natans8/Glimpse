@@ -9,6 +9,10 @@ local _, ns = ...
 -- kind off. A provider is a table, its functions called as plain functions:
 --
 --   name   optional; the addon's name, which the settings show the player
+--   word   optional; for a kind this addon does not know, what it is called to the
+--          player, which declares it: the kind is then the offering addon's own,
+--          shown only where that addon asks through `Glimpse.Peek` or `Glimpse.Open`,
+--          since no line names it. A kind this addon knows keeps its own word.
 --   Shows  optional; `Shows(id, context)`: answer false where there is nothing to
 --          show for the thing, and its line gains no button. It is asked as the
 --          line is read, so it answers at once; `context` is as `Show` has it,
@@ -38,21 +42,28 @@ ns.Providers = Providers
 
 local offered = {} -- kind -> provider
 
---- Offer previews of a kind, replacing an earlier offer; nil withdraws it.
--- @param kind a kind that is drawn: "spell", "object"
+-- Whether a provider has what one needs: a `Show` and a `Hide`.
+local function usable(provider)
+	return type(provider) == "table"
+		and type(provider.Show) == "function"
+		and type(provider.Hide) == "function"
+end
+
+--- Offer previews of a kind, replacing an earlier offer; nil withdraws it. A kind
+-- this addon does not know is declared by an offer that gives it a `word`.
+-- @param kind a kind that is drawn: "spell", "object", or one of the offering addon's own
 -- @param provider a table with `Show` and `Hide` functions, or nil
 -- @return true where the offer was taken
 function Providers.Provide(kind, provider)
-	if not ns.Kinds.Providable(kind) then
+	if provider ~= nil and not usable(provider) then
 		return false
 	end
-	if provider ~= nil then
-		if type(provider) ~= "table" then
-			return false
-		end
-		if type(provider.Show) ~= "function" or type(provider.Hide) ~= "function" then
-			return false
-		end
+	local declares = provider ~= nil and type(provider.word) == "string" and provider.word ~= ""
+	if type(kind) == "string" and kind ~= "" and not ns.Kinds.Known(kind) and declares then
+		ns.Kinds.Add(kind, { word = provider.word, provided = true })
+	end
+	if not ns.Kinds.Providable(kind) then
+		return false
 	end
 	offered[kind] = provider
 	return true
