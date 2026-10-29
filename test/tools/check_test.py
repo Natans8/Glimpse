@@ -147,3 +147,24 @@ def test_the_wmo_module_in_the_repository_is_the_released_one() -> None:
     module = check.ROOT / check.MODULE
     files = {name: (module / name).read_bytes() for name in check.WMO_RELEASED}
     assert check.module_release_violations(files, check.WMO_RELEASED) == []
+
+
+FLOORED = """[project]
+dependencies = ["duckdb"]
+
+[dependency-groups]
+dev = [
+    "lupa>=2.1",  # the Lua 5.1 module the tests import
+    "mypy>=2.4.0",
+]
+"""
+
+
+def test_a_floor_without_its_reason_is_named() -> None:
+    assert check.floor_violations(FLOORED) == [
+        "pyproject.toml: mypy>=2.4.0 names a version with no # reason"
+    ]
+
+
+def test_bare_names_and_explained_floors_pass() -> None:
+    assert check.floor_violations(FLOORED.replace('"mypy>=2.4.0",', '"mypy",')) == []

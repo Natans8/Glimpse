@@ -16,6 +16,7 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
@@ -315,6 +316,31 @@ def icon_violations(drawn: str, named: str) -> list[str]:
     return found
 
 
+def floor_violations(pyproject: str) -> list[str]:
+    """The requirements that name a version with no reason on their line.
+
+    `uv.lock` pins what runs, so a version in a requirement must say what the code needs, and
+    the reason beside it is what tells that apart from a floor that only repeats the lock and
+    has to be raised by hand on every upgrade.
+    """
+    config = tomllib.loads(pyproject)
+    groups = [
+        config["project"].get("dependencies", []),
+        *config.get("dependency-groups", {}).values(),
+    ]
+    lines = pyproject.splitlines()
+    found = []
+    for requirement in (r for group in groups for r in group if isinstance(r, str)):
+        spec = re.sub(r"^[A-Za-z0-9_.\-]+(\[[^\]]*\])?", "", requirement).split(";", 1)[0]
+        if not re.search(r"[<>=!~]", spec):
+            continue
+        quoted = f'"{requirement}"'
+        line = next((text for text in lines if quoted in text), "")
+        if "#" not in line.split(quoted, 1)[-1]:
+            found.append(f"pyproject.toml: {requirement} names a version with no # reason")
+    return found
+
+
 GUARDS: Sequence[tuple[str, Callable[[Sources], list[str]]]] = (
     ("sends nothing", send_violations),
     ("declared globals only", global_violations),
@@ -407,6 +433,8 @@ def main() -> int:
     )
     drawn = (ROOT / "tools" / "art.py").read_text(encoding="utf-8")
     results.append(("icons", icon_violations(drawn, sources["Interface/Tools.lua"])))
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    results.append(("version floors", floor_violations(pyproject)))
     for name, violations in results:
         print(f"{'FAIL' if violations else 'ok  '}  {name}")
         for violation in violations:
