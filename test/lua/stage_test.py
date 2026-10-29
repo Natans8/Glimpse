@@ -149,16 +149,76 @@ DRAWING = b"""
 """
 
 
-def test_a_tint_is_given_on_the_frame_after_the_model_loads(addon: LuaRuntime) -> None:
-    addon.execute(DRAWING)
-    addon.execute(b'STAGE:Show({ draw = "tinted", value = 875053, kit = 167021 })')
-    assert evaluate(addon, "CALLS") == [["SetModel", 875053]], "no kit before the model loads"
-    assert evaluate(addon, "ON_UPDATE") is None, "and nothing is counted down meanwhile"
-    addon.execute(b"STAGE:Loaded()")
-    assert evaluate(addon, "#CALLS") == 1, "a kit given on the load itself is dropped"
-    addon.execute(b"ON_UPDATE()")
-    assert evaluate(addon, "CALLS[2]") == ["ApplySpellVisualKit", 167021, False]
-    assert evaluate(addon, "ON_UPDATE") is None, "given once"
+#: A scene whose actor records what it was told, Epsilon's `ClearAllEffects` among it, and whose
+#: drawn frames are `STAGE:Drawn()`, called by hand. Its bounding box answers nothing, so the
+#: camera is left where it is. `KIT_CALLS()` is what the actor was told about kits and effects.
+TINTING = b"""
+    CALLS = {}
+    local function told(name)
+        return function(_, ...) CALLS[#CALLS + 1] = { name, ... } end
+    end
+    local actor = { GetModelFileID = function() return 875053 end }
+    function actor.GetActiveBoundingBox() end
+    for _, name in ipairs({ "SetModelByFileID", "SetSpellVisualKit", "ClearModel", "SetYaw" }) do
+        actor[name] = told(name)
+    end
+    actor.ClearAllEffects = told("ClearAllEffects")
+    ACTOR = actor
+    local frame = {}
+    for _, name in ipairs({ "Show", "Hide", "SetScript", "SetAlpha", "SetCamDistanceScale" }) do
+        frame[name] = function() end
+    end
+    frame.ClearModel = function() end
+    function KIT_CALLS()
+        local calls = {}
+        for _, call in ipairs(CALLS) do
+            if call[1] == "SetSpellVisualKit" or call[1] == "ClearAllEffects" then
+                calls[#calls + 1] = call
+            end
+        end
+        return calls
+    end
+    STAGE = setmetatable({ model = frame, actor = actor, scene = frame }, NS.Stage)
+    STAGE:Show({ draw = "tinted", value = 875053, kit = 167021 })
+"""
+
+#: A tinted look loaded and given its tint, two drawn frames after the load.
+TINTED = b"STAGE:ActorLoaded(); STAGE:Drawn(); STAGE:Drawn(); CALLS = {}"
+
+
+def test_a_tint_is_given_on_a_frame_drawn_after_the_model_loads(addon: LuaRuntime) -> None:
+    addon.execute(TINTING)
+    assert evaluate(addon, "CALLS[2]") == ["SetModelByFileID", 875053], "drawn by the scene"
+    addon.execute(b"STAGE:Drawn()")
+    assert evaluate(addon, "KIT_CALLS()") == [], "no kit before the model loads"
+    addon.execute(b"STAGE:ActorLoaded(); STAGE:Drawn()")
+    assert evaluate(addon, "KIT_CALLS()") == [], "the frame it is asked in may be the load's own"
+    addon.execute(b"STAGE:Drawn(); STAGE:Drawn()")
+    assert evaluate(addon, "KIT_CALLS()") == [["SetSpellVisualKit", 167021, False]], "once"
+
+
+def test_a_look_cleared_before_its_tint_is_not_tinted(addon: LuaRuntime) -> None:
+    addon.execute(TINTING)
+    addon.execute(b"STAGE:ActorLoaded(); STAGE:Clear(); STAGE:Drawn(); STAGE:Drawn()")
+    assert evaluate(addon, "KIT_CALLS()") == [], "never tinted, so nothing to take off either"
+
+
+def test_clearing_a_tinted_look_takes_off_what_the_tint_painted(addon: LuaRuntime) -> None:
+    addon.execute(TINTING)
+    addon.execute(TINTED + b"; STAGE:Clear()")
+    assert evaluate(addon, "CALLS") == [
+        ["SetSpellVisualKit"],
+        ["ClearAllEffects"],
+        ["ClearModel"],
+    ], "the kit off, then what it painted, then the model"
+    addon.execute(b"CALLS = {}; STAGE:Clear()")
+    assert evaluate(addon, "KIT_CALLS()") == [], "once"
+
+
+def test_a_client_without_epsilons_call_takes_the_kit_off_alone(addon: LuaRuntime) -> None:
+    addon.execute(TINTING)
+    addon.execute(b"ACTOR.ClearAllEffects = nil; " + TINTED + b"; STAGE:Clear()")
+    assert evaluate(addon, "KIT_CALLS()") == [["SetSpellVisualKit"]]
 
 
 def test_a_creature_the_client_has_not_seen_is_asked_for_each_frame_until_it_is_held(

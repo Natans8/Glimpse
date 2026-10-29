@@ -22,8 +22,9 @@ ns.Presentations = Presentations
 
 local ROWS = {
 	prop = { drawer = "scene", yaw = 30, pitch = 20 },
-	-- A tinted thing is drawn by a model frame, the widget its tint is proven on.
-	tinted = { drawer = "model", yaw = 30, pitch = 20 },
+	-- A tinted thing is drawn as a prop is, its tint a kit on the scene's actor,
+	-- which Epsilon's client can take off again.
+	tinted = { drawer = "scene", yaw = 30, pitch = 20 },
 	-- A figure is drawn by a model frame, the one widget that draws every
 	-- playable race's display whole.
 	figure = { drawer = "model", yaw = 25, pitch = 5 },

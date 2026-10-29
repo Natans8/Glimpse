@@ -59,13 +59,15 @@ function Stage.New(parent)
 	self.actor = self.scene:CreateActor(nil, "ModelSceneActorTemplate")
 	self.actor:SetUseCenterForOrigin(true, true, true)
 	self.actor:SetOnModelLoadedCallback(ns.Safely.Wrap(function()
-		self.loaded = true
-		if NOTHING_SHOWN[self.actor:GetModelFileID()] then
-			self:Nothing()
-			return
-		end
-		self:Fit()
+		self:ActorLoaded()
 	end))
+	-- Beside the scene's own frame script, which drives its camera and actors.
+	self.scene:HookScript(
+		"OnUpdate",
+		ns.Safely.Wrap(function()
+			self:Drawn()
+		end)
+	)
 
 	self.model = _G.CreateFrame("DressUpModel", nil, parent)
 	self.model:SetAllPoints()
@@ -228,25 +230,50 @@ local function everyFrame(self, step)
 	)
 end
 
---- Take up what waited for the model to load. An emote waits for the body: set
--- on a body still loading, the client takes a staff in hand with the wrong one.
--- A body holding an animation the frame refuses starts it afresh. A tint waits
--- for the frame after the load: a kit given to a model not yet drawn is dropped.
+--- Take up what waited for the model frame's model to load. An emote waits for
+-- the body: set on a body still loading, the client takes a staff in hand with
+-- the wrong one. A body holding an animation the frame refuses starts it afresh.
 function Stage:Loaded()
 	self.loaded = true
-	local pose, kit = self.pose, self.kit
+	local pose = self.pose
 	if pose then
 		self.pose = nil
 		self:Perform(pose.animation, pose.wields)
 	elseif self.clock then
 		self.clock.starting = true
-	elseif kit then
-		self.kit = nil
-		everyFrame(self, function()
-			self.model:ApplySpellVisualKit(kit, false)
-			return true
-		end)
 	end
+end
+
+--- Take up what waited for the scene's model to load: the camera is fitted to it,
+-- and a tint waits for a frame drawn after the load, since a kit given to a model
+-- not yet drawn is dropped.
+function Stage:ActorLoaded()
+	self.loaded = true
+	if NOTHING_SHOWN[self.actor:GetModelFileID()] then
+		self:Nothing()
+		return
+	end
+	self:Fit()
+	if self.kit then
+		self.waiting = { kit = self.kit }
+		self.kit = nil
+	end
+end
+
+--- A frame the scene drew. A tint waiting on the load is given on the next one:
+-- the frame it was asked for in may be the frame the model loaded in.
+function Stage:Drawn()
+	local waiting = self.waiting
+	if not waiting then
+		return
+	end
+	if not waiting.seen then
+		waiting.seen = true
+		return
+	end
+	self.waiting = nil
+	self.actor:SetSpellVisualKit(waiting.kit, false)
+	self.tinted = true
 end
 
 -- Whether a model frame holds a model, which a creature the client has not been
@@ -300,11 +327,11 @@ local DRAW = {
 	display = function(self, display)
 		self.actor:SetModelByCreatureDisplayID(display)
 	end,
-	-- The model is shown as it is and tinted once it has loaded and been drawn,
-	-- since a model not seen is not drawn and a kit given to one undrawn is dropped.
+	-- The model is shown as a prop is and tinted once it has loaded and been
+	-- drawn, since a kit given to a model not yet drawn is dropped.
 	tinted = function(self, file, look)
 		self.kit = look.kit
-		self.model:SetModel(file)
+		self.actor:SetModelByFileID(file)
 	end,
 	creature = function(self, entry)
 		untilHeld(self, function(model)
@@ -370,13 +397,22 @@ end
 
 --- Draw nothing.
 function Stage:Clear()
-	self.pose, self.clock, self.kit = nil, nil, nil
+	self.pose, self.clock, self.kit, self.waiting = nil, nil, nil, nil
 	self.model:SetScript("OnUpdate", nil)
 	self.model:SetAlpha(1)
 	self.model:SetCamDistanceScale(1)
 	self.presentation = nil
 	self.turned, self.tilted, self.zoom, self.size = 0, 0, 1, nil
 	self.loaded = false
+	-- What a tint painted stays on the actor once its kit is off and its model is
+	-- cleared; Epsilon's client gives every scene actor the one call that takes it off.
+	if self.tinted then
+		self.tinted = false
+		self.actor:SetSpellVisualKit(nil)
+		if self.actor.ClearAllEffects then
+			self.actor:ClearAllEffects()
+		end
+	end
 	self.actor:ClearModel()
 	self.model:ClearModel()
 	self.scene:Hide()
