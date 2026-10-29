@@ -4,17 +4,19 @@ version = "0.1.0"
 description = "Previews for Epsilon's .lookup results: the addon's generator, checks and tests."
 license = "AGPL-3.0-or-later"
 requires-python = ">=3.14"
+# A floor only where the code needs that version, its reason beside it. uv.lock pins what
+# actually runs, and `uv sync --upgrade` moves every pin at once.
 dependencies = [
-    "duckdb>=2.0.0",
+    "duckdb",
 ]
 
 [dependency-groups]
 dev = [
-    "lupa>=2.8",
-    "mypy>=2.4.0",
-    "pillow>=13.0.0",
-    "pytest>=9.1.1",
-    "ruff>=0.17.2",
+    "lupa>=2.1",  # the bundled Lua 5.1 module the tests import, lupa.lua51
+    "mypy",
+    "pillow",
+    "pytest",
+    "ruff",
 ]
 
 [tool.uv]
