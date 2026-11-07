@@ -392,9 +392,9 @@ def test_an_emote_the_table_lacks_follows_the_servers_rule(game: LuaRuntime) -> 
     assert evaluate(game, "NS.Data.EmoteAnimations[4069]") is None, "not shipped: the rule gives it"
     assert animation(4069) == 69, "a looping emote is 4000 and its animation"
     assert animation(2069) == 69, "a one-shot emote is 2000 and its animation"
-    listed = evaluate(game, "NS.Data.EmoteAnimations[5909]")
-    assert isinstance(listed, int) and listed != 1909, "an exception is shipped"
-    assert animation(5909) == listed, "and the table is believed over the rule"
+    listed = evaluate(game, "NS.Data.EmoteAnimations[5536]")
+    assert isinstance(listed, int) and listed != 1536, "an exception is shipped"
+    assert animation(5536) == listed, "and the table is believed over the rule"
     assert evaluate(game, 'NS.Kinds.Of({ kind = "emote", id = 5999 })') is None, "no such animation"
 
 
