@@ -234,3 +234,97 @@ def test_a_models_caption_says_how_many_of_each_there_are(door: LuaRuntime) -> N
     assert evaluate(door, "NS.Presentations.Place(SUBJECT.looks[2], 2, 2)") == "Model 2 of 2", (
         "one of a model is not counted"
     )
+
+
+#: A frame of another addon's, and a stage that records what a view asks of it: each look
+#: drawn and the angle it was turned to, or "cleared".
+VIEWING = b"""
+    STAGED, TOLD = {}, {}
+    NS.Stage.New = function(parent)
+        return {
+            Show = function(_, look, turned)
+                STAGED[#STAGED + 1] = { look = look, turned = turned }
+            end,
+            Clear = function() STAGED[#STAGED + 1] = "cleared" end,
+        }
+    end
+    function CreateFrame()
+        return {
+            SetAllPoints = function() end,
+            Show = function(self) self.shown = true end,
+            Hide = function(self) self.shown = false end,
+        }
+    end
+    FRAME = { IsObjectType = function(_, kind) return kind == "Frame" end }
+    function TELL(count) TOLD[#TOLD + 1] = count end
+"""
+
+
+@pytest.fixture
+def viewing(door: LuaRuntime) -> LuaRuntime:
+    """The door, with a frame of another addon's to draw a view in."""
+    door.execute(VIEWING)
+    return door
+
+
+def test_a_view_draws_a_thing_in_another_addons_frame_with_nothing_around_it(
+    viewing: LuaRuntime,
+) -> None:
+    viewing.execute(b"V = Glimpse.View(FRAME)")
+    assert evaluate(viewing, "V:Show(SET, nil, TELL)") is True
+    assert evaluate(viewing, "STAGED") == [
+        "cleared",
+        {"look": {"draw": "file", "value": 875053, "count": 9}, "turned": 0},
+    ], "the first look, standing still"
+    assert evaluate(viewing, "TOLD") == [2], "the caller is told how many looks there are"
+    assert evaluate(viewing, "V:Looks()") == 2
+    assert evaluate(viewing, "PEEKED") == [], "no hover frame of this addon's"
+
+
+def test_a_view_shows_the_look_asked_for_and_the_first_where_there_are_fewer(
+    viewing: LuaRuntime,
+) -> None:
+    viewing.execute(b"V = Glimpse.View(FRAME)")
+    viewing.execute(b"V:Show(SET, 2)")
+    assert evaluate(viewing, "STAGED[#STAGED].look.value") == 876957
+    viewing.execute(b"V:Show(SET, 9)")
+    assert evaluate(viewing, "STAGED[#STAGED].look.value") == 875053
+    viewing.execute(b"V:Clear()")
+    assert evaluate(viewing, "STAGED[#STAGED]") == "cleared"
+    assert evaluate(viewing, "V:Looks()") == 0
+
+
+def test_only_a_frame_takes_a_view(viewing: LuaRuntime) -> None:
+    assert evaluate(viewing, "Glimpse.View(nil)") is None
+    assert evaluate(viewing, "Glimpse.View({})") is None
+    assert evaluate(viewing, "Glimpse.View({ IsObjectType = function() return false end })") is None
+
+
+def test_a_view_draws_nothing_of_a_kind_turned_off_or_unknown(viewing: LuaRuntime) -> None:
+    viewing.execute(b"V = Glimpse.View(FRAME)")
+    viewing.execute(b"GlimpseSettings = { off = { models = true } }")
+    assert evaluate(viewing, "V:Show(SET, 1, TELL)") is False, "the player's choices hold"
+    assert evaluate(viewing, 'V:Show({ kind = "no such kind" }, 1, TELL)') is False
+    assert evaluate(viewing, "TOLD") == [0, 0], "and the caller is told there is nothing"
+    staged = evaluate(viewing, "STAGED")
+    assert isinstance(staged, list) and all(entry == "cleared" for entry in staged)
+
+
+def test_a_fault_in_the_callers_function_is_its_own(viewing: LuaRuntime) -> None:
+    viewing.execute(b"""
+        ANNOUNCED = 0
+        NS.Safely.Announce = function() ANNOUNCED = ANNOUNCED + 1 end
+        V = Glimpse.View(FRAME)
+    """)
+    assert evaluate(viewing, 'V:Show(SET, 1, function() error("the caller broke") end)') is True
+    assert evaluate(viewing, "STAGED[#STAGED].look.value") == 875053
+    assert evaluate(viewing, "ANNOUNCED") == 0, "nothing of this addon's faulted"
+
+
+def test_a_kind_another_addon_previews_is_lent_into_the_view(viewing: LuaRuntime) -> None:
+    viewing.execute(SCENE)
+    viewing.execute(b'Glimpse.Provide("scene", SCENE)')
+    viewing.execute(b"V = Glimpse.View(FRAME)")
+    assert evaluate(viewing, 'V:Show({ kind = "scene", name = "Restaurant" }, 1, TELL)') is True
+    assert evaluate(viewing, "FILLED") == ["hover Restaurant"], "lent as the hover frame lends it"
+    assert evaluate(viewing, "TOLD") == [1]

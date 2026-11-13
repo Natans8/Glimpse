@@ -10,6 +10,16 @@ local _, ns = ...
 --   Glimpse.Open(read)                do what a click on its button does: open the
 --                                     window, or close the window showing it; true where
 --                                     anything was done
+--   Glimpse.View(frame)               a view filling a frame of the caller's own, which
+--                                     draws a thing with nothing of this addon's around it;
+--                                     nil where `frame` is no frame. Its methods:
+--     view:Show(read, index, done)    draw a thing as the hover frame would, still; `index`
+--                                     picks one of its looks (a creature's displays, a set's
+--                                     models), the first where it has fewer; `done`, where
+--                                     given, is called with how many looks it has, 0 for
+--                                     nothing to show; true where the kind is drawn
+--     view:Looks()                    how many looks the thing shown has
+--     view:Clear()                    draw nothing
 --
 -- A read says what a line would have said of the thing: its `kind`, its `id` and its
 -- `name`; where a kind's line carries more, its `names` (the models a detail doodad's
@@ -108,6 +118,43 @@ local function open(given)
 	return read ~= nil and ns.Chat.Open(read, 1)
 end
 
+-- A view of the caller's, its methods called with a colon: the first argument is the
+-- handle itself, which they do not read.
+local function view(frame)
+	local isFrame = type(frame) == "table"
+		and type(frame.IsObjectType) == "function"
+		and frame:IsObjectType("Frame")
+	if not isFrame then
+		return nil
+	end
+	local drawn = ns.View.New(frame)
+	return {
+		Show = Safely.Wrap(function(_, given, index, done)
+			if type(done) ~= "function" then
+				done = nil
+			end
+			local read = readOf(given)
+			if read == nil then
+				drawn:Clear()
+				if done then
+					pcall(done, 0)
+				end
+				return false
+			end
+			if type(index) ~= "number" then
+				index = 1
+			end
+			return drawn:Show(read, index, done)
+		end),
+		Looks = Safely.Wrap(function()
+			return drawn:Looks()
+		end),
+		Clear = Safely.Wrap(function()
+			drawn:Clear()
+		end),
+	}
+end
+
 _G.Glimpse = {
 	Provide = ns.Providers.Provide,
 	Peek = Safely.Wrap(peek),
@@ -115,4 +162,5 @@ _G.Glimpse = {
 		ns.Peek.Hide()
 	end),
 	Open = Safely.Wrap(open),
+	View = Safely.Wrap(view),
 }

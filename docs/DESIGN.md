@@ -208,6 +208,26 @@ hover is off. `Peek` and `Open` answer true where something was shown or done, a
 `Glimpse.Peek` being a function, so it stays silent beside an older Glimpse. A peek another addon asks for does not
 say that a click opens it, since the click is that addon's.
 
+An addon with a frame of its own, a catalogue's grid or a pane beside its list, asks Glimpse to draw into it
+instead, with nothing of Glimpse's around the drawing:
+
+```lua
+local view = Glimpse.View(myFrame)
+view:Show({ kind = "wmo", name = "6dr_draenei_house2" }, 1, function(looks) ... end)
+view:Looks()
+view:Clear()
+```
+
+`View` answers a view filling the frame, or nil where it is given no frame. `Show` takes the same read `Peek`
+does and draws the thing as the hover frame draws it, still, on the same stage, so a view hands the client's
+model loader only what Glimpse's own frames hand it. Of several looks, a creature's displays or a set's models,
+the second argument picks one, and the first is drawn where there are fewer. The last, where given, is told how
+many looks there are once that is known, 0 for nothing to show; a fault in it is the caller's and is dropped.
+`Looks` answers the same count after. A kind another addon provides is lent into the view as into the hover
+frame, with `context.place` "hover". There is no panel, name, caption or hint: the caller draws what it wants
+around the view, and the player's choices hold, so a kind turned off draws nothing. A view in a hidden frame does
+nothing, and `Clear` empties it.
+
 An addon that wants Glimpse's frame for something of its own declares a kind by offering it with a `word`,
 `Glimpse.Provide("scene", { word = "Set", Show = ..., Hide = ... })`, and then peeks or opens with that kind.
 Glimpse lends the frame as for any offered kind, under the thing's name and the word given, and the kind has a
