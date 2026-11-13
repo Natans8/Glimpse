@@ -416,7 +416,8 @@ def test_two_different_reads_never_share_a_key(addon: LuaRuntime) -> None:
     [
         ("184093 - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r ", 1),
         ("174 (idx:139) - |cffffffff|Htitle:174|h[Player, Bane of the Fallen King ]|h|r", 1),
-        ("|cff000000184093|r - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r", 1),
+        ("|cff00CCFF184093|r - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r", 1),
+        ("Phase 7301 - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r", None),
         ("[12:34] 184093 - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r", 9),
         ("NPC Info: |cffffffff|Hcreature_entry:16998|h[Mr. Bigglesworth - 16998]|h|r", None),
     ],

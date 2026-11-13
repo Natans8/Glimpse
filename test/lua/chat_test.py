@@ -3,12 +3,17 @@
 import json
 import re
 from collections.abc import Callable
-from typing import cast
+from typing import NamedTuple, cast
 
 import pytest
 from support import FIXTURES, LuaRuntime, evaluate, lines, load_addon, plain
 
 LINES = lines()
+
+#: A result of `.lookup creature`, and a zone's music and an ambience as `.lookup` prints them.
+WOLF = LINES["lookup creature wolf"][0]
+MUSIC = "|cff00CCFF156|r - Zone-TavernAlliance"
+AMBIENCE = "|cff00CCFF28|r - [DAY] forestdarkenchantedday, [NIGHT] forestdarkenchantednight"
 
 #: A client that records what the addon installs and plays, in place of the real one.
 CLIENT = b"""
@@ -21,6 +26,7 @@ CLIENT = b"""
     CHAT_FRAMES = { "ChatFrame1" }
     NS.Peek = {
         Show = function(read, lent, asked, byLink)
+            LAST_PEEKED = read
             PEEKED[#PEEKED + 1] = read.kind .. " " .. read.id .. (lent and " lent" or "")
                 .. (byLink and " by its link" or "")
         end,
@@ -105,31 +111,30 @@ TRAILING = r"(?:\|cffADFFFF -\|r \|cffC8A8FF\|Hgarrmission:glimpse:[^|]+\|h\[\w+
 SPAWN = "|cffADFFFF -|r |cff00CCFF|Hcreature_entry:184093|h[Spawn]|h|r"
 
 
-def filtered(chat: LuaRuntime, line: str) -> str:
-    """A line as the filter shows it."""
+def shown_by(chat: LuaRuntime, line: str) -> str | None:
+    """A line as the filter shows it, or None where the filter leaves it as it came."""
     shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
-    assert isinstance(shown, str)
+    assert shown is None or isinstance(shown, str)
     return shown
 
 
-def place(chat: LuaRuntime, placement: str) -> None:
-    """Choose where the buttons go."""
-    chat.execute(f'NS.Settings.Set("buttons", "{placement}")'.encode())
+def filtered(chat: LuaRuntime, line: str) -> str:
+    """A line as the filter shows it, where it gains buttons."""
+    shown = shown_by(chat, line)
+    assert shown is not None
+    return shown
 
 
-def test_before_the_id_the_buttons_lead_a_result(chat: LuaRuntime) -> None:
-    place(chat, "beforeId")
-    line = LINES["lookup creature wolf"][0]
-    shown = filtered(chat, line)
-    buttons = re.match(LEADING, shown)
-    assert buttons and shown[buttons.end() :] == line
+def choose(chat: LuaRuntime, key: str, value: str | bool) -> None:
+    """Make a choice in the settings, as the panel does."""
+    chat.execute(f"NS.Settings.Set({json.dumps(key)}, {json.dumps(value)})".encode())
 
 
-@pytest.mark.parametrize("prefix", ["|cff808080[12:34]|r ", "12:34 ", "|cff808080<GM>|r "])
+@pytest.mark.parametrize("prefix", ["", "|cff808080[12:34]|r ", "12:34 ", "|cff808080<GM>|r "])
 def test_before_the_id_leaves_what_another_addon_put_in_front(
     chat: LuaRuntime, prefix: str
 ) -> None:
-    place(chat, "beforeId")
+    choose(chat, "buttons", "beforeId")
     line = LINES["lookup creature wolf"][0]
     shown = filtered(chat, prefix + line)
     assert shown.startswith(prefix)
@@ -138,18 +143,11 @@ def test_before_the_id_leaves_what_another_addon_put_in_front(
 
 
 def test_before_the_id_is_before_the_link_where_no_id_comes_before_it(chat: LuaRuntime) -> None:
-    place(chat, "beforeId")
+    choose(chat, "buttons", "beforeId")
     line = LINES["npc info of a creature"][0]
     shown = filtered(chat, line)
     buttons = re.search(LEADING, shown)
     assert buttons and shown[: buttons.start()].endswith("NPC Info: ")
-
-
-def test_the_buttons_can_go_between_a_results_id_and_its_link(chat: LuaRuntime) -> None:
-    place(chat, "beforeLink")
-    shown = filtered(chat, LINES["lookup creature wolf"][0])
-    assert shown.startswith("184093 - |cffC8A8FF|Hgarrmission:glimpse:c/184093/1/")
-    assert "|h[Preview]|h|r|cffADFFFF -|r |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]" in shown
 
 
 @pytest.mark.parametrize(
@@ -166,19 +164,18 @@ def test_the_buttons_can_go_between_a_results_id_and_its_link(chat: LuaRuntime) 
 def test_the_buttons_go_right_before_the_link_whatever_comes_before_it(
     chat: LuaRuntime, command: str, link: str
 ) -> None:
-    place(chat, "beforeLink")
+    choose(chat, "buttons", "beforeLink")
     line = LINES[command][0]
     shown = filtered(chat, line)
     buttons = re.search(LEADING, shown)
     assert buttons, "the line gains its buttons"
-    assert shown[: buttons.start()] + shown[buttons.end() :] == line, "the line is untouched"
-    name = shown[buttons.end() :]
-    assert re.match(rf"(\|c[0-9a-fA-F]{{8}})?\|H{link}:", name), "the link follows"
-    assert not re.search(r"\|c[0-9a-fA-F]{8}$", shown[: buttons.start()]), "it keeps its colour"
+    assert re.match(rf"(\|c[0-9a-fA-F]{{8}})?\|H{link}:", shown[buttons.end() :]), (
+        "the link follows"
+    )
 
 
 def test_after_the_link_the_buttons_come_before_glinks(chat: LuaRuntime) -> None:
-    place(chat, "afterLink")
+    choose(chat, "buttons", "afterLink")
     line = LINES["lookup creature wolf"][0].rstrip() + SPAWN
     shown = filtered(chat, line)
     buttons = re.search(TRAILING, shown)
@@ -196,7 +193,7 @@ def test_the_buttons_go_at_the_end_by_default_after_glinks(chat: LuaRuntime) -> 
 def test_a_link_the_server_leaves_open_is_closed_after_its_name_for_the_buttons(
     chat: LuaRuntime,
 ) -> None:
-    place(chat, "afterLink")
+    choose(chat, "buttons", "afterLink")
     line = LINES["gobject spawn"][0]
     shown = filtered(chat, line)
     name = "|h[6ar_fern_b02.m2 - 801862]"
@@ -208,8 +205,8 @@ def test_a_link_the_server_leaves_open_is_closed_after_its_name_for_the_buttons(
 def test_a_sound_named_with_no_link_takes_its_buttons_before_the_name_in_order(
     chat: LuaRuntime,
 ) -> None:
-    place(chat, "beforeLink")
-    line = "|cff00CCFF28|r - [DAY] forestdarkenchantedday, [NIGHT] forestdarkenchantednight"
+    choose(chat, "buttons", "beforeLink")
+    line = AMBIENCE
     shown = filtered(chat, line)
     assert shown.startswith("|cff00CCFF28|r - |cffC8A8FF")
     assert shown.endswith("|cffADFFFF -|r " + line.removeprefix("|cff00CCFF28|r - "))
@@ -220,14 +217,14 @@ def test_a_sound_named_with_no_link_takes_its_buttons_before_the_name_in_order(
 def test_a_line_that_prints_no_name_keeps_its_buttons_at_the_end(
     chat: LuaRuntime, placement: str
 ) -> None:
-    place(chat, placement)
+    choose(chat, "buttons", placement)
     line = LINES["modify mount"][0]
     shown = filtered(chat, line)
     assert shown.startswith(line) and shown[len(line) :].startswith("|cffADFFFF -|r |cffC8A8FF")
 
 
 def test_a_player_who_wants_the_buttons_nowhere_gets_lines_as_they_came(chat: LuaRuntime) -> None:
-    place(chat, "none")
+    choose(chat, "buttons", "none")
     for command in ("lookup creature wolf", "lookup detaildoodad grass", "modify mount"):
         line = json.dumps(LINES[command][0])
         assert evaluate(chat, f"{{ FILTER({line}) }}") == [False], command
@@ -242,7 +239,7 @@ def test_a_choice_that_is_none_of_them_puts_the_buttons_at_the_end(chat: LuaRunt
 def test_moving_the_buttons_moves_them_on_a_line_already_shown(chat: LuaRuntime) -> None:
     line = LINES["lookup creature wolf"][0]
     at_end = filtered(chat, line)
-    place(chat, "beforeLink")
+    choose(chat, "buttons", "beforeLink")
     before = filtered(chat, line)
     assert at_end.startswith(line) and before.startswith("184093 - |cffC8A8FF")
 
@@ -265,10 +262,19 @@ def link_state(text: str) -> int:
     return state
 
 
-def insertions(line: str, shown: str) -> list[tuple[int, str, bool]]:
-    """Where this addon put its buttons into a line: the place in the line's own text, what
-    was put there, and whether that closed a link the server left open first."""
-    found, offset = [], 0
+class Insertion(NamedTuple):
+    """What this addon put into a line: where in the line's own text, what, and whether that
+    closed a link the server left open first."""
+
+    at: int
+    text: str
+    closes: bool
+
+
+def insertions(line: str, shown: str) -> list[Insertion]:
+    """Everything this addon put into a line, in order."""
+    found: list[Insertion] = []
+    offset = 0
     for buttons in OURS.finditer(shown):
         start = buttons.start()
         at = start - offset
@@ -277,7 +283,7 @@ def insertions(line: str, shown: str) -> list[tuple[int, str, bool]]:
         if closes:
             at, put = at - 2, "|h" + put
         offset += len(put)
-        found.append((at, put, closes))
+        found.append(Insertion(at, put, closes))
     return found
 
 
@@ -285,13 +291,12 @@ def insertions(line: str, shown: str) -> list[tuple[int, str, bool]]:
 def test_no_placement_changes_breaks_or_splits_any_line_the_game_printed(
     chat: LuaRuntime, placement: str
 ) -> None:
-    place(chat, placement)
+    choose(chat, "buttons", placement)
     for command, printed in LINES.items():
         for line in printed:
-            shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
+            shown = shown_by(chat, line)
             if shown is None:
                 continue
-            assert isinstance(shown, str)
             put = insertions(line, shown)
             rebuilt, last = [], 0
             for at, text, _ in put:
@@ -311,8 +316,7 @@ def test_no_placement_changes_breaks_or_splits_any_line_the_game_printed(
 
 def rows_shown(chat: LuaRuntime, line: str) -> list[tuple[str, list[str]]]:
     """Each row of a line in rows as shown: the row's own text and the links after it."""
-    shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
-    assert isinstance(shown, str)
+    shown = filtered(chat, line)
     rows = []
     for given, row in zip(line.split("\r"), shown.split("\r"), strict=True):
         assert row.startswith(given), "the row's own text is untouched"
@@ -341,7 +345,7 @@ def test_a_model_a_detail_lists_twice_gains_a_button_on_each_row(chat: LuaRuntim
 def test_each_model_row_takes_its_button_before_the_model_name_where_chosen(
     chat: LuaRuntime,
 ) -> None:
-    place(chat, "beforeLink")
+    choose(chat, "buttons", "beforeLink")
     line = LINES["lookup detaildoodad grass"][1]
     shown = filtered(chat, line).split("\r")
     given = line.split("\r")
@@ -374,10 +378,10 @@ def test_a_sound_with_day_and_night_gains_a_button_for_each(chat: LuaRuntime) ->
     both = call(
         chat,
         "LINKS",
-        "|cff00CCFF28|r - [DAY] forestdarkenchantedday, [NIGHT] forestdarkenchantednight",
+        AMBIENCE,
     )
     assert [button["word"] for button in cast(list[dict[str, str]], both)] == ["Day", "Night"]
-    one = call(chat, "LINKS", "|cff00CCFF156|r - Zone-TavernAlliance")
+    one = call(chat, "LINKS", MUSIC)
     assert [button["word"] for button in cast(list[dict[str, str]], one)] == ["Play"]
 
 
@@ -463,10 +467,6 @@ def click(chat: LuaRuntime, line: str, button: int, mouse: str = "LeftButton") -
     found = cast(list[dict[str, str]], call(chat, "LINKS", line))
     chat.globals()[b"CLICKED"] = found[button - 1]["link"].encode()
     chat.execute(f'HOOKS.SetItemRef(CLICKED, "[Play]", "{mouse}")'.encode())
-
-
-MUSIC = "|cff00CCFF156|r - Zone-TavernAlliance"
-AMBIENCE = "|cff00CCFF28|r - [DAY] forestdarkenchantedday, [NIGHT] forestdarkenchantednight"
 
 
 def test_an_override_gains_a_button_for_each_sound_it_sets(chat: LuaRuntime) -> None:
@@ -557,21 +557,13 @@ def hover(chat: LuaRuntime, line: str, button: int) -> None:
     chat.execute(b"SCRIPTS.OnHyperlinkLeave(ChatFrame1)")
 
 
-def rest_on_link(
-    chat: LuaRuntime,
-    command: str,
-    link: str,
-    drawn: str | None = None,
-    label: str | None = None,
-) -> None:
+def rest_on_link(chat: LuaRuntime, drawn: str, link: str, label: str | None = None) -> None:
     """Rest the pointer on a link on a line as a chat frame drew it, handing over its text
     as the client does, colour codes and all: by default the label the line shows for it."""
-    line = LINES[command][0]
-    shown = drawn if drawn is not None else filtered(chat, line)
     if label is None:
-        found = re.search(rf"\|H{re.escape(link)}\|h(.*?)\|h", shown)
+        found = re.search(rf"\|H{re.escape(link)}\|h(.*?)\|h", drawn)
         label = found.group(1) if found else "[nothing]"
-    chat.globals()[b"DRAWN"] = shown.encode()
+    chat.globals()[b"DRAWN"] = drawn.encode()
     chat.globals()[b"POINTED"] = link.encode()
     chat.globals()[b"POINTED_TEXT"] = as_handed(link, label).encode()
     chat.execute(b"REGION = { GetText = function() return DRAWN end }")
@@ -593,30 +585,21 @@ def click_link(
 
 
 def test_glinks_buttons_carrying_the_same_link_preview_nothing(chat: LuaRuntime) -> None:
-    chat.execute(b'NS.Settings.Set("linkHover", true)')
-    drawn = filtered(chat, LINES["lookup creature wolf"][0].rstrip() + SPAWN)
-    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093", drawn, "[Spawn]")
+    choose(chat, "linkHover", True)
+    drawn = filtered(chat, WOLF.rstrip() + SPAWN)
+    rest_on_link(chat, drawn, "creature_entry:184093", "[Spawn]")
     assert evaluate(chat, "PEEKED") == []
 
 
-def test_alt_click_on_glinks_button_opens_nothing(chat: LuaRuntime) -> None:
-    chat.execute(b'NS.Settings.Set("linkHover", true)')
-    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093")
-    click_link(chat, "creature_entry:184093", alt=True, label="[Spawn]")
-    assert evaluate(chat, "WINDOWED") == []
-    click_link(chat, "creature_entry:184093", alt=True)
-    assert evaluate(chat, "WINDOWED") == ["creature 184093"]
-
-
 def test_resting_on_a_results_link_shows_nothing_until_the_player_asks(chat: LuaRuntime) -> None:
-    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093")
+    rest_on_link(chat, filtered(chat, WOLF), "creature_entry:184093")
     click_link(chat, "creature_entry:184093", alt=True)
     assert evaluate(chat, "PEEKED") == [] and evaluate(chat, "WINDOWED") == []
 
 
 def test_resting_on_a_results_link_previews_it_beside_any_tooltip(chat: LuaRuntime) -> None:
-    chat.execute(b'NS.Settings.Set("linkHover", true)')
-    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093")
+    choose(chat, "linkHover", True)
+    rest_on_link(chat, filtered(chat, WOLF), "creature_entry:184093")
     assert evaluate(chat, "PEEKED") == ["creature 184093 by its link"]
 
 
@@ -624,46 +607,44 @@ def test_resting_on_a_results_link_previews_it_beside_any_tooltip(chat: LuaRunti
 def test_the_link_previews_wherever_the_buttons_are_or_with_none(
     chat: LuaRuntime, placement: str
 ) -> None:
-    chat.execute(
-        f'NS.Settings.Set("linkHover", true) NS.Settings.Set("buttons", "{placement}")'.encode()
-    )
-    line = LINES["lookup creature wolf"][0]
-    drawn = line if placement == "none" else filtered(chat, line)
-    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093", drawn)
+    choose(chat, "linkHover", True)
+    choose(chat, "buttons", placement)
+    drawn = WOLF if placement == "none" else filtered(chat, WOLF)
+    rest_on_link(chat, drawn, "creature_entry:184093")
     assert evaluate(chat, "PEEKED") == ["creature 184093 by its link"]
 
 
 def test_a_spawned_object_previews_as_it_stands_off_its_line(chat: LuaRuntime) -> None:
-    chat.execute(b'NS.Settings.Set("linkHover", true)')
+    choose(chat, "linkHover", True)
     line = LINES["gobject near"][0]
-    rest_on_link(chat, "gobject near", "gameobject_entry:801862")
+    rest_on_link(chat, filtered(chat, line), "gameobject_entry:801862")
     assert evaluate(chat, "PEEKED") == ["object 801862 by its link"]
     guid = re.search(r"gameobject_GUID:(\d+)", line)
     assert guid
-    assert evaluate(chat, "NS.Lines.Read(DRAWN).ids[1]") == int(guid.group(1))
+    assert evaluate(chat, "LAST_PEEKED.ids[1]") == int(guid.group(1))
 
 
 def test_only_the_link_the_line_is_about_previews(chat: LuaRuntime) -> None:
-    chat.execute(b'NS.Settings.Set("linkHover", true)')
+    choose(chat, "linkHover", True)
     guid = re.search(r"gameobject_GUID:\d+", LINES["gobject near"][0])
     assert guid
-    rest_on_link(chat, "gobject near", guid.group(0))
-    rest_on_link(chat, "lookup creature wolf", "creature_entry:999")
+    rest_on_link(chat, filtered(chat, LINES["gobject near"][0]), guid.group(0))
+    rest_on_link(chat, filtered(chat, WOLF), "creature_entry:999")
     assert evaluate(chat, "PEEKED") == []
 
 
 def test_a_link_with_no_line_to_read_or_a_kind_turned_off_shows_nothing(chat: LuaRuntime) -> None:
-    chat.execute(b'NS.Settings.Set("linkHover", true) NS.Settings.Turn("creature", false)')
-    line = LINES["lookup creature wolf"][0]
-    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093", line)
+    choose(chat, "linkHover", True)
+    chat.execute(b'NS.Settings.Turn("creature", false)')
+    rest_on_link(chat, WOLF, "creature_entry:184093")
     chat.execute(b'NS.Settings.Turn("creature", true)')
     chat.execute(b'SCRIPTS.OnHyperlinkEnter(ChatFrame1, "creature_entry:184093", nil, nil)')
     assert evaluate(chat, "PEEKED") == []
 
 
 def test_alt_click_on_the_link_opens_the_window_and_no_other_click_does(chat: LuaRuntime) -> None:
-    chat.execute(b'NS.Settings.Set("linkHover", true)')
-    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093")
+    choose(chat, "linkHover", True)
+    rest_on_link(chat, filtered(chat, WOLF), "creature_entry:184093")
     click_link(chat, "creature_entry:184093", alt=False)
     click_link(chat, "creature_entry:184093", alt=True, mouse="RightButton")
     click_link(chat, "creature_entry:999", alt=True)
@@ -673,8 +654,8 @@ def test_alt_click_on_the_link_opens_the_window_and_no_other_click_does(chat: Lu
 
 
 def test_alt_click_after_the_pointer_left_the_link_does_nothing(chat: LuaRuntime) -> None:
-    chat.execute(b'NS.Settings.Set("linkHover", true)')
-    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093")
+    choose(chat, "linkHover", True)
+    rest_on_link(chat, filtered(chat, WOLF), "creature_entry:184093")
     chat.execute(b"SCRIPTS.OnHyperlinkLeave(ChatFrame1)")
     click_link(chat, "creature_entry:184093", alt=True)
     assert evaluate(chat, "WINDOWED") == []

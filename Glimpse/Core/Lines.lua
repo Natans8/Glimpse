@@ -334,34 +334,24 @@ local function ending(message, at)
 	return at, false
 end
 
--- Where the id a line prints before its link begins: the first number after which,
--- colour codes aside, nothing but spaces and dashes comes before the link, or a
--- bracketed note as `.lookup title` prints (`174 (idx:139) - `). A number inside a
--- colour code is no id, and neither is a time or a tag another addon put in front.
-local function idBefore(message, from)
-	local at = 1
-	while true do
-		local start, finish = message:find("%d+", at)
-		if not start or start >= from then
-			return nil
-		end
-		local code = message:sub(1, start - 1):find("|c%x*$")
-		if code and start - code < 10 then
-			at = code + 10
-		else
-			local rest =
-				message:sub(finish + 1, from - 1):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-			if rest:find("^[%s%-]*$") or rest:find("^ %b()[%s%-]*$") then
-				return opening(message, start)
-			end
-			at = finish + 1
+-- Where a line prints the read's own id before its link: the id as a whole number with
+-- nothing after it but spaces, dashes and colour codes, or a bracketed note as
+-- `.lookup title` prints (`174 (idx:139) - `). A time or a tag another addon put in
+-- front is not the id and is passed over.
+local function idBefore(message, from, id)
+	local before = message:sub(1, from - 1)
+	for at in before:gmatch("()%f[%d]" .. id .. "%f[%D]") do
+		local rest = plain(before:sub(at + #tostring(id)))
+		if rest:find("^[%s%-]*$") or rest:find("^%b()[%s%-]*$") then
+			return opening(message, at)
 		end
 	end
+	return nil
 end
 
 -- The lines that name what they are about with no link of it, tried in turn. Each
--- answers its read and, where the line prints them, where its id and its name are,
--- as `Lines.Locate` does.
+-- answers its read and, where it prints a name for it, where its id and that name
+-- are, as `Lines.Locate` does.
 local SHAPES = { doodad, sound, faction, texture, wmoArea, worn, enchanted, forgedDisplay }
 
 local function locate(message)
@@ -398,10 +388,11 @@ local function locate(message)
 				local to, open = ending(message, labelAt + #label)
 				return found,
 					{
-						id = idBefore(message, from),
+						id = idBefore(message, from, found.id),
 						from = from,
 						to = to,
 						open = open,
+						link = linkType .. ":" .. payload,
 						label = label,
 					}
 			end
@@ -420,13 +411,33 @@ end
 --- Read a system line, and find where on it the thing read is named.
 -- @param message the line as the server sent it
 -- @return the read, or nil where the line is not one the addon previews
--- @return where on the line it is named, as `{ id, from, to, open, label }`: where the
--- id printed before its name begins, where the name or its link begins, and where that
--- ends, past the codes closing it; each at the colour code opening it where one does,
--- each nil where the line prints none; `open` true where the server leaves the link
--- open, its end then being its label's; and the link's label, which tells it from
--- another addon's button carrying the same link; nil where the line names it nowhere
+-- @return where on the line it is named, as `{ id, from, to, open, link, label }`:
+-- where the id printed before its name begins, where the name or its link begins, and
+-- where that ends, past the codes closing it; each at the colour code opening it where
+-- one does, each nil where the line prints none; `open` true where the server leaves
+-- the link open, its end then being its label's; the link as the client hands it to a
+-- hover or a click, and its label, which tells it from another addon's button carrying
+-- the same link; nil where the line names it nowhere
 Lines.Locate = locate
+
+--- Whether a link is of a type a line is read by.
+-- @param link a link as the client hands it over, `type:payload`
+-- @return true where a line carrying it could be read
+function Lines.Knows(link)
+	return LINKS[link:match("^([%a_]+):") or ""] ~= nil
+end
+
+--- The label a link shows, out of its text as the client hands it to a hover or a
+-- click, colour codes and all, as far as its closing bracket, as `Lines.Locate` gives it.
+-- @param text a link's text
+-- @return the label, or nil where the text carries no link
+function Lines.Label(text)
+	local label = type(text) == "string" and text:match("|h(.-)|h")
+	if label then
+		return closed(label)
+	end
+	return nil
+end
 
 --- Read a system line.
 -- @param message the line as the server sent it

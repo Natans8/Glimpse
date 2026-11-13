@@ -4,8 +4,9 @@ local addonName, ns = ...
 -- more than the client's settings leave room for.
 --
 -- Each control changes its setting as it is used, so there is nothing to
--- confirm; the panel's Defaults button clears every choice. A control that
--- only matters while another is on is dimmed while that one is off.
+-- confirm; a reset beside the title, and the panel's Defaults button, clear every
+-- choice. A control that only matters while another is on is dimmed while that one
+-- is off.
 --
 -- Under them, a switch for each kind of thing turns its previews on or off.
 -- Kinds that share a word, as the sounds do, share a switch; a kind another
@@ -24,52 +25,28 @@ local GLINK_OBJECT = "|cffADFFFF -|r |cff00CCFF|Hgameobject_entry:%d|h[Spawn]|h|
 --- Lines as the server prints them and a player with GLink sees them, for the examples
 -- under the choice of where the buttons go: a creature and an object `.lookup` finds, an
 -- `.npc info` with no id before its link, a zone's music, which plays rather than shows
--- and has no link, and a spawn reply whose link the server leaves open. Each with the
--- buttons it gains.
+-- and has no link, and a spawn reply whose link the server leaves open.
 local SAMPLES = {
-	{
-		line = "184093 - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r"
-			.. GLINK_CREATURE:format(184093),
-		buttons = { "Preview" },
-	},
-	{
-		line = "716709 - |cffffffff|Hgameobject_entry:716709|h[6dr_draenei_chair02.m2]|h|r"
-			.. GLINK_OBJECT:format(716709, 716709),
-		buttons = { "Preview" },
-	},
-	{
-		line = "NPC Info: |cff00CCFF|Hcreature_entry:16998|h[Mr. Bigglesworth - 16998]|h|r"
-			.. " (GUID: |cff00CCFF|HNPC_GUID:19647814|h19647814|h|r)"
-			.. GLINK_CREATURE:format(16998),
-		buttons = { "Preview" },
-	},
-	{
-		line = "|cff00CCFF156|r - Zone-TavernAlliance",
-		buttons = { "Play" },
-	},
-	{
-		line = "Spawned gameobject |cff00CCFF|Hgameobject_entry:801862|h[6ar_fern_b02.m2 - 801862]|r"
-			.. " (GUID: |cff00CCFF|Hgameobject_GUID:96102|h96102|h|r)"
-			.. GLINK_OBJECT:format(801862, 801862),
-		buttons = { "Preview" },
-	},
+	"184093 - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r"
+		.. GLINK_CREATURE:format(184093),
+	"716709 - |cffffffff|Hgameobject_entry:716709|h[6dr_draenei_chair02.m2]|h|r"
+		.. GLINK_OBJECT:format(716709, 716709),
+	"NPC Info: |cff00CCFF|Hcreature_entry:16998|h[Mr. Bigglesworth - 16998]|h|r"
+		.. " (GUID: |cff00CCFF|HNPC_GUID:19647814|h19647814|h|r)"
+		.. GLINK_CREATURE:format(16998),
+	"|cff00CCFF156|r - Zone-TavernAlliance",
+	"Spawned gameobject |cff00CCFF|Hgameobject_entry:801862|h[6ar_fern_b02.m2 - 801862]|r"
+		.. " (GUID: |cff00CCFF|Hgameobject_GUID:96102|h96102|h|r)"
+		.. GLINK_OBJECT:format(801862, 801862),
 }
 
--- The sample lines with this addon's buttons where a placement puts them, by the same
--- rule the chat filter follows.
+-- The sample lines as the chat filter would show them under a placement.
 local function examples(placement)
 	local shown = {}
-	for index, sample in ipairs(SAMPLES) do
-		shown[index] = sample.line
+	for index, line in ipairs(SAMPLES) do
+		shown[index] = line
 		if placement ~= "none" then
-			local _, place = ns.Lines.Locate(sample.line)
-			shown[index] = ns.Chat.Place(sample.line, placement, place, function(lead)
-				local buttons = {}
-				for at, word in ipairs(sample.buttons) do
-					buttons[at] = ns.Chat.COLOUR .. "[" .. word .. "]|r"
-				end
-				return ns.Chat.Join(buttons, lead)
-			end)
+			shown[index] = ns.Chat.Shown(line, placement) or line
 		end
 	end
 	return shown
@@ -126,6 +103,9 @@ local RESET, RESET_SURE = "Reset to defaults", "Click again to reset"
 
 --- How the kinds' switches lay out: two columns, this far apart, rows this far apart.
 local COLUMNS, COLUMN_WIDTH, ROW_HEIGHT = 2, 300, 28
+
+--- How wide the page's controls stand: as wide as the switches' columns.
+local WIDTH = COLUMNS * COLUMN_WIDTH
 
 --- How a choice lays out: its label and each option a row this tall, then its examples
 -- a row this tall each, under a gap.
@@ -214,8 +194,9 @@ local BUILD = {
 		local label = box:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
 		label:SetPoint("TOPLEFT", 4, 0)
 		label:SetText(control.label)
-		local radios = {}
+		local radios, known = {}, {}
 		for index, option in ipairs(control.options) do
+			known[option.value] = true
 			local radio = _G.CreateFrame("CheckButton", nil, box, "UIRadioButtonTemplate")
 			radio:SetPoint("TOPLEFT", 16, -CHOICE_ROW * index)
 			radio.text:SetFontObject("GameFontHighlight")
@@ -233,31 +214,26 @@ local BUILD = {
 		end
 		local lines, height = {}, CHOICE_ROW * (#radios + 1)
 		if control.examples then
-			local width = COLUMNS * COLUMN_WIDTH - 16
 			for index = 1, #control.examples(Settings.DEFAULTS[control.key]) do
 				local line = box:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
 				line:SetPoint("TOPLEFT", 16, -(height + EXAMPLE_GAP + EXAMPLE_ROW * (index - 1)))
-				line:SetWidth(width)
+				line:SetWidth(WIDTH - 16)
 				line:SetJustifyH("LEFT")
 				line:SetWordWrap(false)
 				lines[index] = line
 			end
 			height = height + EXAMPLE_GAP + EXAMPLE_ROW * #lines
 		end
-		box:SetSize(COLUMNS * COLUMN_WIDTH, height)
+		box:SetSize(WIDTH, height)
 		return box,
 			function(_, value)
-				local known = false
-				for _, option in ipairs(control.options) do
-					known = known or option.value == value
-				end
-				if not known then
+				if not known[value] then
 					value = Settings.DEFAULTS[control.key]
 				end
 				for index, option in ipairs(control.options) do
 					radios[index]:SetChecked(option.value == value)
 				end
-				if #lines > 0 then
+				if control.examples then
 					local system = _G.ChatTypeInfo.SYSTEM
 					for index, text in ipairs(control.examples(value)) do
 						lines[index]:SetTextColor(system.r, system.g, system.b)
@@ -305,7 +281,7 @@ local function build()
 	scroll:SetPoint("BOTTOMRIGHT", -26, 4)
 	scroll.scrollBarHideable = true
 	local page = _G.CreateFrame("Frame", nil, scroll)
-	page:SetSize(COLUMNS * COLUMN_WIDTH + 32, 1)
+	page:SetSize(WIDTH + 32, 1)
 	scroll:SetScrollChild(page)
 
 	local title = page:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
@@ -314,6 +290,12 @@ local function build()
 
 	-- Each control and switch is put as the settings stand, whenever one is used.
 	local show
+
+	-- Clear every choice, and put every control as the defaults stand.
+	local function resetAll()
+		Settings.Reset()
+		show()
+	end
 
 	-- A reset on the page itself, beside the title so it is seen without scrolling. It
 	-- clears nothing until it is clicked a second time, and forgets the first click once
@@ -332,8 +314,7 @@ local function build()
 				return
 			end
 			reset:SetText(RESET)
-			Settings.Reset()
-			show()
+			resetAll()
 		end)
 	)
 	reset:HookScript(
@@ -415,10 +396,7 @@ local function build()
 	end
 
 	panel.refresh = ns.Safely.Wrap(show)
-	panel.default = ns.Safely.Wrap(function()
-		Settings.Reset()
-		show()
-	end)
+	panel.default = ns.Safely.Wrap(resetAll)
 	return panel
 end
 

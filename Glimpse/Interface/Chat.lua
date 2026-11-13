@@ -37,25 +37,14 @@ function Chat.Drawer(read)
 	return Kinds.Drawer(read)
 end
 
---- Buttons as text to put beside what they belong to.
--- @param buttons each button's text, in order
--- @param lead true where they come before what they belong to, each then followed
--- by a dash; otherwise each follows a dash
--- @return the buttons joined
-function Chat.Join(buttons, lead)
-	local joined = {}
-	for index, button in ipairs(buttons) do
-		if lead then
-			joined[index] = button .. SEPARATOR
-		else
-			joined[index] = SEPARATOR .. button
-		end
-	end
-	return table.concat(joined)
+-- Whether a kind, by the drawer `Chat.Drawer` names, is drawn rather than heard or named.
+local function draws(read, drawer)
+	return drawer == "provider" or (drawer == "own" and Kinds.Draws(read))
 end
 
--- The buttons a read gains, joined as `Chat.Join` joins them, or nil.
-local function buttonsOf(read, lead)
+-- The buttons a read gains, each as its text, or nil where it gains none.
+local function buttonsOf(read)
+	read = Kinds.Settle(read)
 	local words = Chat.Drawer(read) and Kinds.Buttons(read)
 	if not words then
 		return nil
@@ -64,51 +53,56 @@ local function buttonsOf(read, lead)
 	for index, word in ipairs(words) do
 		buttons[index] = Chat.COLOUR .. "|H" .. Links.Write(read, index) .. "|h[" .. word .. "]|h|r"
 	end
-	return Chat.Join(buttons, lead)
+	return buttons
 end
+
+--- The place of a row that names its thing nowhere: its buttons go at its end.
+local NOWHERE = {}
 
 -- Whether a place on a row is somewhere on it.
 local function on(text, at)
 	return at ~= nil and at <= #text
 end
 
---- Put buttons on a row where the player has chosen them to go.
--- @param text the row
--- @param placement "beforeId", "beforeLink" or "afterLink", or anything else for the
--- row's end. Before the id is before the link where the row prints no id before it,
--- after a link the row leaves open is after its name, the link closed there first, and
--- a place the row lacks puts them at its end
--- @param place where the row names its thing, as `Lines.Locate` gives it, or nil
--- @param buttons a function of whether they lead (see `Chat.Join`) answering the
--- buttons as text, or nil where there are none
--- @return the row with its buttons, or nil where there are none
-function Chat.Place(text, placement, place, buttons)
-	place = place or {}
+-- A row with its buttons where the player has chosen them to go, as `Chat.Shown` says.
+-- Buttons before a thing are each followed by a dash, and buttons after it each follow
+-- one; a link the server leaves open is closed after its name before buttons go there.
+local function put(text, placement, place, buttons)
 	local at, lead, close = #text + 1, false, false
 	if placement == "beforeId" and on(text, place.id) then
 		at, lead = place.id, true
 	elseif (placement == "beforeId" or placement == "beforeLink") and on(text, place.from) then
 		at, lead = place.from, true
 	elseif placement == "afterLink" and on(text, place.to) then
-		at, close = place.to, place.open == true
+		at, close = place.to, place.open
 	end
-	local put = buttons(lead)
-	if not put then
-		return nil
+	local joined = {}
+	for index, button in ipairs(buttons) do
+		if lead then
+			joined[index] = button .. SEPARATOR
+		else
+			joined[index] = SEPARATOR .. button
+		end
 	end
 	if close then
-		put = "|h" .. put
+		joined[1] = "|h" .. joined[1]
 	end
-	return text:sub(1, at - 1) .. put .. text:sub(at)
+	return text:sub(1, at - 1) .. table.concat(joined) .. text:sub(at)
 end
 
--- The line with its buttons where the player has chosen. A line the server breaks
--- into rows names what it is on the first, so the line's own buttons go on that
--- row, and a later row that names a thing of its own, as a detail doodad lists a
--- model on each, gains that thing's.
-local function shownOf(message, placement)
+--- A line as the filter shows it. Its buttons go before the id the row prints before
+-- its link, before the link, or after it, as `placement` says, and at the row's end
+-- otherwise or where the row has no such place; before the id is before the link where
+-- the row prints none. A line the server breaks into rows names what it is on the first,
+-- so the line's own buttons go on that row, and a later row that names a thing of its
+-- own, as a detail doodad lists a model on each, gains that thing's.
+-- @param message the line as the server sent it
+-- @param placement "beforeId", "beforeLink", "afterLink" or "end"
+-- @return the line with its buttons, or nil where it gains none
+function Chat.Shown(message, placement)
 	local read, place = Lines.Locate(message)
-	if not read then
+	local own = read and buttonsOf(read)
+	if not own then
 		return nil
 	end
 	local reads, places = Lines.Rows(message, read)
@@ -116,15 +110,12 @@ local function shownOf(message, placement)
 	reads[1], places[1] = read, place
 	local shown = {}
 	for index, row in ipairs(Lines.Split(message)) do
-		local each = reads[index]
-		local text = each
-			and Chat.Place(row.text, placement, places[index], function(lead)
-				return buttonsOf(Kinds.Settle(each), lead)
-			end)
-		if index == 1 and not text then
-			return nil
+		local buttons = index == 1 and own or (reads[index] and buttonsOf(reads[index]))
+		local text = row.text
+		if buttons then
+			text = put(text, placement, places[index] or NOWHERE, buttons)
 		end
-		shown[index] = (text or row.text) .. row.ending
+		shown[index] = text .. row.ending
 	end
 	return table.concat(shown)
 end
@@ -144,7 +135,7 @@ local filter = Safely.Wrap(function(_, _, message, ...)
 	local off = ns.Settings.Get("off")
 	if message ~= lastMessage or off ~= lastOff or placement ~= lastPlacement then
 		lastMessage, lastOff, lastPlacement = message, off, placement
-		lastShown = shownOf(message, placement)
+		lastShown = Chat.Shown(message, placement)
 	end
 	if not lastShown then
 		return false
@@ -168,7 +159,7 @@ function Chat.Open(read, index, button)
 	if drawer == "own" and Kinds.Open(read) then
 		return true
 	end
-	if drawer == "provider" or Kinds.Draws(read) then
+	if draws(read, drawer) then
 		ns.Window.Toggle(read, drawer == "provider")
 		return true
 	end
@@ -198,55 +189,28 @@ local function say(chat, lines)
 	said = true
 end
 
-local pointed -- the server's own link under the pointer, its name and its read, while links preview
+local pointed -- the link under the pointer and its read, while it is the server's own and previewed
 
--- Whether a link the client hands over is the one naming the line's thing: the same
--- link, showing that name. Another addon's button may carry the very same link, as
--- GLink's `[Spawn]` does after a creature's name, and only its label tells it apart.
--- The client hands a link's text over in its codes, colour included, so the label is
--- read from between them; a label a server leaves open runs on past the name, so the
--- name need only begin it.
-local function naming(link, text, place, wanted)
-	if link ~= wanted or type(text) ~= "string" or not place.label then
-		return false
+-- The pointer came to rest on a link of the server's own, where the player wants that
+-- previewed: the link a line names its thing by, read off the whole line the chat frame
+-- drew it on as the line's buttons are, and never a GUID, a display or another addon's
+-- button, which may carry the very same link, as GLink's `[Spawn]` after a creature's
+-- name does, and only its label tells apart. Glimpse only adds to what the link does: a
+-- tooltip shown for it is the client's or another addon's, and the hover frame stands
+-- beside it.
+local function enteredLink(link, text, region)
+	if not (ns.Settings.Get("linkHover") and Lines.Knows(link)) then
+		return
 	end
-	local label = text:match("|h(.-)|h") or text
-	return label:sub(1, #place.label) == place.label
-end
-
--- What a server's own link stands for, read off the whole line the chat frame drew it
--- on, as the line's buttons are: nil unless it is the link the line names its thing by
--- (not a GUID, a display or another addon's button) and the thing is one to look at.
-local function linkRead(link, text, region)
 	local line = region and region.GetText and region:GetText()
-	if type(line) ~= "string" then
-		return nil
-	end
-	local read, place = Lines.Locate(line)
-	if not (read and place and place.from) then
-		return nil
-	end
-	if not naming(link, text, place, line:match("|H([^|]*)|h", place.from)) then
-		return nil
+	local read, place = Lines.Locate(type(line) == "string" and line or "")
+	if not (read and place and place.link == link and Lines.Label(text) == place.label) then
+		return
 	end
 	read = Kinds.Settle(read)
 	local drawer = Chat.Drawer(read)
-	if drawer == "provider" or (drawer and Kinds.Draws(read)) then
-		return read, drawer, place
-	end
-	return nil
-end
-
--- The pointer came to rest on the server's own link, where the player wants that
--- previewed. Glimpse only adds to what the link does: its tooltip, if any, is the
--- client's or another addon's, and the hover frame stands beside it.
-local function enteredLink(link, text, region)
-	if not ns.Settings.Get("linkHover") then
-		return
-	end
-	local read, drawer, place = linkRead(link, text, region)
-	if read then
-		pointed = { link = link, place = place, read = read }
+	if draws(read, drawer) then
+		pointed = { link = link, read = read }
 		ns.Peek.Show(read, drawer == "provider", false, true)
 	end
 end
@@ -262,7 +226,7 @@ local function entered(chat, link, text, region)
 	if not drawer then
 		return
 	end
-	if drawer == "provider" or Kinds.Draws(read) then
+	if draws(read, drawer) then
 		if ns.Settings.Get("hover") then
 			ns.Peek.Show(read, drawer == "provider")
 		end
@@ -312,23 +276,22 @@ function Chat.Install()
 	hookFrames()
 	-- A whisper or a pet-battle log opens a chat frame of its own, later.
 	_G.hooksecurefunc("FCF_OpenTemporaryWindow", Safely.Wrap(hookFrames))
-	-- A click on this addon's button, or an Alt-click on the server's own link where the
-	-- player wants links previewed: on these links nothing else answers Alt, neither
-	-- the client nor the addons that act on them.
+	-- A click on this addon's button, or an Alt-click on the server's own link while it is
+	-- previewed: on these links nothing else answers Alt, neither the client nor the
+	-- addons that act on them.
 	_G.hooksecurefunc(
 		"SetItemRef",
-		Safely.Wrap(function(link, text, button)
+		Safely.Wrap(function(link, _, button)
 			local read, index = Links.Read(link)
 			if read then
 				Chat.Open(read, index, button)
 			elseif
 				pointed
-				and naming(link, text, pointed.place, pointed.link)
+				and pointed.link == link
 				and button ~= "RightButton"
 				and _G.IsAltKeyDown()
-				and ns.Settings.Get("linkHover")
 			then
-				Chat.Open(pointed.read, 1, button)
+				Chat.Open(pointed.read, 1)
 			end
 		end)
 	)
