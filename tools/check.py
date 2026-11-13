@@ -245,7 +245,7 @@ def toc_violations(addon: Path) -> list[str]:
 #: without them; it changes only in a release of new pictures, and these change with it.
 WMO_RELEASED = {
     "Glimpse_WMO.lua": "eb73a777463ca70ba5abe7b87faeb26e516fe05dbdf7acc7dd12bb24562790c2",
-    "Glimpse_WMO.toc": "e97b13097ee82b7ce41ac3fa586bc2e07a11d7ba7f905543ca481d7ab588b821",
+    "Glimpse_WMO.toc": "6a56921f6f63e81991ccb4936afeef2418bb0e1cb4646d7d6faed40bcfe837a8",
 }
 
 

@@ -5,7 +5,7 @@
 # Glimpse's own version: the pictures ship in each Glimpse release as two archives of their own, stamped at release.
 ## Author: Nataari
 ## X-License: AGPL-3.0-or-later
-## Dependencies: Glimpse
+## OptionalDeps: Glimpse
 
 Index.lua
 Glimpse_WMO.lua
