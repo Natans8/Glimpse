@@ -328,3 +328,20 @@ def test_a_kind_another_addon_previews_is_lent_into_the_view(viewing: LuaRuntime
     assert evaluate(viewing, 'V:Show({ kind = "scene", name = "Restaurant" }, 1, TELL)') is True
     assert evaluate(viewing, "FILLED") == ["hover Restaurant"], "lent as the hover frame lends it"
     assert evaluate(viewing, "TOLD") == [1]
+
+
+def test_a_frame_has_one_view_however_often_it_is_asked_for(viewing: LuaRuntime) -> None:
+    viewing.execute(b"""
+        STAGES = 0
+        local new = NS.Stage.New
+        NS.Stage.New = function(parent) STAGES = STAGES + 1 return new(parent) end
+    """)
+    assert evaluate(viewing, "Glimpse.View(FRAME) == Glimpse.View(FRAME)") is True
+    assert evaluate(viewing, "STAGES") == 1, "asking again builds no second stage in the frame"
+
+
+def test_an_id_that_is_no_whole_number_names_nothing(door: LuaRuntime) -> None:
+    for given in ("1.5", "-3", "0/0", '"12"'):
+        read = f'{{ kind = "models", id = {given}, models = SET.models }}'
+        door.execute(f"PEEKED = {{}}; Glimpse.Peek({read})".encode())
+        assert evaluate(door, "PEEKED[1].read.id") == 0, given

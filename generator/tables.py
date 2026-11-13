@@ -361,32 +361,6 @@ def wielding_animations(con: duckdb.DuckDBPyConnection) -> list[int]:
     return [int(animation) for (animation,) in rows]
 
 
-def character_displays(con: duckdb.DuckDBPyConnection) -> list[tuple[int]]:
-    """Every creature display of a character's body, ascending.
-
-    A display dressed as a character names its looks through
-    `ExtendedDisplayInfoID`, and its model is a playable race's body or one built
-    the same way; every display of such a body is taken, dressed or not. A
-    scene's actor leaves pieces out of some of these, a model frame of none.
-    """
-    rows = con.execute(
-        f"""
-        WITH bodies AS (
-            SELECT DISTINCT m."FileDataID" AS file
-            FROM {SCHEMA}."CreatureDisplayInfo" d
-            JOIN {SCHEMA}."CreatureModelData" m ON m."ID" = d."ModelID"
-            WHERE d."ExtendedDisplayInfoID" > 0
-        )
-        SELECT d."ID"
-        FROM {SCHEMA}."CreatureDisplayInfo" d
-        JOIN {SCHEMA}."CreatureModelData" m ON m."ID" = d."ModelID"
-        WHERE m."FileDataID" IN (SELECT file FROM bodies)
-        ORDER BY 1
-        """
-    ).fetchall()
-    return [(int(display),) for (display,) in rows]
-
-
 def grounded_animations(con: duckdb.DuckDBPyConnection) -> dict[int, int]:
     """Each flying animation to the one a body on the ground plays for it.
 

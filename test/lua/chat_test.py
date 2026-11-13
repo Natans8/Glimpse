@@ -90,6 +90,7 @@ def call(runtime: LuaRuntime, name: str, text: str) -> object:
 
 
 def test_the_filter_appends_one_button_after_the_line(chat: LuaRuntime) -> None:
+    choose(chat, "buttons", "end")
     line = LINES["lookup creature wolf"][0]
     result = evaluate(chat, f"{{ FILTER({json.dumps(line)}) }}")
     assert isinstance(result, list)
@@ -186,7 +187,15 @@ def test_after_the_link_the_buttons_come_before_glinks(chat: LuaRuntime) -> None
     assert shown[buttons.end() :] == SPAWN
 
 
-def test_the_buttons_go_at_the_end_by_default_after_glinks(chat: LuaRuntime) -> None:
+def test_the_buttons_go_before_the_link_by_default(chat: LuaRuntime) -> None:
+    line = LINES["lookup creature wolf"][0]
+    default = filtered(chat, line)
+    choose(chat, "buttons", "beforeLink")
+    assert default == filtered(chat, line), "so the buttons of a list stand in one column"
+
+
+def test_at_the_end_the_buttons_come_after_glinks(chat: LuaRuntime) -> None:
+    choose(chat, "buttons", "end")
     line = LINES["lookup creature wolf"][0].rstrip() + SPAWN
     shown = filtered(chat, line)
     assert shown.startswith(line) and re.fullmatch(TRAILING, shown[len(line) :])
@@ -240,6 +249,7 @@ def test_a_choice_that_is_none_of_them_puts_the_buttons_at_the_end(chat: LuaRunt
 
 def test_moving_the_buttons_moves_them_on_a_line_already_shown(chat: LuaRuntime) -> None:
     line = LINES["lookup creature wolf"][0]
+    choose(chat, "buttons", "end")
     at_end = filtered(chat, line)
     choose(chat, "buttons", "beforeLink")
     before = filtered(chat, line)
@@ -317,7 +327,9 @@ def test_no_placement_changes_breaks_or_splits_any_line_the_game_printed(
 
 
 def rows_shown(chat: LuaRuntime, line: str) -> list[tuple[str, list[str]]]:
-    """Each row of a line in rows as shown: the row's own text and the links after it."""
+    """Each row of a line in rows as shown, its buttons at its end: the row's own text and
+    the links after it."""
+    choose(chat, "buttons", "end")
     shown = filtered(chat, line)
     rows = []
     for given, row in zip(line.split("\r"), shown.split("\r"), strict=True):
@@ -773,7 +785,6 @@ def test_a_look_takes_the_presentation_of_how_it_is_drawn(chat: LuaRuntime) -> N
     assert of("creature")["drawer"] == "model", "only a model frame draws from an entry"
     assert of("creature")["pitch"] == of("display")["pitch"], "a creature is a figure otherwise"
     assert of("display")["drawer"] == "model", "a display is drawn as its creature is"
-    assert of("character")["drawer"] == "model", "a character is drawn whole by a model frame"
     assert "inherits" not in of("enchant")
 
 

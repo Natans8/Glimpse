@@ -7,7 +7,7 @@ local _, ns = ...
 -- (see Presentations).
 --
 --   looks   { { draw, value, ... }, ... }         one thing to draw each; `draw` is "file",
---                                                 "creature", "display", "character", "tryon",
+--                                                 "creature", "display", "tryon",
 --                                                 "enchant" or "animation". A look may carry a
 --                                                 `name` of its own, and a `count` of how many
 --                                                 of it its subject holds.
@@ -66,21 +66,6 @@ function Subject.Look(subject, draw, value)
 	local look = { draw = draw, value = value }
 	subject.looks[#subject.looks + 1] = look
 	return look
-end
-
---- Add a creature display to a subject. A display of one of the character bodies
--- the data names is a "character", which only a model frame draws whole; any
--- other is a "display".
--- @param subject the subject
--- @param display the display id
--- @param data the data addon, or nil where it is not loaded
--- @return the look
-function Subject.Display(subject, display, data)
-	local draw = "display"
-	if data and ns.Packed.First(data.characters, display) then
-		draw = "character"
-	end
-	return Subject.Look(subject, draw, display)
 end
 
 local function filled(list)

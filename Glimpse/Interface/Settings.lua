@@ -12,7 +12,9 @@ ns.Settings = Settings
 --- Every setting and its default.
 --   buttons         where a line's buttons go: "beforeId", the id it prints before its
 --                   link, "beforeLink" or "afterLink" naming its thing, its "end", or
---                   "none" for nowhere; where the line lacks the place, at its end
+--                   "none" for nowhere; where the line lacks the place, at its end.
+--                   Before the link by default, where the buttons of a list of results
+--                   stand in one column whatever else each line carries
 --   hover           whether resting on a button shows a preview
 --   linkHover       whether resting on the server's own link shows a preview beside any
 --                   tooltip up for it, and an Alt-click on the link opens the window
@@ -24,7 +26,7 @@ ns.Settings = Settings
 --                   empty until the player has moved or sized it
 --   off             the kinds the player has turned off, as a set: their lines gain no button
 Settings.DEFAULTS = {
-	buttons = "end",
+	buttons = "beforeLink",
 	hover = true,
 	linkHover = false,
 	hoverSize = 300,

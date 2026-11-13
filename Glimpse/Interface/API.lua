@@ -11,8 +11,10 @@ local _, ns = ...
 --                                     window, or close the window showing it; true where
 --                                     anything was done
 --   Glimpse.View(frame)               a view filling a frame of the caller's own, which
---                                     draws a thing with nothing of this addon's around it;
---                                     nil where `frame` is no frame. Its methods:
+--                                     draws a thing with nothing of this addon's around it
+--                                     and takes no input; nil where `frame` is no frame. A
+--                                     frame has one view, answered again each time it is
+--                                     asked for. Its methods:
 --     view:Show(read, index, done)    draw a thing as the hover frame would, still; `index`
 --                                     picks one of its looks (a creature's displays, a set's
 --                                     models), the first where it has fewer; `done`, where
@@ -89,7 +91,7 @@ local function readOf(given)
 		ids = listOf(given.ids, "number", whole),
 		models = modelsOf(given.models),
 	}
-	if type(given.id) == "number" then
+	if whole(given.id) then
 		read.id = given.id
 	end
 	if type(given.name) == "string" then
@@ -118,8 +120,11 @@ local function open(given)
 	return read ~= nil and ns.Chat.Open(read, 1)
 end
 
--- A view of the caller's, its methods called with a colon: the first argument is the
--- handle itself, which they do not read.
+-- The view each frame was given, kept for as long as the frame is.
+local views = setmetatable({}, { __mode = "k" })
+
+-- A frame's view, made the first time it is asked for. Its methods are called with a
+-- colon: the first argument is the handle itself, which they do not read.
 local function view(frame)
 	local isFrame = type(frame) == "table"
 		and type(frame.IsObjectType) == "function"
@@ -127,8 +132,11 @@ local function view(frame)
 	if not isFrame then
 		return nil
 	end
+	if views[frame] then
+		return views[frame]
+	end
 	local drawn = ns.View.New(frame)
-	return {
+	local handle = {
 		Show = Safely.Wrap(function(_, given, index, done)
 			if type(done) ~= "function" then
 				done = nil
@@ -153,6 +161,8 @@ local function view(frame)
 			drawn:Clear()
 		end),
 	}
+	views[frame] = handle
+	return handle
 end
 
 _G.Glimpse = {

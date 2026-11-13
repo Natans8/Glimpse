@@ -18,7 +18,7 @@ local Options = {}
 ns.Options = Options
 
 --- The dash between the buttons on these lines, GLink's and this addon's alike.
-local DASH = "|cffADFFFF -|r "
+local DASH = ns.Chat.SEPARATOR
 
 --- What GLink adds after a line that names a creature, and one that names an object.
 local GLINK_CREATURE = DASH .. "|cff00CCFF[Spawn]|r"

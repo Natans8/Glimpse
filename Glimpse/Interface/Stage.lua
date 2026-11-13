@@ -7,8 +7,9 @@ local _, ns = ...
 -- file with a camera fitted to the model's bounds. The model drawer draws what
 -- a model frame draws best: a creature from its entry and a creature display,
 -- dressed and customised, both framed by the client's own camera so they stand
--- alike, a character's display, which a scene leaves pieces out of, and the
--- player's body wearing something or performing an animation.
+-- alike, and the player's body wearing something or performing an animation. A
+-- scene's actor leaves pieces out of some playable races' bodies; a model frame
+-- draws every display whole.
 --
 -- This is the only file that hands anything to the client's model loader. A
 -- file reaches it only from a display id, the client's object search, or a
@@ -45,7 +46,8 @@ local NEAREST, FARTHEST, ZOOM_STEP = 0.5, 2, 0.9
 -- straight down and straight up, where the view would turn over.
 local STEEPEST = math.rad(85)
 
---- A stage filling a frame.
+--- A stage filling a frame. It takes no input: the mouse passes through it to whatever
+-- shows it, which turns, tilts and zooms it by its methods.
 -- @param parent the frame to fill
 -- @return the stage
 function Stage.New(parent)
@@ -53,6 +55,9 @@ function Stage.New(parent)
 
 	self.scene = _G.CreateFrame("ModelScene", nil, parent, "ModelSceneMixinTemplate")
 	self.scene:SetAllPoints()
+	-- The template takes the mouse to drive its camera.
+	self.scene:EnableMouse(false)
+	self.scene:EnableMouseWheel(false)
 	self.scene:SetCameraNearClip(0.01)
 	self.scene:SetCameraFarClip(2 ^ 64)
 	self.scene:CreateCameraFromScene(SCENE_CAMERA)
@@ -71,6 +76,7 @@ function Stage.New(parent)
 
 	self.model = _G.CreateFrame("DressUpModel", nil, parent)
 	self.model:SetAllPoints()
+	self.model:EnableMouse(false)
 	self.model:SetLight(unpack(LIGHT))
 
 	self.model:SetScript(
@@ -325,14 +331,6 @@ local function body(model)
 	model:Undress()
 end
 
--- A creature display, as a model frame draws it: dressed, with its customisations,
--- and framed by the client's own camera, as a creature from its entry is.
-local function figure(self, display)
-	untilHeld(self, function(model)
-		model:SetDisplayInfo(display)
-	end)
-end
-
 --- How each way of drawing a look draws it, on the drawer its presentation names.
 local DRAW = {
 	file = function(self, file)
@@ -349,8 +347,13 @@ local DRAW = {
 			model:SetCreature(entry)
 		end)
 	end,
-	character = figure,
-	display = figure,
+	-- Dressed, with its customisations, and framed by the client's own camera, as a
+	-- creature from its entry is.
+	display = function(self, display)
+		untilHeld(self, function(model)
+			model:SetDisplayInfo(display)
+		end)
+	end,
 	tryon = function(self, item)
 		body(self.model)
 		self.model:SetSheathed(false)

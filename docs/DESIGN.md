@@ -98,15 +98,15 @@ A layer knows only the layers above it in this list.
 - **Async** lets the latest question in a slot win, drops a late answer, and keeps resolved subjects.
 - **Packed** reads the large tables: fixed-width decimal records in sorted strings, searched by halving.
 - **Subject** is what a preview shows: `{kind, id, name, looks, sounds}`. A look is one thing to draw.
-  A creature display is a "character" where it is one of a playable race's bodies, and a "display"
-  otherwise; a piece of equipment's look carries the slot it is worn in.
+  A piece of equipment's look carries the slot it is worn in.
 - **Presentations** says how each kind of look is presented: which drawer draws it, from what angle, whether
   drawing it again may show another, whether it has sounds. A worn thing is turned by its slot to the hand,
   arm or back that carries it. The window decides its controls from these rows, never from a look's name.
 - **Stage** draws one look. It has two drawers: a scene, with a camera fitted to the model's bounds, for an
-  object's model file and a creature display (mounts and pets included); and a model frame for a creature from
-  its entry, a character's display, and the player's body wearing something or performing an animation. It
-  is the only file that loads a model. Asked for a creature it has not seen, the client redraws the frame's
+  object's model file; and a model frame for a creature from its entry, a creature display (mounts and pets
+  included), dressed and customised and framed as its creature is, and the player's body wearing something or
+  performing an animation. It takes no input itself: the window turns, tilts and zooms it, and the mouse passes
+  through it elsewhere. It is the only file that loads a model. Asked for a creature it has not seen, the client redraws the frame's
   earlier display, so the stage keeps the frame unseen and asks again until the display changes. An emote is
   set once the body has loaded. Equipment is always worn, never drawn bare: a model frame keeps one
   camera distance whatever the item and reports no size.
@@ -218,7 +218,9 @@ view:Looks()
 view:Clear()
 ```
 
-`View` answers a view filling the frame, or nil where it is given no frame. `Show` takes the same read `Peek`
+`View` answers a view filling the frame, or nil where it is given no frame. A frame has one view: asking again
+answers the same one, so `Glimpse.View(frame):Show(read)` may be called as often as there is something to show.
+The view takes no input, so a click on it reaches the frame it fills. `Show` takes the same read `Peek`
 does and draws the thing as the hover frame draws it, still, on the same stage, so a view hands the client's
 model loader only what Glimpse's own frames hand it. Of several looks, a creature's displays or a set's models,
 the second argument picks one, and the first is drawn where there are fewer. The last, where given, is told how
@@ -271,8 +273,9 @@ What each release added to the shipped data, so a reader can tell a table's age 
 One page that scrolls, since it holds more than the client's settings leave room for. A Reset to defaults button stands beside the title and
 clears nothing until clicked twice. Where a line's buttons
 go, a choice of five equals with example lines under them, five commands' lines as a player with GLink sees them,
-drawn by the same rule the filter follows: before the ID the line prints before its link, just before or just after that link, at the end
-of the line, the default, or nowhere, for a player who has Glimpse only for another addon that needs it. Never at
+laid out as the filter lays a line out: before the ID the line prints before its link, just before that link, the
+default, since the buttons of a list of results then stand in one column, just after it, at the end of the line,
+or nowhere, for a player who has Glimpse only for another addon that needs it. Never at
 the very start, which belongs to whatever another addon puts in front of a line. Before the ID is before the link
 where no ID comes before it, a line with no such link has them at its end, and a link the server leaves open, as a
 spawned object's reply does, is closed after its name before they go after it;

@@ -36,7 +36,6 @@ CLIENT = b"""
     -- The invisible stalker's display, and Event Generator 001, which only ever spawns as it.
     STALKERS = { widths = { 6 }, offsets = { 0 }, records = "011686" }
     UNSEEN = { widths = { 6 }, offsets = { 0 }, records = "002334" }
-    CHARACTERS = { widths = { 7 }, offsets = { 0 }, records = "0099391" }
     -- Ship (The Bravery), whose display is a WMO.
     WMO_OBJECTS = { widths = { 6 }, offsets = { 0 }, records = "176310" }
     -- The data addon: the models the client's displays name and the stock objects.
@@ -45,7 +44,6 @@ CLIENT = b"""
             .. "6td_treestump_b01=920823;7nb_nightborn_floorpillow03=999901;zm_last_one=7;",
         objects = STOCK,
         creatures = CREATURES,
-        characters = CHARACTERS,
         wmoObjects = WMO_OBJECTS,
         stalkers = STALKERS,
         unseenCreatures = UNSEEN,
@@ -300,10 +298,9 @@ def test_a_spawned_creature_is_drawn_in_the_display_it_stands_in(game: LuaRuntim
 
 def test_a_creature_with_several_displays_has_them_all(game: LuaRuntime) -> None:
     looks = evaluate(game, 'RESOLVE("creature", { id = 68, name = "Guard" }).looks')
-    assert looks == [
-        *({"draw": "display", "value": value} for value in (3167, 5446, 99389)),
-        {"draw": "character", "value": 99391},
-    ], "a character's display is told apart, for a model frame to draw"
+    assert looks == [{"draw": "display", "value": value} for value in (3167, 5446, 99389, 99391)], (
+        "each a display, drawn as the creature is"
+    )
 
 
 def test_a_creature_standing_in_the_invisible_stalker_gains_no_button(game: LuaRuntime) -> None:

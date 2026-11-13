@@ -163,14 +163,6 @@ def test_the_data_fits_its_memory_budget(built: tuple[dict[str, object], float])
     assert built[1] < MEMORY_BUDGET_MB
 
 
-def test_a_characters_display_is_listed_and_a_beasts_is_not(
-    built: tuple[dict[str, object], float],
-) -> None:
-    characters = {display for (display,) in rows(built[0]["characters"])}
-    assert {16199, 16200} <= characters, "a draenei's displays, male and female"
-    assert 17697 not in characters, "a golden gryphon's"
-
-
 def test_the_invisible_stalker_and_the_creatures_only_ever_it_are_listed(
     built: tuple[dict[str, object], float],
 ) -> None:

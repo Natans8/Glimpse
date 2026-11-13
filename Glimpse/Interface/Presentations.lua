@@ -25,9 +25,9 @@ local ROWS = {
 	-- A tinted thing is drawn as a prop is, its tint a kit on the scene's actor,
 	-- which Epsilon's client can take off again.
 	tinted = { drawer = "scene", yaw = 30, pitch = 20 },
-	-- A figure is drawn by a model frame, the one widget that draws every
-	-- playable race's display whole, and every display is a figure: drawn so, a
-	-- display stands as large as the creature it belongs to.
+	-- A creature display is a figure, drawn by a model frame: the one widget that
+	-- draws every playable race's body whole, and that frames a display as large as
+	-- the creature it belongs to.
 	figure = { drawer = "model", yaw = 25, pitch = 5 },
 	creature = { drawer = "model", yaw = 25, pitch = 5, varies = true },
 	wearable = { drawer = "model", yaw = 25, pitch = 5, body = true },
@@ -44,7 +44,6 @@ local BY_DRAW = {
 	file = "prop",
 	tinted = "tinted",
 	display = "figure",
-	character = "figure",
 	creature = "creature",
 	tryon = "wearable",
 	animation = "motion",
@@ -81,7 +80,7 @@ end
 Presentations.NOTHING = "Nothing to preview"
 
 --- What several looks drawn the same way are counted as.
-local COUNTED = { display = "display", character = "display", file = "model", tinted = "model" }
+local COUNTED = { display = "display", file = "model", tinted = "model" }
 
 -- A display is named by its id, which is what a morph takes.
 local function place(look, index, count)

@@ -13,7 +13,9 @@ local View = {}
 View.__index = View
 ns.View = View
 
-local made = 0 -- views made so far: each asks in a slot of its own, so one never abandons another's question
+-- How many views have been made. Each asks in a slot of its own, so one never abandons
+-- another's question.
+local made = 0
 
 --- A view filling a frame.
 -- @param frame the frame to fill
@@ -76,7 +78,9 @@ function View:Show(read, index, done)
 		return false
 	end
 	Async.Ask(self.slot, read, function(subject)
-		self.looks = subject and subject.looks or {}
+		if subject then
+			self.looks = subject.looks
+		end
 		local look = self.looks[index] or self.looks[1]
 		if look then
 			self.stage:Show(look, 0)

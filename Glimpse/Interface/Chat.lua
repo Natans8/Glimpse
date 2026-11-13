@@ -22,6 +22,7 @@ ns.Chat = Chat
 
 --- What parts a button from the text beside it: the dash the other buttons on these lines use.
 local SEPARATOR = "|cffADFFFF -|r "
+Chat.SEPARATOR = SEPARATOR
 
 --- The colour of this addon's buttons. Every other button on these lines
 -- changes something; these only show, and the colour says so.

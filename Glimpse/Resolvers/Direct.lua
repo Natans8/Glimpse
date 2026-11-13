@@ -52,11 +52,11 @@ Kinds.Add("creature", {
 		local shown, all = shownDisplays(data, read.id)
 		if read.ids then
 			if not unseen(data, read.ids[1]) then
-				Subject.Display(subject, read.ids[1], data)
+				Subject.Look(subject, "display", read.ids[1])
 			end
 		elseif #shown > 1 or #shown < all then
 			for _, display in ipairs(shown) do
-				Subject.Display(subject, display, data)
+				Subject.Look(subject, "display", display)
 			end
 		else
 			Subject.Look(subject, "creature", read.id)
@@ -73,7 +73,7 @@ Kinds.Add("display", {
 	end,
 	resolve = function(read, done)
 		local subject = Subject.New(read)
-		Subject.Display(subject, read.id, ns.Client.Data())
+		Subject.Look(subject, "display", read.id)
 		done(subject)
 	end,
 })

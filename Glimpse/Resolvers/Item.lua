@@ -28,9 +28,8 @@ Kinds.Add("item", {
 			return nil
 		end
 		return client.WhenItemLoads(read.id, function()
-			local data = client.Data()
 			for _, display in ipairs(client[TAUGHT[kind]](read.id)) do
-				Subject.Display(subject, display, data)
+				Subject.Look(subject, "display", display)
 			end
 			Subject.Answer(subject, done)
 		end, function()
