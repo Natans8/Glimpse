@@ -2,12 +2,13 @@ local _, ns = ...
 
 --- The chat side: buttons on the lines the server prints, and clicks on them.
 --
--- One filter on system messages puts a button at the end of each line that has
--- something to show, or of its first row where the server breaks it into rows,
--- and one at the end of each later row that names a thing of its own.
+-- One filter on system messages puts a button on each line that has something
+-- to show, or on its first row where the server breaks it into rows, and one on
+-- each later row that names a thing of its own: at the row's end, or at its start
+-- where the player has chosen so.
 -- The filter is added at login, after every other addon has added its own, so
--- this addon's buttons come after theirs and theirs stay where players are used
--- to finding them.
+-- theirs stay where players are used to finding them: at a row's end, this
+-- addon's buttons come after theirs.
 --
 -- The chat frames and the client's link handler belong to the client and are
 -- shared with other addons, so they are hooked here and never replaced.
@@ -16,7 +17,7 @@ local Lines, Kinds, Links, Safely, Async = ns.Lines, ns.Kinds, ns.Links, ns.Safe
 local Chat = {}
 ns.Chat = Chat
 
---- What parts a button from the text before it: the dash the other buttons on these lines use.
+--- What parts a button from the text beside it: the dash the other buttons on these lines use.
 local SEPARATOR = "|cffADFFFF -|r "
 
 --- The colour of this addon's buttons. Every other button on these lines
@@ -33,26 +34,32 @@ function Chat.Drawer(read)
 	return Kinds.Drawer(read)
 end
 
--- The buttons a read gains, as text to put after what names it, or nil.
-local function buttonsOf(read)
+-- The buttons a read gains, as text to put beside what names it, or nil: each
+-- after a dash where they end the row, each before one where they start it.
+local function buttonsOf(read, first)
 	local words = Chat.Drawer(read) and Kinds.Buttons(read)
 	if not words then
 		return nil
 	end
 	local buttons = {}
 	for index, word in ipairs(words) do
-		local link = "|H" .. Links.Write(read, index) .. "|h[" .. word .. "]|h|r"
-		buttons[index] = SEPARATOR .. Chat.COLOUR .. link
+		local button = Chat.COLOUR .. "|H" .. Links.Write(read, index) .. "|h[" .. word .. "]|h|r"
+		if first then
+			buttons[index] = button .. SEPARATOR
+		else
+			buttons[index] = SEPARATOR .. button
+		end
 	end
 	return table.concat(buttons)
 end
 
--- The line with its buttons. A line the server breaks into rows names what it is
--- on the first, so the line's own buttons end that row, and a later row that names
--- a thing of its own, as a detail doodad lists a model on each, gains that thing's.
-local function shownOf(message)
+-- The line with its buttons, at each row's start where `first` is true and at its
+-- end otherwise. A line the server breaks into rows names what it is on the first,
+-- so the line's own buttons go on that row, and a later row that names a thing of
+-- its own, as a detail doodad lists a model on each, gains that thing's.
+local function shownOf(message, first)
 	local read = Lines.Read(message)
-	local own = read and buttonsOf(Kinds.Settle(read))
+	local own = read and buttonsOf(Kinds.Settle(read), first)
 	if not own then
 		return nil
 	end
@@ -60,25 +67,31 @@ local function shownOf(message)
 	local shown = {}
 	for index, row in ipairs(Lines.Split(message)) do
 		local buttons = index == 1 and own
-			or (within[index] and buttonsOf(Kinds.Settle(within[index])))
-		shown[index] = row.text .. (buttons or "") .. row.ending
+			or (within[index] and buttonsOf(Kinds.Settle(within[index]), first))
+			or ""
+		if first then
+			shown[index] = buttons .. row.text .. row.ending
+		else
+			shown[index] = row.text .. buttons .. row.ending
+		end
 	end
 	return table.concat(shown)
 end
 
-local lastMessage, lastOff, lastShown
+local lastMessage, lastOff, lastFirst, lastShown
 
 -- The client runs a filter once for each chat frame showing the line, with
 -- the same text each time, so the last line as shown is kept, for as long as
--- the kinds turned off are the same table; turning one on or off makes another.
--- A fault leaves the line as it came.
+-- the kinds turned off are the same table and the buttons stand where they did;
+-- turning a kind on or off makes another table. A fault leaves the line as it came.
 local filter = Safely.Wrap(function(_, _, message, ...)
 	if type(message) ~= "string" then
 		return false
 	end
-	local off = ns.Settings.Get("off")
-	if message ~= lastMessage or off ~= lastOff then
-		lastMessage, lastOff, lastShown = message, off, shownOf(message)
+	local off, first = ns.Settings.Get("off"), ns.Settings.Get("buttonsFirst")
+	if message ~= lastMessage or off ~= lastOff or first ~= lastFirst then
+		lastMessage, lastOff, lastFirst = message, off, first
+		lastShown = shownOf(message, first)
 	end
 	if not lastShown then
 		return false

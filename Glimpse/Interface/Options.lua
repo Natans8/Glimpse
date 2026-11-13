@@ -19,6 +19,7 @@ ns.Options = Options
 --   switch  { key, label }
 --   range   { key, label, low, high, step }
 local CONTROLS = {
+	{ kind = "switch", key = "buttonsFirst", label = "Put the buttons at the start of a line" },
 	{ kind = "switch", key = "hover", label = "Preview on hover" },
 	{
 		kind = "range",

@@ -91,6 +91,34 @@ def test_the_filter_appends_one_button_after_the_line(chat: LuaRuntime) -> None:
     assert (author, rest) == ("author", "rest"), "the event's other arguments pass through"
 
 
+def test_the_filter_puts_the_button_before_the_line_where_the_player_chose_so(
+    chat: LuaRuntime,
+) -> None:
+    line = LINES["lookup creature wolf"][0]
+    chat.execute(b'NS.Settings.Set("buttonsFirst", true)')
+    shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
+    assert isinstance(shown, str) and shown.endswith(line), "the line itself is untouched"
+    assert shown.startswith("|cffC8A8FF|Hgarrmission:glimpse:c/184093/1/")
+    assert shown[: -len(line)].endswith("|h[Preview]|h|r|cffADFFFF -|r ")
+
+
+def test_several_buttons_before_the_line_keep_their_order(chat: LuaRuntime) -> None:
+    chat.execute(b'NS.Settings.Set("buttonsFirst", true)')
+    line = "|cff00CCFF28|r - [DAY] forestdarkenchantedday, [NIGHT] forestdarkenchantednight"
+    shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
+    assert isinstance(shown, str) and shown.endswith(line)
+    assert re.findall(r"\|h\[(\w+)\]\|h\|r\|cffADFFFF -\|r ", shown) == ["Day", "Night"]
+
+
+def test_moving_the_buttons_moves_them_on_a_line_already_shown(chat: LuaRuntime) -> None:
+    line = LINES["lookup creature wolf"][0]
+    before = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
+    chat.execute(b'NS.Settings.Set("buttonsFirst", true)')
+    after = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
+    assert isinstance(before, str) and isinstance(after, str)
+    assert before.startswith(line) and after.endswith(line)
+
+
 def rows_shown(chat: LuaRuntime, line: str) -> list[tuple[str, list[str]]]:
     """Each row of a line in rows as shown: the row's own text and the links after it."""
     shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
@@ -118,6 +146,18 @@ def test_a_line_in_rows_gains_a_button_on_each_row_that_names_a_thing(chat: LuaR
 def test_a_model_a_detail_lists_twice_gains_a_button_on_each_row(chat: LuaRuntime) -> None:
     rows = rows_shown(chat, LINES["lookup detaildoodad grass"][0])
     assert [len(links) for _, links in rows] == [1, 1, 1, 1, 1]
+
+
+def test_each_row_takes_its_button_at_its_start_where_the_player_chose_so(
+    chat: LuaRuntime,
+) -> None:
+    chat.execute(b'NS.Settings.Set("buttonsFirst", true)')
+    line = LINES["lookup detaildoodad grass"][1]
+    shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
+    assert isinstance(shown, str)
+    for given, row in zip(line.split("\r"), shown.split("\r"), strict=True):
+        assert row.endswith(given), "the row's own text is untouched"
+        assert len(re.findall(r"\[Preview\]", row[: -len(given)])) == 1
 
 
 def test_every_row_of_every_detail_names_a_model_and_gains_its_button(chat: LuaRuntime) -> None:
