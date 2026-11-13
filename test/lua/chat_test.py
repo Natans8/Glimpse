@@ -905,3 +905,15 @@ def test_the_command_is_added_to_the_clients(chat: LuaRuntime) -> None:
     chat.execute(b"SlashCmdList = {} NS.Command.Install()")
     assert evaluate(chat, "SLASH_GLIMPSE1") == "/glimpse"
     assert evaluate(chat, "type(SlashCmdList.GLIMPSE)") == "function"
+
+
+def test_a_chat_frame_is_known_by_its_hook_whatever_its_widget_type(chat: LuaRuntime) -> None:
+    chat.execute(b'ChatFrame1.GetObjectType = function() return "Frame" end')
+    assert evaluate(chat, "NS.Chat.Reads(ChatFrame1)") is True, (
+        "on 9.2.7 a chat frame reports itself as a plain frame,"
+        " and the hover still glues to its tooltip"
+    )
+    assert (
+        evaluate(chat, 'NS.Chat.Reads({ GetObjectType = function() return "Frame" end })') is False
+    )
+    assert evaluate(chat, "NS.Chat.Reads(nil)") is False

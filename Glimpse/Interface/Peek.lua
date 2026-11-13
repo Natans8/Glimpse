@@ -187,7 +187,10 @@ local function glueToTooltip(first)
 	if not (tooltip:IsVisible() and left and right and owner) then
 		return false
 	end
-	if owner:GetObjectType() ~= "ScrollingMessageFrame" then
+	-- Owned by a chat frame this addon reads. A chat frame's widget is built on a plain frame
+	-- on 9.2.7 and reports itself as one, so its type cannot tell it apart; the mark set as
+	-- its links are hooked can.
+	if not ns.Chat.Reads(owner) then
 		return false
 	end
 	local scale = tooltip:GetEffectiveScale() / _G.UIParent:GetEffectiveScale()

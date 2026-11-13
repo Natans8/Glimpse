@@ -262,6 +262,13 @@ local function left()
 	ns.Playback.Unhint()
 end
 
+--- Whether a frame is a chat frame this addon reads the links of.
+-- @param frame any frame, or nil
+-- @return true where it is
+function Chat.Reads(frame)
+	return type(frame) == "table" and frame.glimpseHooked == true
+end
+
 local function hookFrame(chat)
 	if chat and not chat.glimpseHooked then
 		chat.glimpseHooked = true
