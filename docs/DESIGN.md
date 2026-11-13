@@ -267,6 +267,7 @@ What each release added to the shipped data, so a reader can tell a table's age 
 | v0.2 | no change |
 | v0.3 | `wmoObjects`, format 15: the stock objects whose display is a WMO; the `Glimpse_WMO` pictures, 17,975 appearances, with `liquids` and `collision` in its index |
 | v0.4 | `stalkers` and `unseenCreatures`, format 16: the 843 displays drawing the invisible stalker and the 18,075 stock creatures that only ever spawn as one, in `Glimpse_Data`; the last stock creature entry, 195,823, in `Glimpse`; the `Glimpse_WMO` pictures re-rendered where water is drawn, 1,038 pictures, and the 307 watertiles given their surface pictures |
+| v0.5 | format 17: the table of playable races' body displays dropped, since every display is drawn by a model frame, and the emotes as Epsilon renumbered them on 7 November; the `Glimpse_WMO` pictures all re-rendered with each WMO's own light, 15,310 pictures |
 
 ## Settings
 
