@@ -26,12 +26,10 @@ local ROWS = {
 	-- which Epsilon's client can take off again.
 	tinted = { drawer = "scene", yaw = 30, pitch = 20 },
 	-- A figure is drawn by a model frame, the one widget that draws every
-	-- playable race's display whole.
+	-- playable race's display whole, and every display is a figure: drawn so, a
+	-- display stands as large as the creature it belongs to.
 	figure = { drawer = "model", yaw = 25, pitch = 5 },
 	creature = { drawer = "model", yaw = 25, pitch = 5, varies = true },
-	-- A display is seen as a figure is, but drawn by the scene, whose camera is
-	-- fitted to its size; a character's display is a figure.
-	display = { drawer = "scene", yaw = 25, pitch = 5 },
 	wearable = { drawer = "model", yaw = 25, pitch = 5, body = true },
 	-- Worn things are turned so the part of the body that carries them faces
 	-- the viewer: the weapon hand, the shield arm, the back.
@@ -45,7 +43,7 @@ local ROWS = {
 local BY_DRAW = {
 	file = "prop",
 	tinted = "tinted",
-	display = "display",
+	display = "figure",
 	character = "figure",
 	creature = "creature",
 	tryon = "wearable",

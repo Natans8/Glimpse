@@ -4,11 +4,11 @@ local _, ns = ...
 --
 -- A stage fills the frame it is given and draws one look at a time under the
 -- look's presentation. It has two drawers. The scene draws an object's model
--- file or a creature display with a camera fitted to the model's bounds, as
--- the client's own mount list does. The model drawer draws what a model frame
--- draws best: a creature from its entry, a character's display, which a scene
--- leaves pieces out of, and the player's body wearing something or performing
--- an animation.
+-- file with a camera fitted to the model's bounds. The model drawer draws what
+-- a model frame draws best: a creature from its entry and a creature display,
+-- dressed and customised, both framed by the client's own camera so they stand
+-- alike, a character's display, which a scene leaves pieces out of, and the
+-- player's body wearing something or performing an animation.
 --
 -- This is the only file that hands anything to the client's model loader. A
 -- file reaches it only from a display id, the client's object search, or a
@@ -325,13 +325,18 @@ local function body(model)
 	model:Undress()
 end
 
+-- A creature display, as a model frame draws it: dressed, with its customisations,
+-- and framed by the client's own camera, as a creature from its entry is.
+local function figure(self, display)
+	untilHeld(self, function(model)
+		model:SetDisplayInfo(display)
+	end)
+end
+
 --- How each way of drawing a look draws it, on the drawer its presentation names.
 local DRAW = {
 	file = function(self, file)
 		self.actor:SetModelByFileID(file)
-	end,
-	display = function(self, display)
-		self.actor:SetModelByCreatureDisplayID(display)
 	end,
 	-- The model is shown as a prop is and tinted once it has loaded and been
 	-- drawn, since a kit given to a model not yet drawn is dropped.
@@ -344,11 +349,8 @@ local DRAW = {
 			model:SetCreature(entry)
 		end)
 	end,
-	character = function(self, display)
-		untilHeld(self, function(model)
-			model:SetDisplayInfo(display)
-		end)
-	end,
+	character = figure,
+	display = figure,
 	tryon = function(self, item)
 		body(self.model)
 		self.model:SetSheathed(false)

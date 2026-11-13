@@ -772,7 +772,7 @@ def test_a_look_takes_the_presentation_of_how_it_is_drawn(chat: LuaRuntime) -> N
     }
     assert of("creature")["drawer"] == "model", "only a model frame draws from an entry"
     assert of("creature")["pitch"] == of("display")["pitch"], "a creature is a figure otherwise"
-    assert of("display")["drawer"] == "scene", "a display's camera is fitted to its size"
+    assert of("display")["drawer"] == "model", "a display is drawn as its creature is"
     assert of("character")["drawer"] == "model", "a character is drawn whole by a model frame"
     assert "inherits" not in of("enchant")
 
