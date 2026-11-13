@@ -24,6 +24,8 @@ CLIENT = b"""
     SCRIPTS, PEEKED = {}, {}
     ChatFrame1 = { HookScript = function(_, script, hook) SCRIPTS[script] = hook end }
     CHAT_FRAMES = { "ChatFrame1" }
+    -- The chat types a line can be added as, each with the index the chat frame keeps with it.
+    ChatTypeInfo = { SYSTEM = { id = 1 }, SAY = { id = 5 } }
     NS.Peek = {
         Show = function(read, lent, asked, byLink)
             LAST_PEEKED = read
@@ -557,16 +559,24 @@ def hover(chat: LuaRuntime, line: str, button: int) -> None:
     chat.execute(b"SCRIPTS.OnHyperlinkLeave(ChatFrame1)")
 
 
-def rest_on_link(chat: LuaRuntime, drawn: str, link: str, label: str | None = None) -> None:
+def rest_on_link(
+    chat: LuaRuntime, drawn: str, link: str, label: str | None = None, said_as: str = "SYSTEM"
+) -> None:
     """Rest the pointer on a link on a line as a chat frame drew it, handing over its text
-    as the client does, colour codes and all: by default the label the line shows for it."""
+    as the client does, colour codes and all: by default the label the line shows for it.
+    The line keeps the chat type it was added as, as the chat frame keeps it: by default a
+    system line, the kind the server answers a command with."""
     if label is None:
         found = re.search(rf"\|H{re.escape(link)}\|h(.*?)\|h", drawn)
         label = found.group(1) if found else "[nothing]"
     chat.globals()[b"DRAWN"] = drawn.encode()
     chat.globals()[b"POINTED"] = link.encode()
     chat.globals()[b"POINTED_TEXT"] = as_handed(link, label).encode()
-    chat.execute(b"REGION = { GetText = function() return DRAWN end }")
+    chat.execute(
+        b"REGION = { GetText = function() return DRAWN end, messageInfo = { extraData = { "
+        + f"ChatTypeInfo.{said_as}.id".encode()
+        + b" } } }"
+    )
     chat.execute(b"SCRIPTS.OnHyperlinkEnter(ChatFrame1, POINTED, POINTED_TEXT, REGION)")
 
 
@@ -631,6 +641,14 @@ def test_only_the_link_the_line_is_about_previews(chat: LuaRuntime) -> None:
     rest_on_link(chat, filtered(chat, LINES["gobject near"][0]), guid.group(0))
     rest_on_link(chat, filtered(chat, WOLF), "creature_entry:999")
     assert evaluate(chat, "PEEKED") == []
+
+
+def test_a_link_a_player_said_previews_nothing(chat: LuaRuntime) -> None:
+    choose(chat, "linkHover", True)
+    rest_on_link(chat, WOLF, "creature_entry:184093", said_as="SAY")
+    assert evaluate(chat, "PEEKED") == [], (
+        "only the server's own lines preview, as only they take buttons"
+    )
 
 
 def test_a_link_with_no_line_to_read_or_a_kind_turned_off_shows_nothing(chat: LuaRuntime) -> None:

@@ -256,7 +256,7 @@ of the line, the default, or nowhere, for a player who has Glimpse only for anot
 the very start, which belongs to whatever another addon puts in front of a line. Before the ID is before the link
 where no ID comes before it, a line with no such link has them at its end, and a link the server leaves open, as a
 spawned object's reply does, is closed after its name before they go after it;
-preview on hover; whether resting on the server's own link previews it too, off by default, in which case the
+preview on hover; whether resting on the server's own link previews it too (on a line the server sent, never a link a player posted in chat), off by default, in which case the
 preview is glued to the side of the game tooltip another addon puts up for that link, one owned by a chat frame, and
 moves with it, only the link naming the line's thing previews (not another addon's button carrying the same link), and an
 Alt-click on that link opens the window, since on these links nothing else answers Alt while a plain or right click

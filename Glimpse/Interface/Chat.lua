@@ -188,15 +188,24 @@ end
 
 local pointed -- the link under the pointer and its read, while it is the server's own and previewed
 
+-- Whether a chat frame drew a line as a system message, the kind the server answers a
+-- command with: the chat frame keeps, with each line it shows, the chat type it was added as.
+-- A link a player shift-clicked into what they said is on a line of theirs, never this kind.
+local function systemLine(region)
+	local info = region and region.messageInfo
+	local kind = info and info.extraData and info.extraData[1]
+	return kind ~= nil and kind == _G.ChatTypeInfo.SYSTEM.id
+end
+
 -- The pointer came to rest on a link of the server's own, where the player wants that
 -- previewed: the link a line names its thing by, read off the whole line the chat frame
--- drew it on as the line's buttons are, and never a GUID, a display or another addon's
--- button, which may carry the very same link, as GLink's `[Spawn]` after a creature's
--- name does, and only its label tells apart. Glimpse only adds to what the link does: a
--- tooltip shown for it is the client's or another addon's, and the hover frame stands
--- beside it.
+-- drew it on as the line's buttons are, on a system line only, as the buttons are, and never
+-- a GUID, a display or another addon's button, which may carry the very same link, as GLink's
+-- `[Spawn]` after a creature's name does, and only its label tells apart. Glimpse only adds
+-- to what the link does: a tooltip shown for it is the client's or another addon's, and the
+-- hover frame stands beside it.
 local function enteredLink(link, text, region)
-	if not (ns.Settings.Get("linkHover") and Lines.Knows(link)) then
+	if not (ns.Settings.Get("linkHover") and Lines.Knows(link) and systemLine(region)) then
 		return
 	end
 	local line = region and region.GetText and region:GetText()
