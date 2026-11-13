@@ -9,7 +9,9 @@ local _, ns = ...
 -- The filter is added at login, after every other addon has added its own, so
 -- theirs stay where players are used to finding them: whatever another addon put
 -- in front of a row stays in front, and at a row's end this addon's buttons come
--- after theirs.
+-- after theirs. Where the player asks, resting on the server's own link previews it
+-- too and an Alt-click on it opens the window; a plain or a right click on it, and any
+-- tooltip shown for it, stay the client's and other addons'.
 --
 -- The chat frames and the client's link handler belong to the client and are
 -- shared with other addons, so they are hooked here and never replaced.
@@ -192,10 +194,50 @@ local function say(chat, lines)
 	said = true
 end
 
+local pointed -- the server's own link under the pointer and its read, while links preview
+
+-- What a server's own link stands for, read off the whole line the chat frame drew it
+-- on, as the line's buttons are: nil unless it is the link the line names its thing by
+-- (not a GUID, a display or another addon's button) and the thing is one to look at.
+local function linkRead(link, region)
+	local line = region and region.GetText and region:GetText()
+	if type(line) ~= "string" then
+		return nil
+	end
+	local read, place = Lines.Locate(line)
+	if not (read and place and place.from and line:match("|H([^|]*)|h", place.from) == link) then
+		return nil
+	end
+	read = Kinds.Settle(read)
+	local drawer = Chat.Drawer(read)
+	if drawer == "provider" or (drawer and Kinds.Draws(read)) then
+		return read, drawer
+	end
+	return nil
+end
+
+-- The pointer came to rest on the server's own link, where the player wants that
+-- previewed. Glimpse only adds to what the link does: its tooltip, if any, is the
+-- client's or another addon's, and the hover frame stands beside it.
+local function enteredLink(link, region)
+	if not ns.Settings.Get("linkHover") then
+		return
+	end
+	local read, drawer = linkRead(link, region)
+	if read then
+		pointed = { link = link, read = read }
+		ns.Peek.Show(read, drawer == "provider", false, true)
+	end
+end
+
 -- The pointer came to rest on a link in a chat frame.
-local function entered(chat, link)
+local function entered(chat, link, _, region)
 	local read, index = Links.Read(link)
-	local drawer = read and Chat.Drawer(read)
+	if not read then
+		enteredLink(link, region)
+		return
+	end
+	local drawer = Chat.Drawer(read)
 	if not drawer then
 		return
 	end
@@ -219,6 +261,7 @@ end
 
 -- The pointer left a link in a chat frame.
 local function left()
+	pointed = nil
 	if said then
 		said = false
 		_G.GameTooltip:Hide()
@@ -248,12 +291,23 @@ function Chat.Install()
 	hookFrames()
 	-- A whisper or a pet-battle log opens a chat frame of its own, later.
 	_G.hooksecurefunc("FCF_OpenTemporaryWindow", Safely.Wrap(hookFrames))
+	-- A click on this addon's button, or an Alt-click on the server's own link where the
+	-- player wants links previewed: on these links nothing else answers Alt, neither
+	-- the client nor the addons that act on them.
 	_G.hooksecurefunc(
 		"SetItemRef",
 		Safely.Wrap(function(link, _, button)
 			local read, index = Links.Read(link)
 			if read then
 				Chat.Open(read, index, button)
+			elseif
+				pointed
+				and pointed.link == link
+				and button ~= "RightButton"
+				and _G.IsAltKeyDown()
+				and ns.Settings.Get("linkHover")
+			then
+				Chat.Open(pointed.read, 1, button)
 			end
 		end)
 	)

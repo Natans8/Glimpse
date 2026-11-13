@@ -71,9 +71,10 @@ local CONTROLS = {
 		needs = "hover",
 	},
 	{ kind = "switch", key = "manyWindows", label = "Open each preview in a window of its own" },
+	{ kind = "switch", key = "linkHover", label = "Also preview on hovering the link" },
 }
 
-local GAP = { switch = 8, choice = 8, range = 32 }
+local GAP = { switch = 4, choice = 8, range = 32 }
 
 --- The colour of what a kind's switch says beside its word.
 local NOTE = "|cff808080"

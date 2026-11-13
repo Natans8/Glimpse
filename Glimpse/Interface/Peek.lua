@@ -13,7 +13,9 @@ local _, ns = ...
 -- thing is, and the quietest line says that a click opens it. The cards take
 -- no input. They stand at the pointer as a tooltip does, a corner just above
 -- the button or, without the room there, just below it, and the row runs
--- whichever way the screen has more room.
+-- whichever way the screen has more room. Resting on the server's own link, where
+-- the client or another addon may put up a tooltip of its own, they stand beside
+-- every tooltip on the screen instead, and are not seen until they do.
 --
 -- A kind another addon previews gets the first card's inside, empty, and the
 -- card shows only where that addon fills it.
@@ -104,8 +106,8 @@ local function card()
 	}
 end
 
---- What the first card says a click on the button does.
-local OPEN = "Click to open"
+--- What the first card says a click does: on the button, and on the server's own link.
+local OPEN, OPEN_LINK = "Click to open", "Alt-click to open"
 
 local function build()
 	local first = card()
@@ -190,6 +192,117 @@ local function glue(index)
 	end
 end
 
+local tooltips = {} -- every tooltip frame found so far
+local scanned -- the last frame looked at for tooltips
+local waiter -- a frame of the addon's own, to wait for the next frame drawn
+local beside = false -- whether the hover frame stands beside the tooltips on the screen
+
+--- Where the hover frame stands beside tooltips on the screen rather than over
+-- them: to the side of them with more room, its top level with theirs, or above or
+-- below them where neither side has the room.
+-- @param box the tooltips' edges taken together, `{ left, bottom, right, top }`
+-- @param width the screen's width
+-- @param height the screen's height
+-- @param span the frame's side
+-- @return the frame's corner to stand, then the screen point it stands at as x and y,
+-- then "RIGHT" or "LEFT" for the way a row of cards runs, and the room it has that way
+function Peek.Beside(box, width, height, span)
+	local right, left = width - box.right, box.left
+	local top = math.max(math.min(box.top, height), span)
+	if right >= span and right >= left then
+		return "TOPLEFT", box.right, top, "RIGHT", right
+	end
+	if left >= span then
+		return "TOPRIGHT", box.left, top, "LEFT", left
+	end
+	local x = math.max(math.min(box.left, width - span), 0)
+	if height - box.top >= span then
+		return "BOTTOMLEFT", x, box.top, "RIGHT", width - x
+	end
+	return "TOPLEFT", x, box.bottom, "RIGHT", width - x
+end
+
+-- The tooltips on the screen now, the native one and any other addon's, as one box
+-- in the screen's units, or nil where none is up. Frames are listed in the order they
+-- were made and are never unmade, so each call looks only at those made since the last.
+local function tooltipBox()
+	local frame = _G.EnumerateFrames(scanned)
+	while frame do
+		scanned = frame
+		if not frame:IsForbidden() and frame:GetObjectType() == "GameTooltip" then
+			tooltips[#tooltips + 1] = frame
+		end
+		frame = _G.EnumerateFrames(frame)
+	end
+	local screen, box = _G.UIParent:GetEffectiveScale(), nil
+	for _, tooltip in ipairs(tooltips) do
+		local left, bottom, wide, high = tooltip:GetRect()
+		if
+			left
+			and wide > 0
+			and high > 0
+			and tooltip:IsVisible()
+			and tooltip:GetEffectiveAlpha() > 0
+		then
+			local scale = tooltip:GetEffectiveScale() / screen
+			local right, top = (left + wide) * scale, (bottom + high) * scale
+			left, bottom = left * scale, bottom * scale
+			if box then
+				box.left, box.bottom = math.min(box.left, left), math.min(box.bottom, bottom)
+				box.right, box.top = math.max(box.right, right), math.max(box.top, top)
+			else
+				box = { left = left, bottom = bottom, right = right, top = top }
+			end
+		end
+	end
+	return box
+end
+
+-- Every card holding a look shown or kept unseen.
+local function seen(alpha)
+	for index = 1, math.max(shown, 1) do
+		cards[index].frame:SetAlpha(alpha)
+	end
+end
+
+-- Stand the hover frame beside the tooltips on the screen, and let it be seen.
+local standBeside = ns.Safely.Wrap(function()
+	waiter:SetScript("OnUpdate", nil)
+	if not beside then
+		return
+	end
+	local box = tooltipBox()
+	if box then
+		local corner, x, y
+		corner, x, y, side, reach =
+			Peek.Beside(box, _G.UIParent:GetWidth(), _G.UIParent:GetHeight(), extent())
+		cards[1].frame:ClearAllPoints()
+		cards[1].frame:SetPoint(corner, _G.UIParent, "BOTTOMLEFT", x, y)
+		for index = 2, shown do
+			glue(index)
+		end
+	end
+	seen(1)
+end)
+
+-- Stand the hover frame beside the tooltips once every addon has put up its own for
+-- what the pointer rests on, which it has by the next frame drawn.
+local function waitForTooltips()
+	if not waiter then
+		waiter = _G.CreateFrame("Frame")
+		-- A tooltip that grows, or one put up while the frame stands beside the
+		-- tooltips, moves it again by the next frame drawn.
+		local again = ns.Safely.Wrap(function()
+			if beside and cards[1].frame:IsShown() then
+				waiter:SetScript("OnUpdate", standBeside)
+			end
+		end)
+		_G.GameTooltip:HookScript("OnShow", again)
+		_G.GameTooltip:HookScript("OnSizeChanged", again)
+	end
+	waiter:SetScript("OnUpdate", standBeside)
+end
+
 -- Draw nothing on any card, take back a lent inside, and put away every card but
 -- the first.
 local function clear()
@@ -231,12 +344,15 @@ local function lend(first, read)
 	first.caption:SetText(Presentations.Lent(read, words))
 end
 
---- Show a read at the pointer.
+--- Show a read at the pointer, or beside the tooltips on the screen.
 -- @param read the read to show
 -- @param lent true where the addon that offers the read's kind previews it
 -- @param asked true where another addon asked, which owns what a click on its own
 --   button does, so the frame does not say a click opens it
-function Peek.Show(read, lent, asked)
+-- @param byLink true where the pointer rests on the server's own link rather than a
+--   button: other addons may put up tooltips of their own for it, so the frame stands
+--   beside them, unseen until it does, and says an Alt-click opens it
+function Peek.Show(read, lent, asked, byLink)
 	if not cards[1] then
 		build()
 	end
@@ -244,8 +360,17 @@ function Peek.Show(read, lent, asked)
 	settle()
 	clear()
 	place()
+	beside = byLink == true
+	if beside then
+		seen(0)
+		waitForTooltips()
+	else
+		seen(1)
+	end
 	if asked then
 		first.hint:SetText("")
+	elseif beside then
+		first.hint:SetText(OPEN_LINK)
 	else
 		first.hint:SetText(OPEN)
 	end
@@ -287,6 +412,7 @@ function Peek.Show(read, lent, asked)
 			glue(index)
 			found.name:SetText("")
 			found.caption:SetText(Presentations.Place(looks[index], index, #looks))
+			found.frame:SetAlpha(first.frame:GetAlpha())
 			found.frame:Show()
 			found.stage:Show(looks[index], start)
 		end
@@ -306,6 +432,10 @@ function Peek.Hide()
 	end
 	settle()
 	Async.Cancel("peek")
+	beside = false
+	if waiter then
+		waiter:SetScript("OnUpdate", nil)
+	end
 	clear()
 	cards[1].frame:Hide()
 end

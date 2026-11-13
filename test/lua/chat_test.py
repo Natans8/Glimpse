@@ -20,8 +20,9 @@ CLIENT = b"""
     ChatFrame1 = { HookScript = function(_, script, hook) SCRIPTS[script] = hook end }
     CHAT_FRAMES = { "ChatFrame1" }
     NS.Peek = {
-        Show = function(read, lent)
+        Show = function(read, lent, asked, byLink)
             PEEKED[#PEEKED + 1] = read.kind .. " " .. read.id .. (lent and " lent" or "")
+                .. (byLink and " by its link" or "")
         end,
         Hide = function() PEEKED[#PEEKED + 1] = "hidden" end,
     }
@@ -41,6 +42,9 @@ CLIENT = b"""
         return true, #PLAYED
     end
     StopSound = function(handle) STOPPED[#STOPPED + 1] = handle end
+    -- Whether Alt is held, as a test sets it.
+    ALT = false
+    IsAltKeyDown = function() return ALT end
     -- The client's tooltip: its lines while it is up, nil once it is hidden.
     GameTooltip = {
         SetOwner = function() TOOLTIP = {} end,
@@ -524,6 +528,94 @@ def hover(chat: LuaRuntime, line: str, button: int) -> None:
     chat.execute(b"SCRIPTS.OnHyperlinkLeave(ChatFrame1)")
 
 
+def rest_on_link(chat: LuaRuntime, command: str, link: str, drawn: str | None = None) -> None:
+    """Rest the pointer on a server's own link, on a line as a chat frame drew it."""
+    line = LINES[command][0]
+    shown = drawn if drawn is not None else filtered(chat, line)
+    chat.globals()[b"DRAWN"] = shown.encode()
+    chat.globals()[b"POINTED"] = link.encode()
+    chat.execute(b"REGION = { GetText = function() return DRAWN end }")
+    chat.execute(b"SCRIPTS.OnHyperlinkEnter(ChatFrame1, POINTED, nil, REGION)")
+
+
+def click_link(chat: LuaRuntime, link: str, alt: bool, mouse: str = "LeftButton") -> None:
+    """Click a server's own link, Alt held or not."""
+    chat.execute(f"ALT = {'true' if alt else 'false'}".encode())
+    chat.execute(f'HOOKS.SetItemRef("{link}", "[name]", "{mouse}")'.encode())
+
+
+def test_resting_on_a_results_link_shows_nothing_until_the_player_asks(chat: LuaRuntime) -> None:
+    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093")
+    click_link(chat, "creature_entry:184093", alt=True)
+    assert evaluate(chat, "PEEKED") == [] and evaluate(chat, "WINDOWED") == []
+
+
+def test_resting_on_a_results_link_previews_it_beside_any_tooltip(chat: LuaRuntime) -> None:
+    chat.execute(b'NS.Settings.Set("linkHover", true)')
+    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093")
+    assert evaluate(chat, "PEEKED") == ["creature 184093 by its link"]
+
+
+@pytest.mark.parametrize("placement", ["beforeId", "end", "none"])
+def test_the_link_previews_wherever_the_buttons_are_or_with_none(
+    chat: LuaRuntime, placement: str
+) -> None:
+    chat.execute(
+        f'NS.Settings.Set("linkHover", true) NS.Settings.Set("buttons", "{placement}")'.encode()
+    )
+    line = LINES["lookup creature wolf"][0]
+    drawn = line if placement == "none" else filtered(chat, line)
+    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093", drawn)
+    assert evaluate(chat, "PEEKED") == ["creature 184093 by its link"]
+
+
+def test_a_spawned_object_previews_as_it_stands_off_its_line(chat: LuaRuntime) -> None:
+    chat.execute(b'NS.Settings.Set("linkHover", true)')
+    line = LINES["gobject near"][0]
+    rest_on_link(chat, "gobject near", "gameobject_entry:801862")
+    assert evaluate(chat, "PEEKED") == ["object 801862 by its link"]
+    guid = re.search(r"gameobject_GUID:(\d+)", line)
+    assert guid
+    assert evaluate(chat, "NS.Lines.Read(DRAWN).ids[1]") == int(guid.group(1))
+
+
+def test_only_the_link_the_line_is_about_previews(chat: LuaRuntime) -> None:
+    chat.execute(b'NS.Settings.Set("linkHover", true)')
+    guid = re.search(r"gameobject_GUID:\d+", LINES["gobject near"][0])
+    assert guid
+    rest_on_link(chat, "gobject near", guid.group(0))
+    rest_on_link(chat, "lookup creature wolf", "creature_entry:999")
+    assert evaluate(chat, "PEEKED") == []
+
+
+def test_a_link_with_no_line_to_read_or_a_kind_turned_off_shows_nothing(chat: LuaRuntime) -> None:
+    chat.execute(b'NS.Settings.Set("linkHover", true) NS.Settings.Turn("creature", false)')
+    line = LINES["lookup creature wolf"][0]
+    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093", line)
+    chat.execute(b'NS.Settings.Turn("creature", true)')
+    chat.execute(b'SCRIPTS.OnHyperlinkEnter(ChatFrame1, "creature_entry:184093", nil, nil)')
+    assert evaluate(chat, "PEEKED") == []
+
+
+def test_alt_click_on_the_link_opens_the_window_and_no_other_click_does(chat: LuaRuntime) -> None:
+    chat.execute(b'NS.Settings.Set("linkHover", true)')
+    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093")
+    click_link(chat, "creature_entry:184093", alt=False)
+    click_link(chat, "creature_entry:184093", alt=True, mouse="RightButton")
+    click_link(chat, "creature_entry:999", alt=True)
+    assert evaluate(chat, "WINDOWED") == []
+    click_link(chat, "creature_entry:184093", alt=True)
+    assert evaluate(chat, "WINDOWED") == ["creature 184093"]
+
+
+def test_alt_click_after_the_pointer_left_the_link_does_nothing(chat: LuaRuntime) -> None:
+    chat.execute(b'NS.Settings.Set("linkHover", true)')
+    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093")
+    chat.execute(b"SCRIPTS.OnHyperlinkLeave(ChatFrame1)")
+    click_link(chat, "creature_entry:184093", alt=True)
+    assert evaluate(chat, "WINDOWED") == []
+
+
 def test_resting_on_a_preview_button_shows_it_and_leaving_hides_it(chat: LuaRuntime) -> None:
     hover(chat, LINES["lookup creature wolf"][0], 1)
     assert evaluate(chat, "PEEKED") == ["creature 184093", "hidden"]
@@ -685,6 +777,20 @@ def test_the_hover_frame_takes_the_side_with_more_room() -> None:
     runtime = load_addon()
     assert evaluate(runtime, "NS.Peek.Side(430, 1920)") == "RIGHT"
     assert evaluate(runtime, "NS.Peek.Side(1500, 1920)") == "LEFT"
+
+
+def test_beside_tooltips_the_hover_frame_takes_the_side_with_room() -> None:
+    runtime = load_addon()
+
+    def beside(left: int, bottom: int, right: int, top: int) -> object:
+        box = f"{{ left = {left}, bottom = {bottom}, right = {right}, top = {top} }}"
+        return evaluate(runtime, f"{{ NS.Peek.Beside({box}, 1920, 1080, 310) }}")
+
+    assert beside(300, 400, 600, 520) == ["TOPLEFT", 600, 520, "RIGHT", 1320], "the wider side"
+    assert beside(1300, 400, 1700, 520) == ["TOPRIGHT", 1300, 520, "LEFT", 1300]
+    assert beside(200, 400, 1700, 520) == ["BOTTOMLEFT", 200, 520, "RIGHT", 1720], "above"
+    assert beside(200, 800, 1700, 1000) == ["TOPLEFT", 200, 800, "RIGHT", 1720], "below"
+    assert beside(300, 0, 600, 100) == ["TOPLEFT", 600, 310, "RIGHT", 1320], "kept on the screen"
 
 
 def test_side_by_side_cards_are_as_many_as_the_room_holds() -> None:

@@ -14,6 +14,8 @@ ns.Settings = Settings
 --                   link, "beforeLink" or "afterLink" naming its thing, its "end", or
 --                   "none" for nowhere; where the line lacks the place, at its end
 --   hover           whether resting on a button shows a preview
+--   linkHover       whether resting on the server's own link shows a preview beside any
+--                   tooltip up for it, and an Alt-click on the link opens the window
 --   hoverSize       the side of the hover preview's picture, in pixels
 --   hoverSpin       whether the hover preview turns by itself
 --   sideBySide      whether the hover preview gives each of several looks of a kind a card
@@ -24,6 +26,7 @@ ns.Settings = Settings
 Settings.DEFAULTS = {
 	buttons = "end",
 	hover = true,
+	linkHover = false,
 	hoverSize = 300,
 	hoverSpin = true,
 	sideBySide = false,
