@@ -15,11 +15,44 @@ local Settings, Kinds, Providers = ns.Settings, ns.Kinds, ns.Providers
 local Options = {}
 ns.Options = Options
 
+--- A `.lookup` result as a player with GLink sees it, its id in the colour chat gives
+-- system lines and its link in the server's white, for the example beside the choice
+-- of where the buttons go.
+local SAMPLE = "184093 - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r"
+	.. "|cffADFFFF -|r |cff00CCFF|Hcreature_entry:184093|h[Spawn]|h|r"
+
+-- The sample result with this addon's button where a placement puts it, by the
+-- same rule the chat filter follows.
+local function example(placement)
+	if placement == "none" then
+		return SAMPLE
+	end
+	local _, from, to = ns.Lines.Locate(SAMPLE)
+	return ns.Chat.Place(SAMPLE, placement, from, to, function(lead)
+		return ns.Chat.Join({ ns.Chat.COLOUR .. "[Preview]|r" }, lead)
+	end)
+end
+
 --- The controls, top to bottom. A `needs` names the switch a control depends on.
 --   switch  { key, label }
+--   choice  { key, label, options = { { value, label }, ... }, example }, the options as
+--           equals one under another; `example`, optional, answers a system chat line
+--           showing a value
 --   range   { key, label, low, high, step }
 local CONTROLS = {
-	{ kind = "switch", key = "buttonsFirst", label = "Put the buttons at the start of a line" },
+	{
+		kind = "choice",
+		key = "buttons",
+		label = "Put " .. ns.Chat.COLOUR .. "[Preview]|r and " .. ns.Chat.COLOUR .. "[Play]|r",
+		options = {
+			{ value = "start", label = "at the start of the line" },
+			{ value = "before", label = "before the link" },
+			{ value = "after", label = "after the link" },
+			{ value = "end", label = "at the end of the line" },
+			{ value = "none", label = "nowhere" },
+		},
+		example = example,
+	},
 	{ kind = "switch", key = "hover", label = "Preview on hover" },
 	{
 		kind = "range",
@@ -40,13 +73,17 @@ local CONTROLS = {
 	{ kind = "switch", key = "manyWindows", label = "Open each preview in a window of its own" },
 }
 
-local GAP = { switch = 8, range = 32 }
+local GAP = { switch = 8, choice = 8, range = 32 }
 
 --- The colour of what a kind's switch says beside its word.
 local NOTE = "|cff808080"
 
 --- How the kinds' switches lay out: two columns, this far apart, rows this far apart.
 local COLUMNS, COLUMN_WIDTH, ROW_HEIGHT = 2, 300, 28
+
+--- How a choice lays out: its label and each option a row this tall, and its example
+-- line this far right of the options.
+local CHOICE_ROW, EXAMPLE_INDENT = 18, 200
 
 -- The kinds, one group to a word, in the order the addon added them.
 local function groups()
@@ -121,6 +158,57 @@ local BUILD = {
 		)
 		return button, button.SetChecked
 	end,
+	-- A choice is its label, then a radio button for each option under it, the option
+	-- chosen marked; a value that is none of them marks the default's. Where the
+	-- control gives an example, a line beside the options shows what the choice does,
+	-- in chat's font and the player's colour for system lines, as chat would show it.
+	choice = function(panel, control, changed)
+		local box = _G.CreateFrame("Frame", nil, panel)
+		local label = box:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+		label:SetPoint("TOPLEFT", 4, 0)
+		label:SetText(control.label)
+		local radios = {}
+		for index, option in ipairs(control.options) do
+			local radio = _G.CreateFrame("CheckButton", nil, box, "UIRadioButtonTemplate")
+			radio:SetPoint("TOPLEFT", 16, -CHOICE_ROW * index)
+			radio.text:SetFontObject("GameFontHighlight")
+			radio.text:SetTextColor(_G.HIGHLIGHT_FONT_COLOR:GetRGB())
+			radio.text:SetText(option.label)
+			radio:SetHitRectInsets(0, -(radio.text:GetStringWidth() + 5), 0, 0)
+			radio:SetScript(
+				"OnClick",
+				ns.Safely.Wrap(function()
+					Settings.Set(control.key, option.value)
+					changed()
+				end)
+			)
+			radios[index] = radio
+		end
+		local shown
+		if control.example then
+			shown = box:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
+			shown:SetPoint("LEFT", radios[math.ceil(#radios / 2)], "LEFT", EXAMPLE_INDENT, 0)
+		end
+		box:SetSize(COLUMNS * COLUMN_WIDTH, CHOICE_ROW * (#radios + 1))
+		return box,
+			function(_, value)
+				local known = false
+				for _, option in ipairs(control.options) do
+					known = known or option.value == value
+				end
+				if not known then
+					value = Settings.DEFAULTS[control.key]
+				end
+				for index, option in ipairs(control.options) do
+					radios[index]:SetChecked(option.value == value)
+				end
+				if shown then
+					local system = _G.ChatTypeInfo.SYSTEM
+					shown:SetTextColor(system.r, system.g, system.b)
+					shown:SetText(control.example(value))
+				end
+			end
+	end,
 	-- A slider says its value above it, and when that is the default, so the
 	-- default can be found again; its ends say how far it goes.
 	range = function(panel, control)
@@ -185,12 +273,14 @@ local function build()
 	show = function()
 		for _, row in ipairs(rows) do
 			row.put(row.widget, Settings.Get(row.control.key))
-			local on = not row.control.needs or Settings.Get(row.control.needs)
-			row.widget:SetEnabled(on)
-			if on then
-				row.widget:SetAlpha(1)
-			else
-				row.widget:SetAlpha(0.5)
+			if row.control.needs then
+				local on = Settings.Get(row.control.needs)
+				row.widget:SetEnabled(on)
+				if on then
+					row.widget:SetAlpha(1)
+				else
+					row.widget:SetAlpha(0.5)
+				end
 			end
 		end
 		-- The switches shown fill the columns in order, with no gap where one is not.

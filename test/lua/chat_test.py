@@ -91,32 +91,130 @@ def test_the_filter_appends_one_button_after_the_line(chat: LuaRuntime) -> None:
     assert (author, rest) == ("author", "rest"), "the event's other arguments pass through"
 
 
-def test_the_filter_puts_the_button_before_the_line_where_the_player_chose_so(
+#: This addon's buttons as they stand before a link: each, then the dash after it.
+LEADING = r"(?:\|cffC8A8FF\|Hgarrmission:glimpse:[^|]+\|h\[\w+\]\|h\|r\|cffADFFFF -\|r )+"
+
+#: This addon's buttons as they stand after a link: each after a dash.
+TRAILING = r"(?:\|cffADFFFF -\|r \|cffC8A8FF\|Hgarrmission:glimpse:[^|]+\|h\[\w+\]\|h\|r)+"
+
+#: What GLink adds after a creature's line: its button, a link of the line's own type.
+SPAWN = "|cffADFFFF -|r |cff00CCFF|Hcreature_entry:184093|h[Spawn]|h|r"
+
+
+def filtered(chat: LuaRuntime, line: str) -> str:
+    """A line as the filter shows it."""
+    shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
+    assert isinstance(shown, str)
+    return shown
+
+
+def place(chat: LuaRuntime, placement: str) -> None:
+    """Choose where the buttons go."""
+    chat.execute(f'NS.Settings.Set("buttons", "{placement}")'.encode())
+
+
+def test_the_buttons_can_lead_the_line(chat: LuaRuntime) -> None:
+    place(chat, "start")
+    line = LINES["lookup creature wolf"][0]
+    shown = filtered(chat, line)
+    buttons = re.match(LEADING, shown)
+    assert buttons and shown[buttons.end() :] == line
+
+
+def test_the_buttons_can_go_between_a_results_id_and_its_link(chat: LuaRuntime) -> None:
+    place(chat, "before")
+    shown = filtered(chat, LINES["lookup creature wolf"][0])
+    assert shown.startswith("184093 - |cffC8A8FF|Hgarrmission:glimpse:c/184093/1/")
+    assert "|h[Preview]|h|r|cffADFFFF -|r |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]" in shown
+
+
+@pytest.mark.parametrize(
+    ("command", "link"),
+    [
+        ("lookup creature wolf", "creature_entry"),
+        ("lookup object chair", "gameobject_entry"),
+        ("lookup displayid creature wolf", "creatureDisplayID"),
+        ("lookup enchant fire", "enchantID"),
+        ("npc info of a creature", "creature_entry"),
+        ("gobject near", "gameobject_entry"),
+    ],
+)
+def test_the_buttons_go_right_before_the_link_whatever_comes_before_it(
+    chat: LuaRuntime, command: str, link: str
+) -> None:
+    place(chat, "before")
+    line = LINES[command][0]
+    shown = filtered(chat, line)
+    buttons = re.search(LEADING, shown)
+    assert buttons, "the line gains its buttons"
+    assert shown[: buttons.start()] + shown[buttons.end() :] == line, "the line is untouched"
+    name = shown[buttons.end() :]
+    assert re.match(rf"(\|c[0-9a-fA-F]{{8}})?\|H{link}:", name), "the link follows"
+    assert not re.search(r"\|c[0-9a-fA-F]{8}$", shown[: buttons.start()]), "it keeps its colour"
+
+
+def test_after_the_link_the_buttons_come_before_glinks(chat: LuaRuntime) -> None:
+    place(chat, "after")
+    line = LINES["lookup creature wolf"][0].rstrip() + SPAWN
+    shown = filtered(chat, line)
+    buttons = re.search(TRAILING, shown)
+    assert buttons and shown[: buttons.start()] + shown[buttons.end() :] == line
+    assert shown[: buttons.start()].endswith("|h[Spirit Wolf]|h|r")
+    assert shown[buttons.end() :] == SPAWN
+
+
+def test_the_buttons_go_at_the_end_by_default_after_glinks(chat: LuaRuntime) -> None:
+    line = LINES["lookup creature wolf"][0].rstrip() + SPAWN
+    shown = filtered(chat, line)
+    assert shown.startswith(line) and re.fullmatch(TRAILING, shown[len(line) :])
+
+
+def test_a_link_the_server_leaves_open_takes_the_buttons_at_the_end(chat: LuaRuntime) -> None:
+    place(chat, "after")
+    line = LINES["gobject spawn"][0]
+    assert filtered(chat, line).startswith(line)
+
+
+def test_a_sound_named_with_no_link_takes_its_buttons_before_the_name_in_order(
     chat: LuaRuntime,
 ) -> None:
-    line = LINES["lookup creature wolf"][0]
-    chat.execute(b'NS.Settings.Set("buttonsFirst", true)')
-    shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
-    assert isinstance(shown, str) and shown.endswith(line), "the line itself is untouched"
-    assert shown.startswith("|cffC8A8FF|Hgarrmission:glimpse:c/184093/1/")
-    assert shown[: -len(line)].endswith("|h[Preview]|h|r|cffADFFFF -|r ")
-
-
-def test_several_buttons_before_the_line_keep_their_order(chat: LuaRuntime) -> None:
-    chat.execute(b'NS.Settings.Set("buttonsFirst", true)')
+    place(chat, "before")
     line = "|cff00CCFF28|r - [DAY] forestdarkenchantedday, [NIGHT] forestdarkenchantednight"
-    shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
-    assert isinstance(shown, str) and shown.endswith(line)
+    shown = filtered(chat, line)
+    assert shown.startswith("|cff00CCFF28|r - |cffC8A8FF")
+    assert shown.endswith("|cffADFFFF -|r " + line.removeprefix("|cff00CCFF28|r - "))
     assert re.findall(r"\|h\[(\w+)\]\|h\|r\|cffADFFFF -\|r ", shown) == ["Day", "Night"]
+
+
+@pytest.mark.parametrize("placement", ["before", "after"])
+def test_a_line_that_prints_no_name_keeps_its_buttons_at_the_end(
+    chat: LuaRuntime, placement: str
+) -> None:
+    place(chat, placement)
+    line = LINES["modify mount"][0]
+    shown = filtered(chat, line)
+    assert shown.startswith(line) and shown[len(line) :].startswith("|cffADFFFF -|r |cffC8A8FF")
+
+
+def test_a_player_who_wants_the_buttons_nowhere_gets_lines_as_they_came(chat: LuaRuntime) -> None:
+    place(chat, "none")
+    for command in ("lookup creature wolf", "lookup detaildoodad grass", "modify mount"):
+        line = json.dumps(LINES[command][0])
+        assert evaluate(chat, f"{{ FILTER({line}) }}") == [False], command
+
+
+def test_a_choice_that_is_none_of_them_puts_the_buttons_at_the_end(chat: LuaRuntime) -> None:
+    chat.execute(b'GlimpseSettings = { buttons = "middle" }')
+    line = LINES["lookup creature wolf"][0]
+    assert filtered(chat, line).startswith(line)
 
 
 def test_moving_the_buttons_moves_them_on_a_line_already_shown(chat: LuaRuntime) -> None:
     line = LINES["lookup creature wolf"][0]
-    before = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
-    chat.execute(b'NS.Settings.Set("buttonsFirst", true)')
-    after = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
-    assert isinstance(before, str) and isinstance(after, str)
-    assert before.startswith(line) and after.endswith(line)
+    at_end = filtered(chat, line)
+    place(chat, "before")
+    before = filtered(chat, line)
+    assert at_end.startswith(line) and before.startswith("184093 - |cffC8A8FF")
 
 
 def rows_shown(chat: LuaRuntime, line: str) -> list[tuple[str, list[str]]]:
@@ -148,16 +246,18 @@ def test_a_model_a_detail_lists_twice_gains_a_button_on_each_row(chat: LuaRuntim
     assert [len(links) for _, links in rows] == [1, 1, 1, 1, 1]
 
 
-def test_each_row_takes_its_button_at_its_start_where_the_player_chose_so(
+def test_each_model_row_takes_its_button_before_the_model_name_where_chosen(
     chat: LuaRuntime,
 ) -> None:
-    chat.execute(b'NS.Settings.Set("buttonsFirst", true)')
+    place(chat, "before")
     line = LINES["lookup detaildoodad grass"][1]
-    shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
-    assert isinstance(shown, str)
-    for given, row in zip(line.split("\r"), shown.split("\r"), strict=True):
-        assert row.endswith(given), "the row's own text is untouched"
-        assert len(re.findall(r"\[Preview\]", row[: -len(given)])) == 1
+    shown = filtered(chat, line).split("\r")
+    given = line.split("\r")
+    assert shown[0].startswith(given[0]), "the detail's row names no model, so its button follows"
+    for row, text in zip(shown[1:], given[1:], strict=True):
+        buttons = re.search(LEADING, row)
+        assert buttons and row[: buttons.start()] + row[buttons.end() :] == text
+        assert row[buttons.end() :].startswith("|cff00CCFF"), "the model's name follows"
 
 
 def test_every_row_of_every_detail_names_a_model_and_gains_its_button(chat: LuaRuntime) -> None:

@@ -184,7 +184,7 @@ local function ambience(id, row, rest)
 end
 
 local function sound(message)
-	local id, rest = message:match("^|cff00CCFF(%d+)|r %- (.+)$")
+	local id, from, rest, to = message:match("^|cff00CCFF(%d+)|r %- ()(.+)()$")
 	if not id then
 		return nil
 	end
@@ -196,24 +196,24 @@ local function sound(message)
 	end
 	local name = plain(rest)
 	if music and sameName(music.name, name) then
-		return { kind = "music", id = id, name = name }
+		return { kind = "music", id = id, name = name }, from, to
 	end
 	if intro and sameName(intro.name, name) then
-		return { kind = "intro", id = id, name = name }
+		return { kind = "intro", id = id, name = name }, from, to
 	end
 	if around then
-		return ambience(id, around, rest)
+		return ambience(id, around, rest), from, to
 	end
 	return nil
 end
 
 -- A faction line: the faction template's id, then the faction's name and id.
 local function faction(message)
-	local id, name = message:match("^(%d+) %- |cff00CCFF%[(.+) %- %d+%]|r$")
+	local id, from, name, to = message:match("^(%d+) %- ()|cff00CCFF%[(.+) %- %d+%]|r()$")
 	if not id then
 		return nil
 	end
-	return { kind = "faction", id = tonumber(id), name = name }
+	return { kind = "faction", id = tonumber(id), name = name }, from, to
 end
 
 -- What a phase overrides of an area or a WMO, as its lists print it: the thing,
@@ -281,21 +281,23 @@ end
 
 -- A tile texture line: its picture, its file's name, then the file's id.
 local function texture(message)
-	local name, id = message:match("^|T%d+:%d+:%d+|t|h|r |cff00CCFF([^|]+)|r: |cff00CCFF(%d+)|r")
+	local from, name, to, id =
+		message:match("^|T%d+:%d+:%d+|t|h|r ()|cff00CCFF([^|]+)|r(): |cff00CCFF(%d+)|r")
 	if not id then
 		return nil
 	end
-	return { kind = "texture", id = tonumber(id), name = name }
+	return { kind = "texture", id = tonumber(id), name = name }, from, to
 end
 
 -- A line of a WMO's area data: its file, then its root id, the WMO's own id. The
 -- root and each of its groups print a line, all one WMO's.
 local function wmoArea(message)
-	local name, id = message:match("|cff00CCFF([^|]+%.wmo)|r %- RootId: |cff00CCFF(%d+)|r")
+	local from, name, to, id =
+		message:match("()|cff00CCFF([^|]+%.wmo)|r() %- RootId: |cff00CCFF(%d+)|r")
 	if not id then
 		return nil
 	end
-	return { kind = "wmoarea", id = tonumber(id), name = name }
+	return { kind = "wmoarea", id = tonumber(id), name = name }, from, to
 end
 
 -- Whether a line is `.npc info`'s of a creature in an outfit: it prints the display
@@ -308,15 +310,44 @@ local function inOutfit(message)
 	return drawn ~= nil and drawn ~= wearing
 end
 
-local function read(message)
+-- Where a link begins on its line: at the colour code that opens it, where one
+-- does, so that text put there leaves the link its colour.
+local function opening(message, at)
+	if at > 10 and message:sub(at - 10, at - 1):find("^|c%x%x%x%x%x%x%x%x$") then
+		return at - 10
+	end
+	return at
+end
+
+-- Where a link ends on its line, given where its label ends: past the code closing
+-- it and the colour's end after that. A link the server leaves open has no end,
+-- since text put inside it would be a link inside a link.
+local function ending(message, at)
+	if message:sub(at, at + 1) ~= "|h" then
+		return nil
+	end
+	at = at + 2
+	if message:sub(at, at + 1) == "|r" then
+		return at + 2
+	end
+	return at
+end
+
+-- The lines that name what they are about with no link of it, tried in turn. Each
+-- answers its read and, where the line prints a name for it, where that name begins
+-- and where it ends.
+local SHAPES = { doodad, sound, faction, texture, wmoArea, worn, enchanted, forgedDisplay }
+
+local function locate(message)
 	local shaped = overrides(message) or setSound(message)
 	if shaped then
 		return shaped
 	end
-	for linkType, payload, label in message:gmatch("|H([%a_]+):([^|]*)|h(.-)|h") do
+	for at, linkType, payload, labelAt, label in message:gmatch("()|H([%a_]+):([^|]*)|h()(.-)|h") do
 		local reader = LINKS[linkType]
 		if reader then
-			local found = reader(payload, closed(label))
+			label = closed(label)
+			local found = reader(payload, label)
 			if found and found.id and not (found.kind == "creature" and inOutfit(message)) then
 				-- A line of a spawned object names it too, and its GUID finds what the
 				-- server says of how that object stands.
@@ -337,25 +368,35 @@ local function read(message)
 				if display then
 					found.ids = { tonumber(display) }
 				end
-				return found
+				return found, opening(message, at), ending(message, labelAt + #label)
 			end
 			return nil
 		end
 	end
-	return doodad(message)
-		or sound(message)
-		or faction(message)
-		or texture(message)
-		or wmoArea(message)
-		or worn(message)
-		or enchanted(message)
-		or forgedDisplay(message)
+	for _, shape in ipairs(SHAPES) do
+		local found, from, to = shape(message)
+		if found then
+			return found, from, to
+		end
+	end
+	return nil
 end
+
+--- Read a system line, and find where on it the thing read is named.
+-- @param message the line as the server sent it
+-- @return the read, or nil where the line is not one the addon previews
+-- @return where on the line the read's name begins, at the colour code opening it
+-- where one does, or nil where the line prints no name for it
+-- @return where on the line the name ends, just past the codes closing it, or nil
+-- where it prints none or leaves the name's link open
+Lines.Locate = locate
 
 --- Read a system line.
 -- @param message the line as the server sent it
 -- @return the read, or nil where the line is not one the addon previews
-Lines.Read = read
+function Lines.Read(message)
+	return (locate(message))
+end
 
 --- A line's rows, as the server breaks it.
 -- @param message the line as the server sent it
@@ -380,16 +421,22 @@ end
 -- @param own the line's own read
 -- @return a read for each such row, by its number in `Lines.Split`, or nil
 -- where the line has no such rows
+-- @return where on each such row its model's name begins and ends, as `{ from, to }`
+-- by the same numbers
 function Lines.Rows(message, own)
 	if own.kind ~= "doodad" then
 		return nil
 	end
-	local reads = {}
+	local reads, spans = {}, {}
 	for index, row in ipairs(Lines.Split(message)) do
-		local name = index > 1 and row.text:match("|cff00CCFF([%w_%-%.]+%.m2)|r")
+		local from, name, to
+		if index > 1 then
+			from, name, to = row.text:match("()|cff00CCFF([%w_%-%.]+%.m2)|r()")
+		end
 		if name then
 			reads[index] = { kind = "doodad", id = own.id, name = name, names = { name } }
+			spans[index] = { from = from, to = to }
 		end
 	end
-	return reads
+	return reads, spans
 end

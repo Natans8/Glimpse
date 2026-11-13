@@ -4,8 +4,8 @@ local _, ns = ...
 --
 -- One filter on system messages puts a button on each line that has something
 -- to show, or on its first row where the server breaks it into rows, and one on
--- each later row that names a thing of its own: at the row's end, or at its start
--- where the player has chosen so.
+-- each later row that names a thing of its own, where the player has chosen: at
+-- the row's start, just before or after its link, at its end, or nowhere.
 -- The filter is added at login, after every other addon has added its own, so
 -- theirs stay where players are used to finding them: at a row's end, this
 -- addon's buttons come after theirs.
@@ -34,64 +34,104 @@ function Chat.Drawer(read)
 	return Kinds.Drawer(read)
 end
 
--- The buttons a read gains, as text to put beside what names it, or nil: each
--- after a dash where they end the row, each before one where they start it.
-local function buttonsOf(read, first)
+--- Buttons as text to put beside what they belong to.
+-- @param buttons each button's text, in order
+-- @param lead true where they come before what they belong to, each then followed
+-- by a dash; otherwise each follows a dash
+-- @return the buttons joined
+function Chat.Join(buttons, lead)
+	local joined = {}
+	for index, button in ipairs(buttons) do
+		if lead then
+			joined[index] = button .. SEPARATOR
+		else
+			joined[index] = SEPARATOR .. button
+		end
+	end
+	return table.concat(joined)
+end
+
+-- The buttons a read gains, joined as `Chat.Join` joins them, or nil.
+local function buttonsOf(read, lead)
 	local words = Chat.Drawer(read) and Kinds.Buttons(read)
 	if not words then
 		return nil
 	end
 	local buttons = {}
 	for index, word in ipairs(words) do
-		local button = Chat.COLOUR .. "|H" .. Links.Write(read, index) .. "|h[" .. word .. "]|h|r"
-		if first then
-			buttons[index] = button .. SEPARATOR
-		else
-			buttons[index] = SEPARATOR .. button
-		end
+		buttons[index] = Chat.COLOUR .. "|H" .. Links.Write(read, index) .. "|h[" .. word .. "]|h|r"
 	end
-	return table.concat(buttons)
+	return Chat.Join(buttons, lead)
 end
 
--- The line with its buttons, at each row's start where `first` is true and at its
--- end otherwise. A line the server breaks into rows names what it is on the first,
--- so the line's own buttons go on that row, and a later row that names a thing of
--- its own, as a detail doodad lists a model on each, gains that thing's.
-local function shownOf(message, first)
-	local read = Lines.Read(message)
-	local own = read and buttonsOf(Kinds.Settle(read), first)
-	if not own then
+--- Put buttons on a row where the player has chosen them to go.
+-- @param text the row
+-- @param placement "start" of the row, "before" or "after" its link, or anything else
+-- for its end; a link the row lacks, or one it leaves open, puts them at its end
+-- @param from where the row's link begins, or nil
+-- @param to where the row's link ends, or nil
+-- @param buttons a function of whether they lead (see `Chat.Join`) answering the
+-- buttons as text, or nil where there are none
+-- @return the row with its buttons, or nil where there are none
+function Chat.Place(text, placement, from, to, buttons)
+	local at, lead = #text + 1, false
+	if placement == "start" then
+		at, lead = 1, true
+	elseif placement == "before" and from and from <= #text then
+		at, lead = from, true
+	elseif placement == "after" and to and to <= #text then
+		at = to
+	end
+	local put = buttons(lead)
+	if not put then
 		return nil
 	end
-	local within = Lines.Rows(message, read) or {}
+	return text:sub(1, at - 1) .. put .. text:sub(at)
+end
+
+-- The line with its buttons where the player has chosen. A line the server breaks
+-- into rows names what it is on the first, so the line's own buttons go on that
+-- row, and a later row that names a thing of its own, as a detail doodad lists a
+-- model on each, gains that thing's.
+local function shownOf(message, placement)
+	local read, from, to = Lines.Locate(message)
+	if not read then
+		return nil
+	end
+	local reads, spans = Lines.Rows(message, read)
+	reads, spans = reads or {}, spans or {}
+	reads[1], spans[1] = read, { from = from, to = to }
 	local shown = {}
 	for index, row in ipairs(Lines.Split(message)) do
-		local buttons = index == 1 and own
-			or (within[index] and buttonsOf(Kinds.Settle(within[index]), first))
-			or ""
-		if first then
-			shown[index] = buttons .. row.text .. row.ending
-		else
-			shown[index] = row.text .. buttons .. row.ending
+		local each, span = reads[index], spans[index]
+		local text = each
+			and Chat.Place(row.text, placement, span.from, span.to, function(lead)
+				return buttonsOf(Kinds.Settle(each), lead)
+			end)
+		if index == 1 and not text then
+			return nil
 		end
+		shown[index] = (text or row.text) .. row.ending
 	end
 	return table.concat(shown)
 end
 
-local lastMessage, lastOff, lastFirst, lastShown
+local lastMessage, lastOff, lastPlacement, lastShown
 
 -- The client runs a filter once for each chat frame showing the line, with
 -- the same text each time, so the last line as shown is kept, for as long as
 -- the kinds turned off are the same table and the buttons stand where they did;
--- turning a kind on or off makes another table. A fault leaves the line as it came.
+-- turning a kind on or off makes another table. A fault leaves the line as it came,
+-- and so does a player who wants the buttons nowhere.
 local filter = Safely.Wrap(function(_, _, message, ...)
-	if type(message) ~= "string" then
+	local placement = ns.Settings.Get("buttons")
+	if type(message) ~= "string" or placement == "none" then
 		return false
 	end
-	local off, first = ns.Settings.Get("off"), ns.Settings.Get("buttonsFirst")
-	if message ~= lastMessage or off ~= lastOff or first ~= lastFirst then
-		lastMessage, lastOff, lastFirst = message, off, first
-		lastShown = shownOf(message, first)
+	local off = ns.Settings.Get("off")
+	if message ~= lastMessage or off ~= lastOff or placement ~= lastPlacement then
+		lastMessage, lastOff, lastPlacement = message, off, placement
+		lastShown = shownOf(message, placement)
 	end
 	if not lastShown then
 		return false

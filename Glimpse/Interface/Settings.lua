@@ -10,7 +10,9 @@ local Settings = {}
 ns.Settings = Settings
 
 --- Every setting and its default.
---   buttonsFirst    whether a line's buttons go at its start rather than its end
+--   buttons         where a line's buttons go: at its "start", "before" or "after" the link
+--                   naming its thing, at its "end", or "none" for nowhere; a line with no
+--                   such link has them at its end
 --   hover           whether resting on a button shows a preview
 --   hoverSize       the side of the hover preview's picture, in pixels
 --   hoverSpin       whether the hover preview turns by itself
@@ -20,7 +22,7 @@ ns.Settings = Settings
 --                   empty until the player has moved or sized it
 --   off             the kinds the player has turned off, as a set: their lines gain no button
 Settings.DEFAULTS = {
-	buttonsFirst = false,
+	buttons = "end",
 	hover = true,
 	hoverSize = 300,
 	hoverSpin = true,

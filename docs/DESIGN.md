@@ -147,8 +147,9 @@ and the placed doodad. The rest name nothing drawable and gain no button: a phas
 a position, and the paging line. A template and a thing spawned from it are different kinds of line to Glimpse as
 they are to the server: the entry previews what would spawn, the GUID or the display what did.
 
-Glimpse's button comes after GLink's, or at the very start of the line where the player has put the buttons
-first. Players click GLink's buttons by habit, so their place on the line does not move either way. Two things
+By default Glimpse's button comes after GLink's. Players click GLink's buttons by habit, so their place on
+the line does not move unless the player chooses another place for Glimpse's; "after the link" puts it between
+the server's link and GLink's buttons without Glimpse knowing anything of GLink. Two things
 hold the order: GLink is an optional dependency, so it loads and registers its filter first, and Glimpse registers
 its own filter at login, after every other addon has. A line that reaches Glimpse may therefore already carry
 GLink's buttons on its end; the server's own link is still the first on the line, and Glimpse reads the line before
@@ -247,7 +248,11 @@ What each release added to the shipped data, so a reader can tell a table's age 
 
 ## Settings
 
-Whether a line's buttons go at its start rather than its end; preview on hover; the hover picture's size; whether
+Where a line's buttons go, a choice of five equals with an example line under them, drawn by the same rule
+the filter follows: at the start of the line, just before or just after the link naming its thing, at the end of
+the line, the default, or nowhere, for a player who has Glimpse only for another addon that needs it. A line with
+no such link, or one the server leaves open, has them at its end;
+preview on hover; the hover picture's size; whether
 it turns; whether a creature's several displays show side by side on hover; whether each click opens a window of
 its own; and a switch per kind, on by default, that turns its buttons off. There is a switch for every kind something previews, one to a word, naming the addon
 that previews a kind where another one does; spells always have one, greyed while no addon offers them. A setting is added only once its default has been judged in game,
