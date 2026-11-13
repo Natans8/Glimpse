@@ -248,8 +248,9 @@ What each release added to the shipped data, so a reader can tell a table's age 
 
 ## Settings
 
-Where a line's buttons go, a choice of five equals with an example line beside them, drawn by the same rule
-the filter follows: before the ID the line prints before its link, just before or just after that link, at the end
+One page that scrolls, since it holds more than the client's settings leave room for. Where a line's buttons
+go, a choice of five equals with example lines under them, five commands' lines as a player with GLink sees them,
+drawn by the same rule the filter follows: before the ID the line prints before its link, just before or just after that link, at the end
 of the line, the default, or nowhere, for a player who has Glimpse only for another addon that needs it. Never at
 the very start, which belongs to whatever another addon puts in front of a line. Before the ID is before the link
 where no ID comes before it, and a line with no such link, or one the server leaves open, has them at its end;

@@ -1,6 +1,7 @@
 local addonName, ns = ...
 
---- The settings panel, under Interface, AddOns.
+--- The settings panel, under Interface, AddOns: one page that scrolls, since it holds
+-- more than the client's settings leave room for.
 --
 -- Each control changes its setting as it is used, so there is nothing to
 -- confirm; the panel's Defaults button clears every choice. A control that
@@ -15,28 +16,69 @@ local Settings, Kinds, Providers = ns.Settings, ns.Kinds, ns.Providers
 local Options = {}
 ns.Options = Options
 
---- A `.lookup` result as a player with GLink sees it, its id in the colour chat gives
--- system lines and its link in the server's white, for the example beside the choice
--- of where the buttons go.
-local SAMPLE = "184093 - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r"
-	.. "|cffADFFFF -|r |cff00CCFF|Hcreature_entry:184093|h[Spawn]|h|r"
+--- What GLink adds after a line that links a creature, and one that links an object.
+local GLINK_CREATURE = "|cffADFFFF -|r |cff00CCFF|Hcreature_entry:%d|h[Spawn]|h|r"
+local GLINK_OBJECT = "|cffADFFFF -|r |cff00CCFF|Hgameobject_entry:%d|h[Spawn]|h|r"
+	.. "|cffADFFFF -|r |cff00CCFF|Hgameobject_entry:%d|h[Copy Entry]|h|r"
 
--- The sample result with this addon's button where a placement puts it, by the
--- same rule the chat filter follows.
-local function example(placement)
-	if placement == "none" then
-		return SAMPLE
+--- Lines as the server prints them and a player with GLink sees them, for the examples
+-- under the choice of where the buttons go: a creature and an object `.lookup` finds, an
+-- `.npc info` with no id before its link, a zone's music, which plays rather than shows
+-- and has no link, and a spawn reply whose link the server leaves open. Each with the
+-- buttons it gains.
+local SAMPLES = {
+	{
+		line = "184093 - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r"
+			.. GLINK_CREATURE:format(184093),
+		buttons = { "Preview" },
+	},
+	{
+		line = "716709 - |cffffffff|Hgameobject_entry:716709|h[6dr_draenei_chair02.m2]|h|r"
+			.. GLINK_OBJECT:format(716709, 716709),
+		buttons = { "Preview" },
+	},
+	{
+		line = "NPC Info: |cff00CCFF|Hcreature_entry:16998|h[Mr. Bigglesworth - 16998]|h|r"
+			.. " (GUID: |cff00CCFF|HNPC_GUID:19647814|h19647814|h|r)"
+			.. GLINK_CREATURE:format(16998),
+		buttons = { "Preview" },
+	},
+	{
+		line = "|cff00CCFF156|r - Zone-TavernAlliance",
+		buttons = { "Play" },
+	},
+	{
+		line = "Spawned gameobject |cff00CCFF|Hgameobject_entry:801862|h[6ar_fern_b02.m2 - 801862]|r"
+			.. " (GUID: |cff00CCFF|Hgameobject_GUID:96102|h96102|h|r)"
+			.. GLINK_OBJECT:format(801862, 801862),
+		buttons = { "Preview" },
+	},
+}
+
+-- The sample lines with this addon's buttons where a placement puts them, by the same
+-- rule the chat filter follows.
+local function examples(placement)
+	local shown = {}
+	for index, sample in ipairs(SAMPLES) do
+		shown[index] = sample.line
+		if placement ~= "none" then
+			local _, place = ns.Lines.Locate(sample.line)
+			shown[index] = ns.Chat.Place(sample.line, placement, place, function(lead)
+				local buttons = {}
+				for at, word in ipairs(sample.buttons) do
+					buttons[at] = ns.Chat.COLOUR .. "[" .. word .. "]|r"
+				end
+				return ns.Chat.Join(buttons, lead)
+			end)
+		end
 	end
-	local _, place = ns.Lines.Locate(SAMPLE)
-	return ns.Chat.Place(SAMPLE, placement, place, function(lead)
-		return ns.Chat.Join({ ns.Chat.COLOUR .. "[Preview]|r" }, lead)
-	end)
+	return shown
 end
 
 --- The controls, top to bottom. A `needs` names the switch a control depends on.
 --   switch  { key, label }
---   choice  { key, label, options = { { value, label }, ... }, example }, the options as
---           equals one under another; `example`, optional, answers a system chat line
+--   choice  { key, label, options = { { value, label }, ... }, examples }, the options as
+--           equals one under another; `examples`, optional, answers system chat lines
 --           showing a value
 --   range   { key, label, low, high, step }
 local CONTROLS = {
@@ -51,7 +93,7 @@ local CONTROLS = {
 			{ value = "end", label = "at the end of the line" },
 			{ value = "none", label = "nowhere" },
 		},
-		example = example,
+		examples = examples,
 	},
 	{ kind = "switch", key = "hover", label = "Preview on hover" },
 	{
@@ -74,7 +116,7 @@ local CONTROLS = {
 	{ kind = "switch", key = "linkHover", label = "Also preview on hovering the link" },
 }
 
-local GAP = { switch = 4, choice = 8, range = 32 }
+local GAP = { switch = 8, choice = 8, range = 32 }
 
 --- The colour of what a kind's switch says beside its word.
 local NOTE = "|cff808080"
@@ -82,9 +124,9 @@ local NOTE = "|cff808080"
 --- How the kinds' switches lay out: two columns, this far apart, rows this far apart.
 local COLUMNS, COLUMN_WIDTH, ROW_HEIGHT = 2, 300, 28
 
---- How a choice lays out: its label and each option a row this tall, and its example
--- line this far right of the options.
-local CHOICE_ROW, EXAMPLE_INDENT = 18, 200
+--- How a choice lays out: its label and each option a row this tall, then its examples
+-- a row this tall each, under a gap.
+local CHOICE_ROW, EXAMPLE_ROW, EXAMPLE_GAP = 18, 16, 10
 
 -- The kinds, one group to a word, in the order the addon added them.
 local function groups()
@@ -105,9 +147,9 @@ end
 -- kind where another one does. Settled each time the panel is shown, since an
 -- addon may offer a kind or fault after the panel is built; `show` answers whether
 -- the switch is shown. A kind nothing previews is greyed where it is shown at all.
-local function kindSwitch(panel, group, changed)
+local function kindSwitch(parent, group, changed)
 	local first = group.kinds[1]
-	local button = _G.CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+	local button = _G.CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
 	button:SetScript(
 		"OnClick",
 		ns.Safely.Wrap(function()
@@ -146,9 +188,9 @@ local function kindSwitch(panel, group, changed)
 end
 
 local BUILD = {
-	switch = function(panel, control, changed)
+	switch = function(parent, control, changed)
 		local button =
-			_G.CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+			_G.CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
 		button.Text:SetText(control.label)
 		button:SetScript(
 			"OnClick",
@@ -161,10 +203,11 @@ local BUILD = {
 	end,
 	-- A choice is its label, then a radio button for each option under it, the option
 	-- chosen marked; a value that is none of them marks the default's. Where the
-	-- control gives an example, a line beside the options shows what the choice does,
-	-- in chat's font and the player's colour for system lines, as chat would show it.
-	choice = function(panel, control, changed)
-		local box = _G.CreateFrame("Frame", nil, panel)
+	-- control gives examples, lines under the options show what the choice does, in
+	-- chat's font and the player's colour for system lines, as chat would show them,
+	-- each cut short rather than wrapped where it is wider than the page.
+	choice = function(parent, control, changed)
+		local box = _G.CreateFrame("Frame", nil, parent)
 		local label = box:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
 		label:SetPoint("TOPLEFT", 4, 0)
 		label:SetText(control.label)
@@ -185,12 +228,20 @@ local BUILD = {
 			)
 			radios[index] = radio
 		end
-		local shown
-		if control.example then
-			shown = box:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
-			shown:SetPoint("LEFT", radios[math.ceil(#radios / 2)], "LEFT", EXAMPLE_INDENT, 0)
+		local lines, height = {}, CHOICE_ROW * (#radios + 1)
+		if control.examples then
+			local width = COLUMNS * COLUMN_WIDTH - 16
+			for index = 1, #control.examples(Settings.DEFAULTS[control.key]) do
+				local line = box:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
+				line:SetPoint("TOPLEFT", 16, -(height + EXAMPLE_GAP + EXAMPLE_ROW * (index - 1)))
+				line:SetWidth(width)
+				line:SetJustifyH("LEFT")
+				line:SetWordWrap(false)
+				lines[index] = line
+			end
+			height = height + EXAMPLE_GAP + EXAMPLE_ROW * #lines
 		end
-		box:SetSize(COLUMNS * COLUMN_WIDTH, CHOICE_ROW * (#radios + 1))
+		box:SetSize(COLUMNS * COLUMN_WIDTH, height)
 		return box,
 			function(_, value)
 				local known = false
@@ -203,17 +254,19 @@ local BUILD = {
 				for index, option in ipairs(control.options) do
 					radios[index]:SetChecked(option.value == value)
 				end
-				if shown then
+				if #lines > 0 then
 					local system = _G.ChatTypeInfo.SYSTEM
-					shown:SetTextColor(system.r, system.g, system.b)
-					shown:SetText(control.example(value))
+					for index, text in ipairs(control.examples(value)) do
+						lines[index]:SetTextColor(system.r, system.g, system.b)
+						lines[index]:SetText(text)
+					end
 				end
 			end
 	end,
 	-- A slider says its value above it, and when that is the default, so the
 	-- default can be found again; its ends say how far it goes.
-	range = function(panel, control)
-		local slider = _G.CreateFrame("Slider", nil, panel, "OptionsSliderTemplate")
+	range = function(parent, control)
+		local slider = _G.CreateFrame("Slider", nil, parent, "OptionsSliderTemplate")
 		slider:SetWidth(220)
 		slider:SetMinMaxValues(control.low, control.high)
 		slider:SetValueStep(control.step)
@@ -242,7 +295,17 @@ local function build()
 	local panel = _G.CreateFrame("Frame")
 	panel.name = addonName
 
-	local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+	-- What the panel shows is a page in a scroll frame. The template finds its parts by
+	-- their keys, so the frame needs no global name.
+	local scroll = _G.CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
+	scroll:SetPoint("TOPLEFT", 0, -4)
+	scroll:SetPoint("BOTTOMRIGHT", -26, 4)
+	scroll.scrollBarHideable = true
+	local page = _G.CreateFrame("Frame", nil, scroll)
+	page:SetSize(COLUMNS * COLUMN_WIDTH + 32, 1)
+	scroll:SetScrollChild(page)
+
+	local title = page:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
 	title:SetPoint("TOPLEFT", 16, -16)
 	title:SetText(addonName)
 
@@ -252,7 +315,7 @@ local function build()
 	local rows = {}
 	local above = title
 	for index, control in ipairs(CONTROLS) do
-		local widget, put = BUILD[control.kind](panel, control, function()
+		local widget, put = BUILD[control.kind](page, control, function()
 			show()
 		end)
 		widget:SetPoint("TOPLEFT", above, "BOTTOMLEFT", 0, -GAP[control.kind])
@@ -260,16 +323,19 @@ local function build()
 		above = widget
 	end
 
-	local heading = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+	local heading = page:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 	heading:SetPoint("TOPLEFT", above, "BOTTOMLEFT", 0, -24)
 	heading:SetText("Preview these")
 	local switches = {}
 	for index, group in ipairs(groups()) do
-		local button, put = kindSwitch(panel, group, function()
+		local button, put = kindSwitch(page, group, function()
 			show()
 		end)
 		switches[index] = { button = button, put = put }
 	end
+
+	local credit = page:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	credit:SetText("Put together by Nataari, mostly with AI — mistakes are possible")
 
 	show = function()
 		for _, row in ipairs(rows) do
@@ -300,11 +366,21 @@ local function build()
 				shown = shown + 1
 			end
 		end
+		-- The credit follows the last row of switches, and the page is as tall as what
+		-- it holds, which the client can measure once the panel stands on the screen.
+		credit:ClearAllPoints()
+		credit:SetPoint(
+			"TOPLEFT",
+			heading,
+			"BOTTOMLEFT",
+			0,
+			-16 - math.ceil(shown / COLUMNS) * ROW_HEIGHT
+		)
+		local top, bottom = page:GetTop(), credit:GetBottom()
+		if top and bottom then
+			page:SetHeight(top - bottom + 16)
+		end
 	end
-
-	local credit = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	credit:SetPoint("BOTTOMLEFT", 16, 16)
-	credit:SetText("Put together by Nataari, mostly with AI — mistakes are possible")
 
 	panel.refresh = ns.Safely.Wrap(show)
 	panel.default = ns.Safely.Wrap(function()
