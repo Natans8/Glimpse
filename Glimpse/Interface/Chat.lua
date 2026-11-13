@@ -4,11 +4,12 @@ local _, ns = ...
 --
 -- One filter on system messages puts a button on each line that has something
 -- to show, or on its first row where the server breaks it into rows, and one on
--- each later row that names a thing of its own, where the player has chosen: at
--- the row's start, just before or after its link, at its end, or nowhere.
+-- each later row that names a thing of its own, where the player has chosen: before
+-- the id the row prints, just before or after its link, at its end, or nowhere.
 -- The filter is added at login, after every other addon has added its own, so
--- theirs stay where players are used to finding them: at a row's end, this
--- addon's buttons come after theirs.
+-- theirs stay where players are used to finding them: whatever another addon put
+-- in front of a row stays in front, and at a row's end this addon's buttons come
+-- after theirs.
 --
 -- The chat frames and the client's link handler belong to the client and are
 -- shared with other addons, so they are hooked here and never replaced.
@@ -64,23 +65,29 @@ local function buttonsOf(read, lead)
 	return Chat.Join(buttons, lead)
 end
 
+-- Whether a place on a row is somewhere on it.
+local function on(text, at)
+	return at ~= nil and at <= #text
+end
+
 --- Put buttons on a row where the player has chosen them to go.
 -- @param text the row
--- @param placement "start" of the row, "before" or "after" its link, or anything else
--- for its end; a link the row lacks, or one it leaves open, puts them at its end
--- @param from where the row's link begins, or nil
--- @param to where the row's link ends, or nil
+-- @param placement "beforeId", "beforeLink" or "afterLink", or anything else for the
+-- row's end. Before the id is before the link where the row prints no id before it,
+-- and a place the row lacks, or a link it leaves open, puts them at its end
+-- @param place where the row names its thing, as `Lines.Locate` gives it, or nil
 -- @param buttons a function of whether they lead (see `Chat.Join`) answering the
 -- buttons as text, or nil where there are none
 -- @return the row with its buttons, or nil where there are none
-function Chat.Place(text, placement, from, to, buttons)
+function Chat.Place(text, placement, place, buttons)
+	place = place or {}
 	local at, lead = #text + 1, false
-	if placement == "start" then
-		at, lead = 1, true
-	elseif placement == "before" and from and from <= #text then
-		at, lead = from, true
-	elseif placement == "after" and to and to <= #text then
-		at = to
+	if placement == "beforeId" and on(text, place.id) then
+		at, lead = place.id, true
+	elseif (placement == "beforeId" or placement == "beforeLink") and on(text, place.from) then
+		at, lead = place.from, true
+	elseif placement == "afterLink" and on(text, place.to) then
+		at = place.to
 	end
 	local put = buttons(lead)
 	if not put then
@@ -94,18 +101,18 @@ end
 -- row, and a later row that names a thing of its own, as a detail doodad lists a
 -- model on each, gains that thing's.
 local function shownOf(message, placement)
-	local read, from, to = Lines.Locate(message)
+	local read, place = Lines.Locate(message)
 	if not read then
 		return nil
 	end
-	local reads, spans = Lines.Rows(message, read)
-	reads, spans = reads or {}, spans or {}
-	reads[1], spans[1] = read, { from = from, to = to }
+	local reads, places = Lines.Rows(message, read)
+	reads, places = reads or {}, places or {}
+	reads[1], places[1] = read, place
 	local shown = {}
 	for index, row in ipairs(Lines.Split(message)) do
-		local each, span = reads[index], spans[index]
+		local each = reads[index]
 		local text = each
-			and Chat.Place(row.text, placement, span.from, span.to, function(lead)
+			and Chat.Place(row.text, placement, places[index], function(lead)
 				return buttonsOf(Kinds.Settle(each), lead)
 			end)
 		if index == 1 and not text then

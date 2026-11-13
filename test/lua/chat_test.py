@@ -113,16 +113,36 @@ def place(chat: LuaRuntime, placement: str) -> None:
     chat.execute(f'NS.Settings.Set("buttons", "{placement}")'.encode())
 
 
-def test_the_buttons_can_lead_the_line(chat: LuaRuntime) -> None:
-    place(chat, "start")
+def test_before_the_id_the_buttons_lead_a_result(chat: LuaRuntime) -> None:
+    place(chat, "beforeId")
     line = LINES["lookup creature wolf"][0]
     shown = filtered(chat, line)
     buttons = re.match(LEADING, shown)
     assert buttons and shown[buttons.end() :] == line
 
 
+@pytest.mark.parametrize("prefix", ["|cff808080[12:34]|r ", "12:34 ", "|cff808080<GM>|r "])
+def test_before_the_id_leaves_what_another_addon_put_in_front(
+    chat: LuaRuntime, prefix: str
+) -> None:
+    place(chat, "beforeId")
+    line = LINES["lookup creature wolf"][0]
+    shown = filtered(chat, prefix + line)
+    assert shown.startswith(prefix)
+    buttons = re.match(LEADING, shown[len(prefix) :])
+    assert buttons and shown[len(prefix) + buttons.end() :] == line
+
+
+def test_before_the_id_is_before_the_link_where_no_id_comes_before_it(chat: LuaRuntime) -> None:
+    place(chat, "beforeId")
+    line = LINES["npc info of a creature"][0]
+    shown = filtered(chat, line)
+    buttons = re.search(LEADING, shown)
+    assert buttons and shown[: buttons.start()].endswith("NPC Info: ")
+
+
 def test_the_buttons_can_go_between_a_results_id_and_its_link(chat: LuaRuntime) -> None:
-    place(chat, "before")
+    place(chat, "beforeLink")
     shown = filtered(chat, LINES["lookup creature wolf"][0])
     assert shown.startswith("184093 - |cffC8A8FF|Hgarrmission:glimpse:c/184093/1/")
     assert "|h[Preview]|h|r|cffADFFFF -|r |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]" in shown
@@ -142,7 +162,7 @@ def test_the_buttons_can_go_between_a_results_id_and_its_link(chat: LuaRuntime) 
 def test_the_buttons_go_right_before_the_link_whatever_comes_before_it(
     chat: LuaRuntime, command: str, link: str
 ) -> None:
-    place(chat, "before")
+    place(chat, "beforeLink")
     line = LINES[command][0]
     shown = filtered(chat, line)
     buttons = re.search(LEADING, shown)
@@ -154,7 +174,7 @@ def test_the_buttons_go_right_before_the_link_whatever_comes_before_it(
 
 
 def test_after_the_link_the_buttons_come_before_glinks(chat: LuaRuntime) -> None:
-    place(chat, "after")
+    place(chat, "afterLink")
     line = LINES["lookup creature wolf"][0].rstrip() + SPAWN
     shown = filtered(chat, line)
     buttons = re.search(TRAILING, shown)
@@ -170,7 +190,7 @@ def test_the_buttons_go_at_the_end_by_default_after_glinks(chat: LuaRuntime) -> 
 
 
 def test_a_link_the_server_leaves_open_takes_the_buttons_at_the_end(chat: LuaRuntime) -> None:
-    place(chat, "after")
+    place(chat, "afterLink")
     line = LINES["gobject spawn"][0]
     assert filtered(chat, line).startswith(line)
 
@@ -178,7 +198,7 @@ def test_a_link_the_server_leaves_open_takes_the_buttons_at_the_end(chat: LuaRun
 def test_a_sound_named_with_no_link_takes_its_buttons_before_the_name_in_order(
     chat: LuaRuntime,
 ) -> None:
-    place(chat, "before")
+    place(chat, "beforeLink")
     line = "|cff00CCFF28|r - [DAY] forestdarkenchantedday, [NIGHT] forestdarkenchantednight"
     shown = filtered(chat, line)
     assert shown.startswith("|cff00CCFF28|r - |cffC8A8FF")
@@ -186,7 +206,7 @@ def test_a_sound_named_with_no_link_takes_its_buttons_before_the_name_in_order(
     assert re.findall(r"\|h\[(\w+)\]\|h\|r\|cffADFFFF -\|r ", shown) == ["Day", "Night"]
 
 
-@pytest.mark.parametrize("placement", ["before", "after"])
+@pytest.mark.parametrize("placement", ["beforeId", "beforeLink", "afterLink"])
 def test_a_line_that_prints_no_name_keeps_its_buttons_at_the_end(
     chat: LuaRuntime, placement: str
 ) -> None:
@@ -212,9 +232,48 @@ def test_a_choice_that_is_none_of_them_puts_the_buttons_at_the_end(chat: LuaRunt
 def test_moving_the_buttons_moves_them_on_a_line_already_shown(chat: LuaRuntime) -> None:
     line = LINES["lookup creature wolf"][0]
     at_end = filtered(chat, line)
-    place(chat, "before")
+    place(chat, "beforeLink")
     before = filtered(chat, line)
     assert at_end.startswith(line) and before.startswith("184093 - |cffC8A8FF")
+
+
+#: Every placement that puts the buttons somewhere.
+PLACEMENTS = ("beforeId", "beforeLink", "afterLink", "end")
+
+#: This addon's buttons as either placement writes them.
+OURS = re.compile(f"{LEADING}|{TRAILING}")
+
+
+def link_state(text: str) -> int:
+    """Where the end of a text stands among links: 0 outside, 1 in an address, 2 in shown text."""
+    state = 0
+    for token in re.findall(r"\|[Hh]", text):
+        if token == "|H" and state == 0:
+            state = 1
+        elif token == "|h":
+            state = 2 if state == 1 else 0
+    return state
+
+
+@pytest.mark.parametrize("placement", PLACEMENTS)
+def test_no_placement_changes_breaks_or_splits_any_line_the_game_printed(
+    chat: LuaRuntime, placement: str
+) -> None:
+    place(chat, placement)
+    for command, printed in LINES.items():
+        for line in printed:
+            shown = evaluate(chat, f"(select(2, FILTER({json.dumps(line)})))")
+            if shown is None:
+                continue
+            assert isinstance(shown, str)
+            assert OURS.sub("", shown) == line, f"{command}: the line's own text is untouched"
+            offset = 0
+            for buttons in OURS.finditer(shown):
+                at = buttons.start() - offset
+                offset += buttons.end() - buttons.start()
+                assert link_state(line[:at]) == 0, f"{command}: never inside a link"
+                coloured = re.search(r"\|c[0-9a-fA-F]{8}$", line[:at])
+                assert not (coloured and line[at:]), f"{command}: never inside a colour"
 
 
 def rows_shown(chat: LuaRuntime, line: str) -> list[tuple[str, list[str]]]:
@@ -249,7 +308,7 @@ def test_a_model_a_detail_lists_twice_gains_a_button_on_each_row(chat: LuaRuntim
 def test_each_model_row_takes_its_button_before_the_model_name_where_chosen(
     chat: LuaRuntime,
 ) -> None:
-    place(chat, "before")
+    place(chat, "beforeLink")
     line = LINES["lookup detaildoodad grass"][1]
     shown = filtered(chat, line).split("\r")
     given = line.split("\r")

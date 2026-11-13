@@ -409,3 +409,19 @@ def test_two_different_reads_never_share_a_key(addon: LuaRuntime) -> None:
                 assert each["key"] == each["subject"], "a read and its subject share a key"
                 key = cast(str, each["key"])
                 assert keyed.setdefault(key, each["read"]) == each["read"], key
+
+
+@pytest.mark.parametrize(
+    ("line", "id_at"),
+    [
+        ("184093 - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r ", 1),
+        ("174 (idx:139) - |cffffffff|Htitle:174|h[Player, Bane of the Fallen King ]|h|r", 1),
+        ("|cff000000184093|r - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r", 1),
+        ("[12:34] 184093 - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r", 9),
+        ("NPC Info: |cffffffff|Hcreature_entry:16998|h[Mr. Bigglesworth - 16998]|h|r", None),
+    ],
+)
+def test_a_line_says_where_the_id_before_its_link_begins(
+    addon: LuaRuntime, line: str, id_at: int | None
+) -> None:
+    assert evaluate(addon, f"select(2, NS.Lines.Locate({json.dumps(line)})).id") == id_at

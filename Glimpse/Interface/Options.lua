@@ -27,8 +27,8 @@ local function example(placement)
 	if placement == "none" then
 		return SAMPLE
 	end
-	local _, from, to = ns.Lines.Locate(SAMPLE)
-	return ns.Chat.Place(SAMPLE, placement, from, to, function(lead)
+	local _, place = ns.Lines.Locate(SAMPLE)
+	return ns.Chat.Place(SAMPLE, placement, place, function(lead)
 		return ns.Chat.Join({ ns.Chat.COLOUR .. "[Preview]|r" }, lead)
 	end)
 end
@@ -45,9 +45,9 @@ local CONTROLS = {
 		key = "buttons",
 		label = "Put " .. ns.Chat.COLOUR .. "[Preview]|r and " .. ns.Chat.COLOUR .. "[Play]|r",
 		options = {
-			{ value = "start", label = "at the start of the line" },
-			{ value = "before", label = "before the link" },
-			{ value = "after", label = "after the link" },
+			{ value = "beforeId", label = "before the ID" },
+			{ value = "beforeLink", label = "before the link" },
+			{ value = "afterLink", label = "after the link" },
 			{ value = "end", label = "at the end of the line" },
 			{ value = "none", label = "nowhere" },
 		},

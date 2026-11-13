@@ -248,10 +248,11 @@ What each release added to the shipped data, so a reader can tell a table's age 
 
 ## Settings
 
-Where a line's buttons go, a choice of five equals with an example line under them, drawn by the same rule
-the filter follows: at the start of the line, just before or just after the link naming its thing, at the end of
-the line, the default, or nowhere, for a player who has Glimpse only for another addon that needs it. A line with
-no such link, or one the server leaves open, has them at its end;
+Where a line's buttons go, a choice of five equals with an example line beside them, drawn by the same rule
+the filter follows: before the ID the line prints before its link, just before or just after that link, at the end
+of the line, the default, or nowhere, for a player who has Glimpse only for another addon that needs it. Never at
+the very start, which belongs to whatever another addon puts in front of a line. Before the ID is before the link
+where no ID comes before it, and a line with no such link, or one the server leaves open, has them at its end;
 preview on hover; the hover picture's size; whether
 it turns; whether a creature's several displays show side by side on hover; whether each click opens a window of
 its own; and a switch per kind, on by default, that turns its buttons off. There is a switch for every kind something previews, one to a word, naming the addon

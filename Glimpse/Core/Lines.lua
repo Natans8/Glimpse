@@ -194,15 +194,15 @@ local function sound(message)
 	if not (music or intro or around) then
 		return nil
 	end
-	local name = plain(rest)
+	local name, place = plain(rest), { id = 1, from = from, to = to }
 	if music and sameName(music.name, name) then
-		return { kind = "music", id = id, name = name }, from, to
+		return { kind = "music", id = id, name = name }, place
 	end
 	if intro and sameName(intro.name, name) then
-		return { kind = "intro", id = id, name = name }, from, to
+		return { kind = "intro", id = id, name = name }, place
 	end
 	if around then
-		return ambience(id, around, rest), from, to
+		return ambience(id, around, rest), place
 	end
 	return nil
 end
@@ -213,7 +213,7 @@ local function faction(message)
 	if not id then
 		return nil
 	end
-	return { kind = "faction", id = tonumber(id), name = name }, from, to
+	return { kind = "faction", id = tonumber(id), name = name }, { id = 1, from = from, to = to }
 end
 
 -- What a phase overrides of an area or a WMO, as its lists print it: the thing,
@@ -286,7 +286,7 @@ local function texture(message)
 	if not id then
 		return nil
 	end
-	return { kind = "texture", id = tonumber(id), name = name }, from, to
+	return { kind = "texture", id = tonumber(id), name = name }, { from = from, to = to }
 end
 
 -- A line of a WMO's area data: its file, then its root id, the WMO's own id. The
@@ -297,7 +297,7 @@ local function wmoArea(message)
 	if not id then
 		return nil
 	end
-	return { kind = "wmoarea", id = tonumber(id), name = name }, from, to
+	return { kind = "wmoarea", id = tonumber(id), name = name }, { from = from, to = to }
 end
 
 -- Whether a line is `.npc info`'s of a creature in an outfit: it prints the display
@@ -333,9 +333,34 @@ local function ending(message, at)
 	return at
 end
 
+-- Where the id a line prints before its link begins: the first number after which,
+-- colour codes aside, nothing but spaces and dashes comes before the link, or a
+-- bracketed note as `.lookup title` prints (`174 (idx:139) - `). A number inside a
+-- colour code is no id, and neither is a time or a tag another addon put in front.
+local function idBefore(message, from)
+	local at = 1
+	while true do
+		local start, finish = message:find("%d+", at)
+		if not start or start >= from then
+			return nil
+		end
+		local code = message:sub(1, start - 1):find("|c%x*$")
+		if code and start - code < 10 then
+			at = code + 10
+		else
+			local rest =
+				message:sub(finish + 1, from - 1):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+			if rest:find("^[%s%-]*$") or rest:find("^ %b()[%s%-]*$") then
+				return opening(message, start)
+			end
+			at = finish + 1
+		end
+	end
+end
+
 -- The lines that name what they are about with no link of it, tried in turn. Each
--- answers its read and, where the line prints a name for it, where that name begins
--- and where it ends.
+-- answers its read and, where the line prints them, where its id and its name are,
+-- as `Lines.Locate` does.
 local SHAPES = { doodad, sound, faction, texture, wmoArea, worn, enchanted, forgedDisplay }
 
 local function locate(message)
@@ -368,15 +393,21 @@ local function locate(message)
 				if display then
 					found.ids = { tonumber(display) }
 				end
-				return found, opening(message, at), ending(message, labelAt + #label)
+				local from = opening(message, at)
+				return found,
+					{
+						id = idBefore(message, from),
+						from = from,
+						to = ending(message, labelAt + #label),
+					}
 			end
 			return nil
 		end
 	end
 	for _, shape in ipairs(SHAPES) do
-		local found, from, to = shape(message)
+		local found, place = shape(message)
 		if found then
-			return found, from, to
+			return found, place
 		end
 	end
 	return nil
@@ -385,10 +416,11 @@ end
 --- Read a system line, and find where on it the thing read is named.
 -- @param message the line as the server sent it
 -- @return the read, or nil where the line is not one the addon previews
--- @return where on the line the read's name begins, at the colour code opening it
--- where one does, or nil where the line prints no name for it
--- @return where on the line the name ends, just past the codes closing it, or nil
--- where it prints none or leaves the name's link open
+-- @return where on the line it is named, as `{ id, from, to }`: where the id printed
+-- before its name begins, where the name or its link begins, and where that ends,
+-- past the codes closing it; each at the colour code opening it where one does, each
+-- nil where the line prints none, and `to` nil where the server leaves the link open;
+-- nil where the line names it nowhere
 Lines.Locate = locate
 
 --- Read a system line.
@@ -421,13 +453,13 @@ end
 -- @param own the line's own read
 -- @return a read for each such row, by its number in `Lines.Split`, or nil
 -- where the line has no such rows
--- @return where on each such row its model's name begins and ends, as `{ from, to }`
+-- @return where on each such row its model's name is, as `Lines.Locate` gives it,
 -- by the same numbers
 function Lines.Rows(message, own)
 	if own.kind ~= "doodad" then
 		return nil
 	end
-	local reads, spans = {}, {}
+	local reads, places = {}, {}
 	for index, row in ipairs(Lines.Split(message)) do
 		local from, name, to
 		if index > 1 then
@@ -435,8 +467,8 @@ function Lines.Rows(message, own)
 		end
 		if name then
 			reads[index] = { kind = "doodad", id = own.id, name = name, names = { name } }
-			spans[index] = { from = from, to = to }
+			places[index] = { from = from, to = to }
 		end
 	end
-	return reads, spans
+	return reads, places
 end

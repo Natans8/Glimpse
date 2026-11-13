@@ -10,9 +10,9 @@ local Settings = {}
 ns.Settings = Settings
 
 --- Every setting and its default.
---   buttons         where a line's buttons go: at its "start", "before" or "after" the link
---                   naming its thing, at its "end", or "none" for nowhere; a line with no
---                   such link has them at its end
+--   buttons         where a line's buttons go: "beforeId", the id it prints before its
+--                   link, "beforeLink" or "afterLink" naming its thing, its "end", or
+--                   "none" for nowhere; where the line lacks the place, at its end
 --   hover           whether resting on a button shows a preview
 --   hoverSize       the side of the hover preview's picture, in pixels
 --   hoverSpin       whether the hover preview turns by itself
