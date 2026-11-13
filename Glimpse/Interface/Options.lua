@@ -17,42 +17,58 @@ local Settings, Kinds, Providers = ns.Settings, ns.Kinds, ns.Providers
 local Options = {}
 ns.Options = Options
 
---- What GLink adds after a line that links a creature, and one that links an object.
-local GLINK_CREATURE = "|cffADFFFF -|r |cff00CCFF|Hcreature_entry:%d|h[Spawn]|h|r"
-local GLINK_OBJECT = "|cffADFFFF -|r |cff00CCFF|Hgameobject_entry:%d|h[Spawn]|h|r"
-	.. "|cffADFFFF -|r |cff00CCFF|Hgameobject_entry:%d|h[Copy Entry]|h|r"
+--- The dash between the buttons on these lines, GLink's and this addon's alike.
+local DASH = "|cffADFFFF -|r "
 
---- Lines as the server prints them and a player with GLink sees them, for the examples
--- under the choice of where the buttons go: a creature and an object `.lookup` finds, an
--- `.npc info` with no id before its link, a zone's music, which plays rather than shows
--- and has no link, and a spawn reply whose link the server leaves open.
+--- What GLink adds after a line that names a creature, and one that names an object.
+local GLINK_CREATURE = DASH .. "|cff00CCFF[Spawn]|r"
+local GLINK_OBJECT = GLINK_CREATURE .. DASH .. "|cff00CCFF[Copy Entry]|r"
+
+--- Lines as a player with GLink sees them, for the examples under the choice of where
+-- the buttons go, each cut where a button may go: what comes before the id, the id,
+-- the name, what follows it, and the button's word. A creature and an object `.lookup`
+-- finds, an `.npc info` and a spawn reply with no id before the name, and a zone's music.
 local SAMPLES = {
-	"184093 - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r"
-		.. GLINK_CREATURE:format(184093),
-	"716709 - |cffffffff|Hgameobject_entry:716709|h[6dr_draenei_chair02.m2]|h|r"
-		.. GLINK_OBJECT:format(716709, 716709),
-	"NPC Info: |cff00CCFF|Hcreature_entry:16998|h[Mr. Bigglesworth - 16998]|h|r"
-		.. " (GUID: |cff00CCFF|HNPC_GUID:19647814|h19647814|h|r)"
-		.. GLINK_CREATURE:format(16998),
-	"|cff00CCFF156|r - Zone-TavernAlliance",
-	"Spawned gameobject |cff00CCFF|Hgameobject_entry:801862|h[6ar_fern_b02.m2 - 801862]|r"
-		.. " (GUID: |cff00CCFF|Hgameobject_GUID:96102|h96102|h|r)"
-		.. GLINK_OBJECT:format(801862, 801862),
+	{ "", "184093 - ", "|cffffffff[Spirit Wolf]|r", GLINK_CREATURE, "Preview" },
+	{ "", "716709 - ", "|cffffffff[6dr_draenei_chair02.m2]|r", GLINK_OBJECT, "Preview" },
+	{
+		"NPC Info: ",
+		"",
+		"|cff00CCFF[Mr. Bigglesworth - 16998]|r",
+		" (GUID: |cff00CCFF19647814|r)" .. GLINK_CREATURE,
+		"Preview",
+	},
+	{ "", "|cff00CCFF156|r - ", "Zone-TavernAlliance", "", "Play" },
+	{
+		"Spawned gameobject ",
+		"",
+		"|cff00CCFF[6ar_fern_b02.m2 - 801862]|r",
+		" (GUID: |cff00CCFF96102|r)" .. GLINK_OBJECT,
+		"Preview",
+	},
 }
 
--- A sample line as the chat filter would show it under a placement.
-local function example(line, placement)
-	if placement == "none" then
-		return line
+-- A sample line with its button where a placement puts it.
+local function example(sample, placement)
+	local lead, id, name, rest, word = unpack(sample)
+	local button = ns.Chat.COLOUR .. "[" .. word .. "]|r"
+	if placement == "beforeId" then
+		return lead .. button .. DASH .. id .. name .. rest
+	elseif placement == "beforeLink" then
+		return lead .. id .. button .. DASH .. name .. rest
+	elseif placement == "afterLink" then
+		return lead .. id .. name .. DASH .. button .. rest
+	elseif placement == "end" then
+		return lead .. id .. name .. rest .. DASH .. button
 	end
-	return ns.Chat.Shown(line, placement) or line
+	return lead .. id .. name .. rest
 end
 
 --- The controls, top to bottom. A `needs` names the switch a control depends on.
 --   switch  { key, label }
 --   choice  { key, label, options = { { value, label }, ... }, examples, show }, the
---           options as equals one under another; `examples`, optional, system chat
---           lines each shown under the options as `show(line, value)` answers
+--           options as equals one under another; `examples`, optional, samples each
+--           shown under the options as the system chat line `show(sample, value)` answers
 --   range   { key, label, low, high, step }
 local CONTROLS = {
 	{
@@ -232,9 +248,9 @@ local BUILD = {
 				end
 				if control.examples then
 					local system = _G.ChatTypeInfo.SYSTEM
-					for index, line in ipairs(control.examples) do
+					for index, sample in ipairs(control.examples) do
 						lines[index]:SetTextColor(system.r, system.g, system.b)
-						lines[index]:SetText(control.show(line, value))
+						lines[index]:SetText(control.show(sample, value))
 					end
 				end
 			end
@@ -347,13 +363,7 @@ local function build()
 	local credit = page:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
 	credit:SetText("Put together by Nataari, mostly with AI — mistakes are possible")
 
-	-- The page is put only while it is seen, and again as it comes into view: the client
-	-- refreshes every addon's page whenever its settings open, and an example line may
-	-- load the data addon, as the same line in chat would.
 	show = function()
-		if not panel:IsVisible() then
-			return
-		end
 		for _, row in ipairs(rows) do
 			row.put(row.widget, Settings.Get(row.control.key))
 			if row.control.needs then
@@ -398,7 +408,6 @@ local function build()
 		end
 	end
 
-	panel:SetScript("OnShow", ns.Safely.Wrap(show))
 	panel.refresh = ns.Safely.Wrap(show)
 	panel.default = ns.Safely.Wrap(resetAll)
 	return panel

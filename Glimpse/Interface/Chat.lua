@@ -64,7 +64,7 @@ local function on(text, at)
 	return at ~= nil and at <= #text
 end
 
--- A row with its buttons where the player has chosen them to go, as `Chat.Shown` says.
+-- A row with its buttons where the player has chosen them to go, as `withButtons` says.
 -- Buttons before a thing are each followed by a dash, and buttons after it each follow
 -- one; a link the server leaves open is closed after its name before buttons go there.
 local function put(text, placement, place, buttons)
@@ -90,16 +90,13 @@ local function put(text, placement, place, buttons)
 	return text:sub(1, at - 1) .. table.concat(joined) .. text:sub(at)
 end
 
---- A line as the filter shows it. Its buttons go before the id the row prints before
--- its link, before the link, or after it, as `placement` says, and at the row's end
--- otherwise or where the row has no such place; before the id is before the link where
--- the row prints none. A line the server breaks into rows names what it is on the first,
--- so the line's own buttons go on that row, and a later row that names a thing of its
--- own, as a detail doodad lists a model on each, gains that thing's.
--- @param message the line as the server sent it
--- @param placement "beforeId", "beforeLink", "afterLink" or "end"
--- @return the line with its buttons, or nil where it gains none
-function Chat.Shown(message, placement)
+-- A line as the filter shows it, or nil where it gains no buttons. They go before the id
+-- the row prints before its link, before the link, or after it, as `placement` says, and
+-- at the row's end otherwise or where the row has no such place; before the id is before
+-- the link where the row prints none. A line the server breaks into rows names what it
+-- is on the first, so the line's own buttons go on that row, and a later row that names
+-- a thing of its own, as a detail doodad lists a model on each, gains that thing's.
+local function withButtons(message, placement)
 	local read, place = Lines.Locate(message)
 	local own = read and buttonsOf(read)
 	if not own then
@@ -135,7 +132,7 @@ local filter = Safely.Wrap(function(_, _, message, ...)
 	local off = ns.Settings.Get("off")
 	if message ~= lastMessage or off ~= lastOff or placement ~= lastPlacement then
 		lastMessage, lastOff, lastPlacement = message, off, placement
-		lastShown = Chat.Shown(message, placement)
+		lastShown = withButtons(message, placement)
 	end
 	if not lastShown then
 		return false
