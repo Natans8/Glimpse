@@ -84,20 +84,26 @@ function Stage.New(parent)
 	return self
 end
 
+--- How much room the fitted model leaves around it, as a share of what holds it exactly.
+local ROOM = 1.08
+
 -- How far the scene's camera stands from the fitted model, at a share of the
 -- distance that holds it.
 local function distance(self, share)
-	return self.size * 1.1 * share
+	return self.size * share
 end
 
 --- Frame the scene's model: the camera far enough to hold its bounds, at the
--- presentation's angle.
+-- presentation's angle. The model turns about its centre, so what holds it at every
+-- turn is the sphere round its bounds, which fills the view at half the bounds'
+-- diagonal over the sine of half the camera's field of view.
 function Stage:Fit()
 	local x1, y1, z1, x2, y2, z2 = self.actor:GetActiveBoundingBox()
 	if not x2 or not self.presentation then
 		return
 	end
-	self.size = math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2 + (z2 - z1) ^ 2) * 1.5
+	local radius = math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2 + (z2 - z1) ^ 2) / 2
+	self.size = radius / math.sin(self.scene:GetCameraFieldOfView() / 2) * ROOM
 	local camera = self.scene:GetActiveCamera()
 	camera:SetPitch(math.rad(self.presentation.pitch) - self.tilted)
 	camera:SetYaw(0)

@@ -243,3 +243,38 @@ def test_a_creature_the_client_draws_as_the_invisible_stalker_shows_nothing(
     assert evaluate(addon, "SAID") == 1, "said at once, with nothing counted down"
     assert evaluate(addon, "ALPHA") == 0
     assert evaluate(addon, "ON_UPDATE") is None
+
+
+#: A scene for the camera's fit: every call it is given is a no-op but the zoom distances, which
+#: are kept, its field of view 60 degrees, and its model's bounds a cube two units across.
+FITTING = b"""
+    ZOOM = {}
+    local quiet = setmetatable({}, { __index = function() return function() end end })
+    local camera = setmetatable({
+        SetZoomDistance = function(_, d) ZOOM.at = d end,
+        SetMinZoomDistance = function(_, d) ZOOM.nearest = d end,
+        SetMaxZoomDistance = function(_, d) ZOOM.farthest = d end,
+    }, { __index = quiet })
+    local scene = setmetatable({
+        GetActiveCamera = function() return camera end,
+        GetCameraFieldOfView = function() return math.rad(60) end,
+    }, { __index = quiet })
+    local actor = setmetatable({
+        GetActiveBoundingBox = function() return -1, -1, -1, 1, 1, 1 end,
+    }, { __index = quiet })
+    STAGE = setmetatable({ model = quiet, actor = actor, scene = scene }, NS.Stage)
+    STAGE.presentation = { pitch = 0, yaw = 0, drawer = "scene" }
+    STAGE.turned, STAGE.tilted, STAGE.zoom = 0, 0, 1
+"""
+
+
+def test_the_camera_stands_where_the_model_fills_the_view_at_any_turn(addon: LuaRuntime) -> None:
+    addon.execute(FITTING)
+    addon.execute(b"STAGE:Fit()")
+    radius = 12**0.5 / 2
+    at = evaluate(addon, "ZOOM.at")
+    assert isinstance(at, float)
+    assert abs(at - radius / 0.5 * 1.08) < 1e-9, (
+        "half the diagonal over the sine of half the field of view, with a little room"
+    )
+    assert evaluate(addon, "ZOOM.nearest") == at * 0.5
