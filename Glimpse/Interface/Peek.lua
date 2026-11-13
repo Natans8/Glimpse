@@ -15,9 +15,9 @@ local _, ns = ...
 -- no input. They stand at the pointer as a tooltip does, a corner just above
 -- the button or, without the room there, just below it, and the row runs
 -- whichever way the screen has more room. Resting on the server's own link, where
--- the client or another addon may put up the game tooltip for it, they wait unseen for
--- the next frame drawn, by when every addon has put its tooltip up, and are then glued
--- to that tooltip's side and move with it, or stay at the pointer where none is up.
+-- another addon may put up the game tooltip for it, they wait for the next frame drawn,
+-- by when every addon has put its tooltip up, and then stand glued to that tooltip's
+-- side and move with it, or at the pointer where none is up.
 --
 -- A kind another addon previews gets the first card's inside, empty, and the
 -- card shows only where that addon fills it.
@@ -113,6 +113,7 @@ end
 local OPEN, OPEN_LINK = "Click to open", "Alt-click to open"
 
 local waiter -- a frame of the addon's own, to wait for the next frame drawn
+local pending -- what waits there to be shown, as `{ read, lent, asked }`
 
 local function build()
 	waiter = _G.CreateFrame("Frame")
@@ -162,11 +163,51 @@ local function size(found)
 	found.frame:SetSize(extent(), extent())
 end
 
--- Stand the first card with a corner just above the pointer, on the side with
--- more room, as the client stands a tooltip at the pointer.
-local function place()
+-- Stand a frame against another on the row's side, their tops level and their
+-- borders overlapping by `overlap` pixels.
+local function stick(frame, to, overlap)
+	frame:ClearAllPoints()
+	if side == "RIGHT" then
+		frame:SetPoint("TOPLEFT", to, "TOPRIGHT", -overlap, 0)
+	else
+		frame:SetPoint("TOPRIGHT", to, "TOPLEFT", overlap, 0)
+	end
+end
+
+-- Glue the first card to the side with more room of the game tooltip, where one is up
+-- for something in a chat frame, as another addon puts it up for the link the pointer
+-- rests on; glued, it moves as the tooltip follows the pointer, the way the game's
+-- comparison tooltips do. A tooltip up for anything else, as one fading for a creature
+-- the pointer passed over, stands elsewhere and is left alone.
+-- @return true where the card was glued
+local function glueToTooltip(first)
+	local tooltip = _G.GameTooltip
+	local owner = tooltip:GetOwner()
+	local left, right = tooltip:GetLeft(), tooltip:GetRight()
+	if not (tooltip:IsVisible() and left and right and owner) then
+		return false
+	end
+	if owner:GetObjectType() ~= "ScrollingMessageFrame" then
+		return false
+	end
+	local scale = tooltip:GetEffectiveScale() / _G.UIParent:GetEffectiveScale()
+	local width = _G.UIParent:GetWidth()
+	left, right = left * scale, right * scale
+	side = Peek.Side((left + right) / 2, width)
+	reach = side == "RIGHT" and width - right or left
+	stick(first, tooltip, 0)
+	return true
+end
+
+-- Stand the first card: on a link, glued to the game tooltip up for it, and otherwise
+-- with a corner just above the pointer, on the side with more room, as the client
+-- stands a tooltip at the pointer.
+local function place(byLink)
 	local first = cards[1].frame
 	size(cards[1])
+	if byLink and glueToTooltip(first) then
+		return
+	end
 	local scale = _G.UIParent:GetEffectiveScale()
 	local x, y = _G.GetCursorPosition()
 	x, y = x / scale, y / scale
@@ -185,49 +226,12 @@ local function place()
 	first:SetPoint(corner, _G.UIParent, "BOTTOMLEFT", x, lifted)
 end
 
--- Stand a frame against another on the row's side, their tops level and their
--- borders overlapping by `overlap` pixels.
-local function stick(frame, to, overlap)
-	frame:ClearAllPoints()
-	if side == "RIGHT" then
-		frame:SetPoint("TOPLEFT", to, "TOPRIGHT", -overlap, 0)
-	else
-		frame:SetPoint("TOPRIGHT", to, "TOPLEFT", overlap, 0)
-	end
-end
-
 -- Glue a card to the one before it, away from the pointer. Their borders
 -- overlap by a pixel, so two cards read as one edge between them.
 local function glue(index)
 	size(cards[index])
 	stick(cards[index].frame, cards[index - 1].frame, 1)
 end
-
--- Glue the hover frame to the side of the game tooltip with more room, where the client
--- or another addon has put it up for what the pointer rests on, the way the game glues
--- its comparison tooltips: glued, it moves as the tooltip follows the pointer. Then let
--- it be seen, still at the pointer where no tooltip is up.
-local glueToTooltip = ns.Safely.Wrap(function()
-	waiter:SetScript("OnUpdate", nil)
-	local first, tooltip = cards[1].frame, _G.GameTooltip
-	local left, right = tooltip:GetLeft(), tooltip:GetRight()
-	if first:IsShown() and tooltip:IsVisible() and left and right then
-		local scale = tooltip:GetEffectiveScale() / _G.UIParent:GetEffectiveScale()
-		local width = _G.UIParent:GetWidth()
-		left, right = left * scale, right * scale
-		side = Peek.Side((left + right) / 2, width)
-		if side == "RIGHT" then
-			reach = width - right
-		else
-			reach = left
-		end
-		stick(first, tooltip, 0)
-		for index = 2, shown do
-			glue(index)
-		end
-	end
-	first:SetAlpha(1)
-end)
 
 -- Draw nothing on any card, take back a lent inside, and put away every card but
 -- the first.
@@ -270,29 +274,12 @@ local function lend(first, read)
 	first.caption:SetText(Presentations.Lent(read, words))
 end
 
---- Show a read at the pointer, or glued to the game tooltip.
--- @param read the read to show
--- @param lent true where the addon that offers the read's kind previews it
--- @param asked true where another addon asked, which owns what a click on its own
---   button does, so the frame does not say a click opens it
--- @param byLink true where the pointer rests on the server's own link rather than a
---   button: the client or another addon may put up the game tooltip for it, so the frame
---   is glued to its side, unseen until it is, and says an Alt-click opens it
-function Peek.Show(read, lent, asked, byLink)
-	if not cards[1] then
-		build()
-	end
+-- Show a read, as `Peek.Show` says, now.
+local function show(read, lent, asked, byLink)
 	local first = cards[1]
 	settle()
 	clear()
-	place()
-	if byLink then
-		first.frame:SetAlpha(0)
-		waiter:SetScript("OnUpdate", glueToTooltip)
-	else
-		first.frame:SetAlpha(1)
-		waiter:SetScript("OnUpdate", nil)
-	end
+	place(byLink)
 	if asked then
 		first.hint:SetText("")
 	elseif byLink then
@@ -350,6 +337,36 @@ function Peek.Show(read, lent, asked, byLink)
 	end)
 end
 
+-- Show the read that waited for the next frame drawn.
+local showPending = ns.Safely.Wrap(function()
+	waiter:SetScript("OnUpdate", nil)
+	local waiting = pending
+	pending = nil
+	show(waiting.read, waiting.lent, waiting.asked, true)
+end)
+
+--- Show a read at the pointer, or glued to the game tooltip.
+-- @param read the read to show
+-- @param lent true where the addon that offers the read's kind previews it
+-- @param asked true where another addon asked, which owns what a click on its own
+--   button does, so the frame does not say a click opens it
+-- @param byLink true where the pointer rests on the server's own link rather than a
+--   button: another addon may put up the game tooltip for it, so the frame is shown by
+--   the next frame drawn, glued to that tooltip's side, and says an Alt-click opens it
+function Peek.Show(read, lent, asked, byLink)
+	if not cards[1] then
+		build()
+	end
+	pending = nil
+	waiter:SetScript("OnUpdate", nil)
+	if byLink then
+		pending = { read = read, lent = lent, asked = asked }
+		waiter:SetScript("OnUpdate", showPending)
+		return
+	end
+	show(read, lent, asked, false)
+end
+
 --- Take the hover frame down and abandon whatever it was waiting for.
 function Peek.Hide()
 	if not cards[1] then
@@ -357,6 +374,7 @@ function Peek.Hide()
 	end
 	settle()
 	Async.Cancel("peek")
+	pending = nil
 	waiter:SetScript("OnUpdate", nil)
 	clear()
 	cards[1].frame:Hide()

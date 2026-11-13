@@ -420,9 +420,28 @@ def test_two_different_reads_never_share_a_key(addon: LuaRuntime) -> None:
         ("Phase 7301 - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r", None),
         ("[12:34] 184093 - |cffffffff|Hcreature_entry:184093|h[Spirit Wolf]|h|r", 9),
         ("NPC Info: |cffffffff|Hcreature_entry:16998|h[Mr. Bigglesworth - 16998]|h|r", None),
+        ("125 - |cffffffff|Hcreature_entry:1.5|h[Spirit Wolf]|h|r", None),
     ],
 )
 def test_a_line_says_where_the_id_before_its_link_begins(
     addon: LuaRuntime, line: str, id_at: int | None
 ) -> None:
     assert evaluate(addon, f"select(2, NS.Lines.Locate({json.dumps(line)})).id") == id_at
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "|cff00CCFF|Hgameobject_entry:801862|h[6ar_fern_b02.m2 - 801862]|r (GUID: "
+        "|cff00CCFF|Hgameobject_GUID:96102|h",
+        "|cff00CCFF|Hgameobject_entry:801862|h[6ar_fern_b02.m2 - 801862]|r",
+        "|Hgameobject_entry:801862|h[6ar_fern_b02.m2 - 801862]",
+    ],
+)
+def test_a_link_left_open_has_its_lines_label_however_its_text_ends(
+    addon: LuaRuntime, text: str
+) -> None:
+    line = json.dumps(LINES["gobject spawn"][0])
+    label = "[6ar_fern_b02.m2 - 801862]"
+    assert evaluate(addon, f"select(2, NS.Lines.Locate({line})).label") == label
+    assert evaluate(addon, f"NS.Lines.Label({json.dumps(text)})") == label

@@ -339,9 +339,9 @@ end
 -- `.lookup title` prints (`174 (idx:139) - `). A time or a tag another addon put in
 -- front is not the id and is passed over.
 local function idBefore(message, from, id)
-	local before = message:sub(1, from - 1)
-	for at in before:gmatch("()%f[%d]" .. id .. "%f[%D]") do
-		local rest = plain(before:sub(at + #tostring(id)))
+	local before, digits = message:sub(1, from - 1), tostring(id)
+	for at in before:gmatch("()%f[%d]" .. digits:gsub("%p", "%%%0") .. "%f[%D]") do
+		local rest = plain(before:sub(at + #digits))
 		if rest:find("^[%s%-]*$") or rest:find("^%b()[%s%-]*$") then
 			return opening(message, at)
 		end
@@ -429,10 +429,12 @@ end
 
 --- The label a link shows, out of its text as the client hands it to a hover or a
 -- click, colour codes and all, as far as its closing bracket, as `Lines.Locate` gives it.
+-- A link the server leaves open, as a spawned object's reply does, has no code after
+-- its label, and its label runs to the text's end.
 -- @param text a link's text
 -- @return the label, or nil where the text carries no link
 function Lines.Label(text)
-	local label = type(text) == "string" and text:match("|h(.-)|h")
+	local label = type(text) == "string" and (text:match("|h(.-)|h") or text:match("|h(.*)$"))
 	if label then
 		return closed(label)
 	end

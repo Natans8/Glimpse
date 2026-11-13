@@ -40,23 +40,19 @@ local SAMPLES = {
 		.. GLINK_OBJECT:format(801862, 801862),
 }
 
--- The sample lines as the chat filter would show them under a placement.
-local function examples(placement)
-	local shown = {}
-	for index, line in ipairs(SAMPLES) do
-		shown[index] = line
-		if placement ~= "none" then
-			shown[index] = ns.Chat.Shown(line, placement) or line
-		end
+-- A sample line as the chat filter would show it under a placement.
+local function example(line, placement)
+	if placement == "none" then
+		return line
 	end
-	return shown
+	return ns.Chat.Shown(line, placement) or line
 end
 
 --- The controls, top to bottom. A `needs` names the switch a control depends on.
 --   switch  { key, label }
---   choice  { key, label, options = { { value, label }, ... }, examples }, the options as
---           equals one under another; `examples`, optional, answers system chat lines
---           showing a value
+--   choice  { key, label, options = { { value, label }, ... }, examples, show }, the
+--           options as equals one under another; `examples`, optional, system chat
+--           lines each shown under the options as `show(line, value)` answers
 --   range   { key, label, low, high, step }
 local CONTROLS = {
 	{
@@ -70,7 +66,8 @@ local CONTROLS = {
 			{ value = "end", label = "at the end of the line" },
 			{ value = "none", label = "nowhere" },
 		},
-		examples = examples,
+		examples = SAMPLES,
+		show = example,
 	},
 	{ kind = "switch", key = "hover", label = "Preview on hover" },
 	{
@@ -214,7 +211,7 @@ local BUILD = {
 		end
 		local lines, height = {}, CHOICE_ROW * (#radios + 1)
 		if control.examples then
-			for index = 1, #control.examples(Settings.DEFAULTS[control.key]) do
+			for index = 1, #control.examples do
 				local line = box:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
 				line:SetPoint("TOPLEFT", 16, -(height + EXAMPLE_GAP + EXAMPLE_ROW * (index - 1)))
 				line:SetWidth(WIDTH - 16)
@@ -235,9 +232,9 @@ local BUILD = {
 				end
 				if control.examples then
 					local system = _G.ChatTypeInfo.SYSTEM
-					for index, text in ipairs(control.examples(value)) do
+					for index, line in ipairs(control.examples) do
 						lines[index]:SetTextColor(system.r, system.g, system.b)
-						lines[index]:SetText(text)
+						lines[index]:SetText(control.show(line, value))
 					end
 				end
 			end
@@ -350,7 +347,13 @@ local function build()
 	local credit = page:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
 	credit:SetText("Put together by Nataari, mostly with AI — mistakes are possible")
 
+	-- The page is put only while it is seen, and again as it comes into view: the client
+	-- refreshes every addon's page whenever its settings open, and an example line may
+	-- load the data addon, as the same line in chat would.
 	show = function()
+		if not panel:IsVisible() then
+			return
+		end
 		for _, row in ipairs(rows) do
 			row.put(row.widget, Settings.Get(row.control.key))
 			if row.control.needs then
@@ -395,6 +398,7 @@ local function build()
 		end
 	end
 
+	panel:SetScript("OnShow", ns.Safely.Wrap(show))
 	panel.refresh = ns.Safely.Wrap(show)
 	panel.default = ns.Safely.Wrap(resetAll)
 	return panel
