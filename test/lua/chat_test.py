@@ -193,10 +193,16 @@ def test_the_buttons_go_at_the_end_by_default_after_glinks(chat: LuaRuntime) -> 
     assert shown.startswith(line) and re.fullmatch(TRAILING, shown[len(line) :])
 
 
-def test_a_link_the_server_leaves_open_takes_the_buttons_at_the_end(chat: LuaRuntime) -> None:
+def test_a_link_the_server_leaves_open_is_closed_after_its_name_for_the_buttons(
+    chat: LuaRuntime,
+) -> None:
     place(chat, "afterLink")
     line = LINES["gobject spawn"][0]
-    assert filtered(chat, line).startswith(line)
+    shown = filtered(chat, line)
+    name = "|h[6ar_fern_b02.m2 - 801862]"
+    at = line.index(name) + len(name)
+    assert shown.startswith(line[:at]) and shown.endswith(line[at:]), "the line is untouched"
+    assert re.fullmatch(rf"\|h{TRAILING}", shown[at : len(shown) - len(line) + at])
 
 
 def test_a_sound_named_with_no_link_takes_its_buttons_before_the_name_in_order(
@@ -259,6 +265,22 @@ def link_state(text: str) -> int:
     return state
 
 
+def insertions(line: str, shown: str) -> list[tuple[int, str, bool]]:
+    """Where this addon put its buttons into a line: the place in the line's own text, what
+    was put there, and whether that closed a link the server left open first."""
+    found, offset = [], 0
+    for buttons in OURS.finditer(shown):
+        start = buttons.start()
+        at = start - offset
+        closes = shown[start - 2 : start] == "|h" and line[at - 2 : at] != "|h"
+        put = buttons.group(0)
+        if closes:
+            at, put = at - 2, "|h" + put
+        offset += len(put)
+        found.append((at, put, closes))
+    return found
+
+
 @pytest.mark.parametrize("placement", PLACEMENTS)
 def test_no_placement_changes_breaks_or_splits_any_line_the_game_printed(
     chat: LuaRuntime, placement: str
@@ -270,12 +292,19 @@ def test_no_placement_changes_breaks_or_splits_any_line_the_game_printed(
             if shown is None:
                 continue
             assert isinstance(shown, str)
-            assert OURS.sub("", shown) == line, f"{command}: the line's own text is untouched"
-            offset = 0
-            for buttons in OURS.finditer(shown):
-                at = buttons.start() - offset
-                offset += buttons.end() - buttons.start()
-                assert link_state(line[:at]) == 0, f"{command}: never inside a link"
+            put = insertions(line, shown)
+            rebuilt, last = [], 0
+            for at, text, _ in put:
+                rebuilt += [line[last:at], text]
+                last = at
+            rebuilt.append(line[last:])
+            assert "".join(rebuilt) == shown, f"{command}: the line's own text is untouched"
+            for at, _, closes in put:
+                if closes:
+                    assert placement == "afterLink", f"{command}: only after a link is one closed"
+                    assert link_state(line[:at]) == 2, f"{command}: only a link left open is closed"
+                else:
+                    assert link_state(line[:at]) == 0, f"{command}: never inside a link"
                 coloured = re.search(r"\|c[0-9a-fA-F]{8}$", line[:at])
                 assert not (coloured and line[at:]), f"{command}: never inside a colour"
 
@@ -791,6 +820,41 @@ def test_beside_tooltips_the_hover_frame_takes_the_side_with_room() -> None:
     assert beside(200, 400, 1700, 520) == ["BOTTOMLEFT", 200, 520, "RIGHT", 1720], "above"
     assert beside(200, 800, 1700, 1000) == ["TOPLEFT", 200, 800, "RIGHT", 1720], "below"
     assert beside(300, 0, 600, 100) == ["TOPLEFT", 600, 310, "RIGHT", 1320], "kept on the screen"
+
+
+def around(rects: list[tuple[int, int, int, int]], x: int, y: int) -> object:
+    """`Peek.Around` over rects given as (left, bottom, right, top)."""
+    runtime = load_addon()
+    listed = ", ".join(
+        f"{{ left = {left}, bottom = {bottom}, right = {right}, top = {top} }}"
+        for left, bottom, right, top in rects
+    )
+    return evaluate(runtime, f"NS.Peek.Around({{ {listed} }}, {x}, {y})")
+
+
+def test_a_tooltip_and_a_frame_against_it_count_together_and_one_far_off_does_not() -> None:
+    tooltip, model, clock = (500, 420, 700, 520), (700, 220, 1010, 530), (1600, 1000, 1900, 1060)
+    assert around([clock, model, tooltip], 495, 415) == {
+        "left": 500,
+        "bottom": 220,
+        "right": 1010,
+        "top": 530,
+    }
+
+
+def test_frames_count_as_long_as_each_touches_the_last() -> None:
+    chain = [(500, 420, 700, 520), (702, 420, 900, 520), (902, 420, 1100, 520)]
+    assert around(list(reversed(chain)), 495, 415) == {
+        "left": 500,
+        "bottom": 420,
+        "right": 1100,
+        "top": 520,
+    }
+
+
+def test_no_tooltip_at_the_pointer_is_no_box() -> None:
+    assert around([(1600, 1000, 1900, 1060)], 495, 415) is None
+    assert around([], 495, 415) is None
 
 
 def test_side_by_side_cards_are_as_many_as_the_room_holds() -> None:

@@ -320,17 +320,18 @@ local function opening(message, at)
 end
 
 -- Where a link ends on its line, given where its label ends: past the code closing
--- it and the colour's end after that. A link the server leaves open has no end,
--- since text put inside it would be a link inside a link.
+-- it and the colour's end after that. A link the server leaves open, as a spawned
+-- object's reply does, ends with its label and is said to be open, so that whatever
+-- is put after it closes it first rather than standing inside it.
 local function ending(message, at)
 	if message:sub(at, at + 1) ~= "|h" then
-		return nil
+		return at, true
 	end
 	at = at + 2
 	if message:sub(at, at + 1) == "|r" then
-		return at + 2
+		return at + 2, false
 	end
-	return at
+	return at, false
 end
 
 -- Where the id a line prints before its link begins: the first number after which,
@@ -394,12 +395,8 @@ local function locate(message)
 					found.ids = { tonumber(display) }
 				end
 				local from = opening(message, at)
-				return found,
-					{
-						id = idBefore(message, from),
-						from = from,
-						to = ending(message, labelAt + #label),
-					}
+				local to, open = ending(message, labelAt + #label)
+				return found, { id = idBefore(message, from), from = from, to = to, open = open }
 			end
 			return nil
 		end
@@ -416,11 +413,11 @@ end
 --- Read a system line, and find where on it the thing read is named.
 -- @param message the line as the server sent it
 -- @return the read, or nil where the line is not one the addon previews
--- @return where on the line it is named, as `{ id, from, to }`: where the id printed
--- before its name begins, where the name or its link begins, and where that ends,
--- past the codes closing it; each at the colour code opening it where one does, each
--- nil where the line prints none, and `to` nil where the server leaves the link open;
--- nil where the line names it nowhere
+-- @return where on the line it is named, as `{ id, from, to, open }`: where the id
+-- printed before its name begins, where the name or its link begins, and where that
+-- ends, past the codes closing it; each at the colour code opening it where one does,
+-- each nil where the line prints none; `open` true where the server leaves the link
+-- open, its end then being its label's; nil where the line names it nowhere
 Lines.Locate = locate
 
 --- Read a system line.

@@ -100,9 +100,9 @@ local CONTROLS = {
 		kind = "range",
 		key = "hoverSize",
 		label = "Hover preview size",
-		low = 150,
-		high = 500,
-		step = 10,
+		low = 128,
+		high = 512,
+		step = 4,
 		needs = "hover",
 	},
 	{ kind = "switch", key = "hoverSpin", label = "Spin the hover preview", needs = "hover" },
@@ -120,6 +120,9 @@ local GAP = { switch = 8, choice = 8, range = 32 }
 
 --- The colour of what a kind's switch says beside its word.
 local NOTE = "|cff808080"
+
+--- What the reset button says, and what it says once clicked, asking for a second click.
+local RESET, RESET_SURE = "Reset to defaults", "Click again to reset"
 
 --- How the kinds' switches lay out: two columns, this far apart, rows this far apart.
 local COLUMNS, COLUMN_WIDTH, ROW_HEIGHT = 2, 300, 28
@@ -311,6 +314,35 @@ local function build()
 
 	-- Each control and switch is put as the settings stand, whenever one is used.
 	local show
+
+	-- A reset on the page itself, beside the title so it is seen without scrolling. It
+	-- clears nothing until it is clicked a second time, and forgets the first click once
+	-- the pointer leaves it.
+	local reset = _G.CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
+	reset:SetSize(170, 22)
+	reset:SetPoint("LEFT", title, "RIGHT", 24, 0)
+	reset:SetText(RESET)
+	local armed = false
+	reset:SetScript(
+		"OnClick",
+		ns.Safely.Wrap(function()
+			armed = not armed
+			if armed then
+				reset:SetText(RESET_SURE)
+				return
+			end
+			reset:SetText(RESET)
+			Settings.Reset()
+			show()
+		end)
+	)
+	reset:HookScript(
+		"OnLeave",
+		ns.Safely.Wrap(function()
+			armed = false
+			reset:SetText(RESET)
+		end)
+	)
 
 	local rows = {}
 	local above = title

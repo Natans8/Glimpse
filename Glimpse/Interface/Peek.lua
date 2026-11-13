@@ -41,6 +41,7 @@ local SPIN = 1
 local START = -math.rad(45)
 
 local cards = {} -- every card made so far; the first is the hover frame itself
+local ours = {} -- every card's frame, as a set, so the frame never stands beside itself
 local shown = 0 -- how many of them hold a look
 local side -- "RIGHT" or "LEFT": which way from the pointer the row runs
 local reach -- how wide the screen is from the pointer that way
@@ -49,6 +50,7 @@ local reach -- how wide the screen is from the pointer that way
 -- inside to lend in their place.
 local function card()
 	local frame = _G.CreateFrame("Frame", nil, _G.UIParent)
+	ours[frame] = true
 	Tools.Panel(frame)
 	frame:SetFrameStrata("TOOLTIP")
 	frame:Hide()
@@ -222,40 +224,123 @@ function Peek.Beside(box, width, height, span)
 	return "TOPLEFT", x, box.bottom, "RIGHT", width - x
 end
 
--- The tooltips on the screen now, the native one and any other addon's, as one box
--- in the screen's units, or nil where none is up. Frames are listed in the order they
--- were made and are never unmade, so each call looks only at those made since the last.
-local function tooltipBox()
+--- How near the pointer a tooltip still counts as at it, and how near two frames still
+-- count as touching, in the screen's units.
+local NEAR, TOUCH = 32, 4
+
+--- The tooltips at the pointer, as one box: those within reach of it, then every one
+-- touching those, so a tooltip and a frame another addon stands against it count
+-- together, and a frame far off, as an addon's own display in the same layer, does not.
+-- @param rects frames' edges, each `{ left, bottom, right, top }`, in the screen's units
+-- @param x the pointer's distance from the screen's left
+-- @param y the pointer's distance from the screen's foot
+-- @return the box, `{ left, bottom, right, top }`, or nil where none is at the pointer
+function Peek.Around(rects, x, y)
+	local box, taken = nil, {}
+	local function take(index, rect)
+		taken[index] = true
+		if box then
+			box.left, box.bottom = math.min(box.left, rect.left), math.min(box.bottom, rect.bottom)
+			box.right, box.top = math.max(box.right, rect.right), math.max(box.top, rect.top)
+		else
+			box = { left = rect.left, bottom = rect.bottom, right = rect.right, top = rect.top }
+		end
+	end
+	local function within(rect, left, bottom, right, top)
+		return rect.left <= right
+			and rect.right >= left
+			and rect.bottom <= top
+			and rect.top >= bottom
+	end
+	for index, rect in ipairs(rects) do
+		if within(rect, x - NEAR, y - NEAR, x + NEAR, y + NEAR) then
+			take(index, rect)
+		end
+	end
+	local grew = box ~= nil
+	while grew do
+		grew = false
+		for index, rect in ipairs(rects) do
+			if
+				not taken[index]
+				and within(
+					rect,
+					box.left - TOUCH,
+					box.bottom - TOUCH,
+					box.right + TOUCH,
+					box.top + TOUCH
+				)
+			then
+				take(index, rect)
+				grew = true
+			end
+		end
+	end
+	return box
+end
+
+-- Whether a frame is one of the cards or inside one.
+local function isOurs(frame)
+	while frame do
+		if ours[frame] then
+			return true
+		end
+		frame = frame:GetParent()
+	end
+	return false
+end
+
+-- The frames that may be tooltips: every tooltip of the client's kind, and every other
+-- frame in the tooltip layer, as another addon's model tooltip is. Frames are listed in
+-- the order they were made and are never unmade, so each call looks only at those made
+-- since the last.
+local function gather()
 	local frame = _G.EnumerateFrames(scanned)
 	while frame do
 		scanned = frame
-		if not frame:IsForbidden() and frame:GetObjectType() == "GameTooltip" then
+		if
+			not frame:IsForbidden()
+			and (frame:GetObjectType() == "GameTooltip" or frame:GetFrameStrata() == "TOOLTIP")
+		then
 			tooltips[#tooltips + 1] = frame
 		end
 		frame = _G.EnumerateFrames(frame)
 	end
-	local screen, box = _G.UIParent:GetEffectiveScale(), nil
+end
+
+-- The tooltips at the pointer now, the client's and any other addon's, as one box in
+-- the screen's units, or nil where none is up. The cards and whatever stands inside
+-- them, as a picture another addon lends, are passed over, asked each time since a
+-- frame may be moved into a card after it was made; so is a frame as large as most of
+-- the screen, which is an overlay rather than a tooltip.
+local function tooltipBox()
+	gather()
+	local screen = _G.UIParent:GetEffectiveScale()
+	local width, height = _G.UIParent:GetWidth(), _G.UIParent:GetHeight()
+	local rects = {}
 	for _, tooltip in ipairs(tooltips) do
 		local left, bottom, wide, high = tooltip:GetRect()
 		if
-			left
+			not isOurs(tooltip)
+			and left
 			and wide > 0
 			and high > 0
 			and tooltip:IsVisible()
 			and tooltip:GetEffectiveAlpha() > 0
 		then
 			local scale = tooltip:GetEffectiveScale() / screen
-			local right, top = (left + wide) * scale, (bottom + high) * scale
-			left, bottom = left * scale, bottom * scale
-			if box then
-				box.left, box.bottom = math.min(box.left, left), math.min(box.bottom, bottom)
-				box.right, box.top = math.max(box.right, right), math.max(box.top, top)
-			else
-				box = { left = left, bottom = bottom, right = right, top = top }
+			if wide * scale < width * 0.8 and high * scale < height * 0.8 then
+				rects[#rects + 1] = {
+					left = left * scale,
+					bottom = bottom * scale,
+					right = (left + wide) * scale,
+					top = (bottom + high) * scale,
+				}
 			end
 		end
 	end
-	return box
+	local x, y = _G.GetCursorPosition()
+	return Peek.Around(rects, x / screen, y / screen)
 end
 
 -- Every card holding a look shown or kept unseen.

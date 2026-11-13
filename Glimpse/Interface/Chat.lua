@@ -76,24 +76,28 @@ end
 -- @param text the row
 -- @param placement "beforeId", "beforeLink" or "afterLink", or anything else for the
 -- row's end. Before the id is before the link where the row prints no id before it,
--- and a place the row lacks, or a link it leaves open, puts them at its end
+-- after a link the row leaves open is after its name, the link closed there first, and
+-- a place the row lacks puts them at its end
 -- @param place where the row names its thing, as `Lines.Locate` gives it, or nil
 -- @param buttons a function of whether they lead (see `Chat.Join`) answering the
 -- buttons as text, or nil where there are none
 -- @return the row with its buttons, or nil where there are none
 function Chat.Place(text, placement, place, buttons)
 	place = place or {}
-	local at, lead = #text + 1, false
+	local at, lead, close = #text + 1, false, false
 	if placement == "beforeId" and on(text, place.id) then
 		at, lead = place.id, true
 	elseif (placement == "beforeId" or placement == "beforeLink") and on(text, place.from) then
 		at, lead = place.from, true
 	elseif placement == "afterLink" and on(text, place.to) then
-		at = place.to
+		at, close = place.to, place.open == true
 	end
 	local put = buttons(lead)
 	if not put then
 		return nil
+	end
+	if close then
+		put = "|h" .. put
 	end
 	return text:sub(1, at - 1) .. put .. text:sub(at)
 end
