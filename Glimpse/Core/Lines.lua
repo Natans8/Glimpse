@@ -396,7 +396,14 @@ local function locate(message)
 				end
 				local from = opening(message, at)
 				local to, open = ending(message, labelAt + #label)
-				return found, { id = idBefore(message, from), from = from, to = to, open = open }
+				return found,
+					{
+						id = idBefore(message, from),
+						from = from,
+						to = to,
+						open = open,
+						label = label,
+					}
 			end
 			return nil
 		end
@@ -413,11 +420,12 @@ end
 --- Read a system line, and find where on it the thing read is named.
 -- @param message the line as the server sent it
 -- @return the read, or nil where the line is not one the addon previews
--- @return where on the line it is named, as `{ id, from, to, open }`: where the id
--- printed before its name begins, where the name or its link begins, and where that
+-- @return where on the line it is named, as `{ id, from, to, open, label }`: where the
+-- id printed before its name begins, where the name or its link begins, and where that
 -- ends, past the codes closing it; each at the colour code opening it where one does,
 -- each nil where the line prints none; `open` true where the server leaves the link
--- open, its end then being its label's; nil where the line names it nowhere
+-- open, its end then being its label's; and the link's label, which tells it from
+-- another addon's button carrying the same link; nil where the line names it nowhere
 Lines.Locate = locate
 
 --- Read a system line.

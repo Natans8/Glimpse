@@ -198,24 +198,40 @@ local function say(chat, lines)
 	said = true
 end
 
-local pointed -- the server's own link under the pointer and its read, while links preview
+local pointed -- the server's own link under the pointer, its name and its read, while links preview
+
+-- Whether a link the client hands over is the one naming the line's thing: the same
+-- link, showing that name. Another addon's button may carry the very same link, as
+-- GLink's `[Spawn]` does after a creature's name, and only its label tells it apart.
+-- The client hands a link's text over with its codes; a label a server leaves open runs
+-- on past the name, so the name need only begin it.
+local function naming(link, text, place, wanted)
+	if link ~= wanted or type(text) ~= "string" or not place.label then
+		return false
+	end
+	local label = text:match("^|H[^|]*|h(.*)|h$") or text
+	return label:sub(1, #place.label) == place.label
+end
 
 -- What a server's own link stands for, read off the whole line the chat frame drew it
 -- on, as the line's buttons are: nil unless it is the link the line names its thing by
 -- (not a GUID, a display or another addon's button) and the thing is one to look at.
-local function linkRead(link, region)
+local function linkRead(link, text, region)
 	local line = region and region.GetText and region:GetText()
 	if type(line) ~= "string" then
 		return nil
 	end
 	local read, place = Lines.Locate(line)
-	if not (read and place and place.from and line:match("|H([^|]*)|h", place.from) == link) then
+	if not (read and place and place.from) then
+		return nil
+	end
+	if not naming(link, text, place, line:match("|H([^|]*)|h", place.from)) then
 		return nil
 	end
 	read = Kinds.Settle(read)
 	local drawer = Chat.Drawer(read)
 	if drawer == "provider" or (drawer and Kinds.Draws(read)) then
-		return read, drawer
+		return read, drawer, place
 	end
 	return nil
 end
@@ -223,22 +239,22 @@ end
 -- The pointer came to rest on the server's own link, where the player wants that
 -- previewed. Glimpse only adds to what the link does: its tooltip, if any, is the
 -- client's or another addon's, and the hover frame stands beside it.
-local function enteredLink(link, region)
+local function enteredLink(link, text, region)
 	if not ns.Settings.Get("linkHover") then
 		return
 	end
-	local read, drawer = linkRead(link, region)
+	local read, drawer, place = linkRead(link, text, region)
 	if read then
-		pointed = { link = link, read = read }
+		pointed = { link = link, place = place, read = read }
 		ns.Peek.Show(read, drawer == "provider", false, true)
 	end
 end
 
 -- The pointer came to rest on a link in a chat frame.
-local function entered(chat, link, _, region)
+local function entered(chat, link, text, region)
 	local read, index = Links.Read(link)
 	if not read then
-		enteredLink(link, region)
+		enteredLink(link, text, region)
 		return
 	end
 	local drawer = Chat.Drawer(read)
@@ -300,13 +316,13 @@ function Chat.Install()
 	-- the client nor the addons that act on them.
 	_G.hooksecurefunc(
 		"SetItemRef",
-		Safely.Wrap(function(link, _, button)
+		Safely.Wrap(function(link, text, button)
 			local read, index = Links.Read(link)
 			if read then
 				Chat.Open(read, index, button)
 			elseif
 				pointed
-				and pointed.link == link
+				and naming(link, text, pointed.place, pointed.link)
 				and button ~= "RightButton"
 				and _G.IsAltKeyDown()
 				and ns.Settings.Get("linkHover")

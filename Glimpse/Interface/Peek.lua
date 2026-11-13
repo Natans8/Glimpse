@@ -14,8 +14,8 @@ local _, ns = ...
 -- no input. They stand at the pointer as a tooltip does, a corner just above
 -- the button or, without the room there, just below it, and the row runs
 -- whichever way the screen has more room. Resting on the server's own link, where
--- the client or another addon may put up a tooltip of its own, they stand beside
--- every tooltip on the screen instead, and are not seen until they do.
+-- the client or another addon may put up the game tooltip for it, they are glued to
+-- that tooltip's side instead and move with it, and are not seen until they stand there.
 --
 -- A kind another addon previews gets the first card's inside, empty, and the
 -- card shows only where that addon fills it.
@@ -41,7 +41,6 @@ local SPIN = 1
 local START = -math.rad(45)
 
 local cards = {} -- every card made so far; the first is the hover frame itself
-local ours = {} -- every card's frame, as a set, so the frame never stands beside itself
 local shown = 0 -- how many of them hold a look
 local side -- "RIGHT" or "LEFT": which way from the pointer the row runs
 local reach -- how wide the screen is from the pointer that way
@@ -50,7 +49,6 @@ local reach -- how wide the screen is from the pointer that way
 -- inside to lend in their place.
 local function card()
 	local frame = _G.CreateFrame("Frame", nil, _G.UIParent)
-	ours[frame] = true
 	Tools.Panel(frame)
 	frame:SetFrameStrata("TOOLTIP")
 	frame:Hide()
@@ -194,154 +192,8 @@ local function glue(index)
 	end
 end
 
-local tooltips = {} -- every tooltip frame found so far
-local scanned -- the last frame looked at for tooltips
 local waiter -- a frame of the addon's own, to wait for the next frame drawn
-local beside = false -- whether the hover frame stands beside the tooltips on the screen
-
---- Where the hover frame stands beside tooltips on the screen rather than over
--- them: to the side of them with more room, its top level with theirs, or above or
--- below them where neither side has the room.
--- @param box the tooltips' edges taken together, `{ left, bottom, right, top }`
--- @param width the screen's width
--- @param height the screen's height
--- @param span the frame's side
--- @return the frame's corner to stand, then the screen point it stands at as x and y,
--- then "RIGHT" or "LEFT" for the way a row of cards runs, and the room it has that way
-function Peek.Beside(box, width, height, span)
-	local right, left = width - box.right, box.left
-	local top = math.max(math.min(box.top, height), span)
-	if right >= span and right >= left then
-		return "TOPLEFT", box.right, top, "RIGHT", right
-	end
-	if left >= span then
-		return "TOPRIGHT", box.left, top, "LEFT", left
-	end
-	local x = math.max(math.min(box.left, width - span), 0)
-	if height - box.top >= span then
-		return "BOTTOMLEFT", x, box.top, "RIGHT", width - x
-	end
-	return "TOPLEFT", x, box.bottom, "RIGHT", width - x
-end
-
---- How near the pointer a tooltip still counts as at it, and how near two frames still
--- count as touching, in the screen's units.
-local NEAR, TOUCH = 32, 4
-
---- The tooltips at the pointer, as one box: those within reach of it, then every one
--- touching those, so a tooltip and a frame another addon stands against it count
--- together, and a frame far off, as an addon's own display in the same layer, does not.
--- @param rects frames' edges, each `{ left, bottom, right, top }`, in the screen's units
--- @param x the pointer's distance from the screen's left
--- @param y the pointer's distance from the screen's foot
--- @return the box, `{ left, bottom, right, top }`, or nil where none is at the pointer
-function Peek.Around(rects, x, y)
-	local box, taken = nil, {}
-	local function take(index, rect)
-		taken[index] = true
-		if box then
-			box.left, box.bottom = math.min(box.left, rect.left), math.min(box.bottom, rect.bottom)
-			box.right, box.top = math.max(box.right, rect.right), math.max(box.top, rect.top)
-		else
-			box = { left = rect.left, bottom = rect.bottom, right = rect.right, top = rect.top }
-		end
-	end
-	local function within(rect, left, bottom, right, top)
-		return rect.left <= right
-			and rect.right >= left
-			and rect.bottom <= top
-			and rect.top >= bottom
-	end
-	for index, rect in ipairs(rects) do
-		if within(rect, x - NEAR, y - NEAR, x + NEAR, y + NEAR) then
-			take(index, rect)
-		end
-	end
-	local grew = box ~= nil
-	while grew do
-		grew = false
-		for index, rect in ipairs(rects) do
-			if
-				not taken[index]
-				and within(
-					rect,
-					box.left - TOUCH,
-					box.bottom - TOUCH,
-					box.right + TOUCH,
-					box.top + TOUCH
-				)
-			then
-				take(index, rect)
-				grew = true
-			end
-		end
-	end
-	return box
-end
-
--- Whether a frame is one of the cards or inside one.
-local function isOurs(frame)
-	while frame do
-		if ours[frame] then
-			return true
-		end
-		frame = frame:GetParent()
-	end
-	return false
-end
-
--- The frames that may be tooltips: every tooltip of the client's kind, and every other
--- frame in the tooltip layer, as another addon's model tooltip is. Frames are listed in
--- the order they were made and are never unmade, so each call looks only at those made
--- since the last.
-local function gather()
-	local frame = _G.EnumerateFrames(scanned)
-	while frame do
-		scanned = frame
-		if
-			not frame:IsForbidden()
-			and (frame:GetObjectType() == "GameTooltip" or frame:GetFrameStrata() == "TOOLTIP")
-		then
-			tooltips[#tooltips + 1] = frame
-		end
-		frame = _G.EnumerateFrames(frame)
-	end
-end
-
--- The tooltips at the pointer now, the client's and any other addon's, as one box in
--- the screen's units, or nil where none is up. The cards and whatever stands inside
--- them, as a picture another addon lends, are passed over, asked each time since a
--- frame may be moved into a card after it was made; so is a frame as large as most of
--- the screen, which is an overlay rather than a tooltip.
-local function tooltipBox()
-	gather()
-	local screen = _G.UIParent:GetEffectiveScale()
-	local width, height = _G.UIParent:GetWidth(), _G.UIParent:GetHeight()
-	local rects = {}
-	for _, tooltip in ipairs(tooltips) do
-		local left, bottom, wide, high = tooltip:GetRect()
-		if
-			not isOurs(tooltip)
-			and left
-			and wide > 0
-			and high > 0
-			and tooltip:IsVisible()
-			and tooltip:GetEffectiveAlpha() > 0
-		then
-			local scale = tooltip:GetEffectiveScale() / screen
-			if wide * scale < width * 0.8 and high * scale < height * 0.8 then
-				rects[#rects + 1] = {
-					left = left * scale,
-					bottom = bottom * scale,
-					right = (left + wide) * scale,
-					top = (bottom + high) * scale,
-				}
-			end
-		end
-	end
-	local x, y = _G.GetCursorPosition()
-	return Peek.Around(rects, x / screen, y / screen)
-end
+local beside = false -- whether the hover frame is to stand beside the game tooltip
 
 -- Every card holding a look shown or kept unseen.
 local function seen(alpha)
@@ -350,19 +202,27 @@ local function seen(alpha)
 	end
 end
 
--- Stand the hover frame beside the tooltips on the screen, and let it be seen.
-local standBeside = ns.Safely.Wrap(function()
+-- Glue the hover frame to the side of the game tooltip with more room, where the client
+-- or another addon has put it up for what the pointer rests on, the way the game glues
+-- its comparison tooltips: glued, it moves as the tooltip follows the pointer. Then let
+-- it be seen, still at the pointer where no tooltip is up.
+local glueToTooltip = ns.Safely.Wrap(function()
 	waiter:SetScript("OnUpdate", nil)
-	if not beside then
-		return
-	end
-	local box = tooltipBox()
-	if box then
-		local corner, x, y
-		corner, x, y, side, reach =
-			Peek.Beside(box, _G.UIParent:GetWidth(), _G.UIParent:GetHeight(), extent())
-		cards[1].frame:ClearAllPoints()
-		cards[1].frame:SetPoint(corner, _G.UIParent, "BOTTOMLEFT", x, y)
+	local first, tooltip = cards[1].frame, _G.GameTooltip
+	local left, right = tooltip:GetLeft(), tooltip:GetRight()
+	if beside and first:IsShown() and tooltip:IsVisible() and left and right then
+		local scale = tooltip:GetEffectiveScale() / _G.UIParent:GetEffectiveScale()
+		local width = _G.UIParent:GetWidth()
+		left, right = left * scale, right * scale
+		side = Peek.Side((left + right) / 2, width)
+		first:ClearAllPoints()
+		if side == "RIGHT" then
+			reach = width - right
+			first:SetPoint("TOPLEFT", tooltip, "TOPRIGHT")
+		else
+			reach = left
+			first:SetPoint("TOPRIGHT", tooltip, "TOPLEFT")
+		end
 		for index = 2, shown do
 			glue(index)
 		end
@@ -370,22 +230,11 @@ local standBeside = ns.Safely.Wrap(function()
 	seen(1)
 end)
 
--- Stand the hover frame beside the tooltips once every addon has put up its own for
--- what the pointer rests on, which it has by the next frame drawn.
-local function waitForTooltips()
-	if not waiter then
-		waiter = _G.CreateFrame("Frame")
-		-- A tooltip that grows, or one put up while the frame stands beside the
-		-- tooltips, moves it again by the next frame drawn.
-		local again = ns.Safely.Wrap(function()
-			if beside and cards[1].frame:IsShown() then
-				waiter:SetScript("OnUpdate", standBeside)
-			end
-		end)
-		_G.GameTooltip:HookScript("OnShow", again)
-		_G.GameTooltip:HookScript("OnSizeChanged", again)
-	end
-	waiter:SetScript("OnUpdate", standBeside)
+-- Glue the hover frame to the game tooltip by the next frame drawn, when every addon
+-- has put up what it shows for what the pointer rests on.
+local function waitForTooltip()
+	waiter = waiter or _G.CreateFrame("Frame")
+	waiter:SetScript("OnUpdate", glueToTooltip)
 end
 
 -- Draw nothing on any card, take back a lent inside, and put away every card but
@@ -435,8 +284,8 @@ end
 -- @param asked true where another addon asked, which owns what a click on its own
 --   button does, so the frame does not say a click opens it
 -- @param byLink true where the pointer rests on the server's own link rather than a
---   button: other addons may put up tooltips of their own for it, so the frame stands
---   beside them, unseen until it does, and says an Alt-click opens it
+--   button: the client or another addon may put up the game tooltip for it, so the frame
+--   is glued to its side, unseen until it is, and says an Alt-click opens it
 function Peek.Show(read, lent, asked, byLink)
 	if not cards[1] then
 		build()
@@ -448,7 +297,7 @@ function Peek.Show(read, lent, asked, byLink)
 	beside = byLink == true
 	if beside then
 		seen(0)
-		waitForTooltips()
+		waitForTooltip()
 	else
 		seen(1)
 	end

@@ -257,9 +257,10 @@ the very start, which belongs to whatever another addon puts in front of a line.
 where no ID comes before it, a line with no such link has them at its end, and a link the server leaves open, as a
 spawned object's reply does, is closed after its name before they go after it;
 preview on hover; whether resting on the server's own link previews it too, off by default, in which case the
-preview stands beside any tooltip the client or another addon puts up for that link, and an Alt-click on the link
-opens the window, since on these links nothing else answers Alt while a plain or right click is GLink's, Shift the
-client's chat link and Ctrl its dressing room; the hover picture's size, 128 to 512, the last the HD WMO pictures' own; whether
+preview is glued to the side of the game tooltip the client or another addon puts up for that link and moves with
+it, only the link naming the line's thing previews (not another addon's button carrying the same link), and an
+Alt-click on that link opens the window, since on these links nothing else answers Alt while a plain or right click
+is GLink's, Shift the client's chat link and Ctrl its dressing room; the hover picture's size, 128 to 512, the last the HD WMO pictures' own; whether
 it turns; whether a creature's several displays show side by side on hover; whether each click opens a window of
 its own; and a switch per kind, on by default, that turns its buttons off. There is a switch for every kind something previews, one to a word, naming the addon
 that previews a kind where another one does; spells always have one, greyed while no addon offers them. A setting is added only once its default has been judged in game,

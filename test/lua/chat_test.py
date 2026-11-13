@@ -557,20 +557,50 @@ def hover(chat: LuaRuntime, line: str, button: int) -> None:
     chat.execute(b"SCRIPTS.OnHyperlinkLeave(ChatFrame1)")
 
 
-def rest_on_link(chat: LuaRuntime, command: str, link: str, drawn: str | None = None) -> None:
-    """Rest the pointer on a server's own link, on a line as a chat frame drew it."""
+def rest_on_link(
+    chat: LuaRuntime,
+    command: str,
+    link: str,
+    drawn: str | None = None,
+    label: str | None = None,
+) -> None:
+    """Rest the pointer on a link on a line as a chat frame drew it, handing over its text
+    as the client does: by default the label the line shows for that link."""
     line = LINES[command][0]
     shown = drawn if drawn is not None else filtered(chat, line)
+    if label is None:
+        found = re.search(rf"\|H{re.escape(link)}\|h(.*?)\|h", shown)
+        label = found.group(1) if found else "[nothing]"
     chat.globals()[b"DRAWN"] = shown.encode()
     chat.globals()[b"POINTED"] = link.encode()
+    chat.globals()[b"POINTED_TEXT"] = f"|H{link}|h{label}|h".encode()
     chat.execute(b"REGION = { GetText = function() return DRAWN end }")
-    chat.execute(b"SCRIPTS.OnHyperlinkEnter(ChatFrame1, POINTED, nil, REGION)")
+    chat.execute(b"SCRIPTS.OnHyperlinkEnter(ChatFrame1, POINTED, POINTED_TEXT, REGION)")
 
 
-def click_link(chat: LuaRuntime, link: str, alt: bool, mouse: str = "LeftButton") -> None:
-    """Click a server's own link, Alt held or not."""
+def click_link(
+    chat: LuaRuntime, link: str, alt: bool, mouse: str = "LeftButton", label: str = "[Spirit Wolf]"
+) -> None:
+    """Click a link, Alt held or not, handing over its text as the client does."""
     chat.execute(f"ALT = {'true' if alt else 'false'}".encode())
-    chat.execute(f'HOOKS.SetItemRef("{link}", "[name]", "{mouse}")'.encode())
+    chat.globals()[b"CLICKED_TEXT"] = f"|H{link}|h{label}|h".encode()
+    chat.execute(f'HOOKS.SetItemRef("{link}", CLICKED_TEXT, "{mouse}")'.encode())
+
+
+def test_glinks_buttons_carrying_the_same_link_preview_nothing(chat: LuaRuntime) -> None:
+    chat.execute(b'NS.Settings.Set("linkHover", true)')
+    drawn = filtered(chat, LINES["lookup creature wolf"][0].rstrip() + SPAWN)
+    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093", drawn, "[Spawn]")
+    assert evaluate(chat, "PEEKED") == []
+
+
+def test_alt_click_on_glinks_button_opens_nothing(chat: LuaRuntime) -> None:
+    chat.execute(b'NS.Settings.Set("linkHover", true)')
+    rest_on_link(chat, "lookup creature wolf", "creature_entry:184093")
+    click_link(chat, "creature_entry:184093", alt=True, label="[Spawn]")
+    assert evaluate(chat, "WINDOWED") == []
+    click_link(chat, "creature_entry:184093", alt=True)
+    assert evaluate(chat, "WINDOWED") == ["creature 184093"]
 
 
 def test_resting_on_a_results_link_shows_nothing_until_the_player_asks(chat: LuaRuntime) -> None:
@@ -806,55 +836,6 @@ def test_the_hover_frame_takes_the_side_with_more_room() -> None:
     runtime = load_addon()
     assert evaluate(runtime, "NS.Peek.Side(430, 1920)") == "RIGHT"
     assert evaluate(runtime, "NS.Peek.Side(1500, 1920)") == "LEFT"
-
-
-def test_beside_tooltips_the_hover_frame_takes_the_side_with_room() -> None:
-    runtime = load_addon()
-
-    def beside(left: int, bottom: int, right: int, top: int) -> object:
-        box = f"{{ left = {left}, bottom = {bottom}, right = {right}, top = {top} }}"
-        return evaluate(runtime, f"{{ NS.Peek.Beside({box}, 1920, 1080, 310) }}")
-
-    assert beside(300, 400, 600, 520) == ["TOPLEFT", 600, 520, "RIGHT", 1320], "the wider side"
-    assert beside(1300, 400, 1700, 520) == ["TOPRIGHT", 1300, 520, "LEFT", 1300]
-    assert beside(200, 400, 1700, 520) == ["BOTTOMLEFT", 200, 520, "RIGHT", 1720], "above"
-    assert beside(200, 800, 1700, 1000) == ["TOPLEFT", 200, 800, "RIGHT", 1720], "below"
-    assert beside(300, 0, 600, 100) == ["TOPLEFT", 600, 310, "RIGHT", 1320], "kept on the screen"
-
-
-def around(rects: list[tuple[int, int, int, int]], x: int, y: int) -> object:
-    """`Peek.Around` over rects given as (left, bottom, right, top)."""
-    runtime = load_addon()
-    listed = ", ".join(
-        f"{{ left = {left}, bottom = {bottom}, right = {right}, top = {top} }}"
-        for left, bottom, right, top in rects
-    )
-    return evaluate(runtime, f"NS.Peek.Around({{ {listed} }}, {x}, {y})")
-
-
-def test_a_tooltip_and_a_frame_against_it_count_together_and_one_far_off_does_not() -> None:
-    tooltip, model, clock = (500, 420, 700, 520), (700, 220, 1010, 530), (1600, 1000, 1900, 1060)
-    assert around([clock, model, tooltip], 495, 415) == {
-        "left": 500,
-        "bottom": 220,
-        "right": 1010,
-        "top": 530,
-    }
-
-
-def test_frames_count_as_long_as_each_touches_the_last() -> None:
-    chain = [(500, 420, 700, 520), (702, 420, 900, 520), (902, 420, 1100, 520)]
-    assert around(list(reversed(chain)), 495, 415) == {
-        "left": 500,
-        "bottom": 420,
-        "right": 1100,
-        "top": 520,
-    }
-
-
-def test_no_tooltip_at_the_pointer_is_no_box() -> None:
-    assert around([(1600, 1000, 1900, 1060)], 495, 415) is None
-    assert around([], 495, 415) is None
 
 
 def test_side_by_side_cards_are_as_many_as_the_room_holds() -> None:
