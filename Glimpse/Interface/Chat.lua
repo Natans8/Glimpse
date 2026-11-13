@@ -203,13 +203,14 @@ local pointed -- the server's own link under the pointer, its name and its read,
 -- Whether a link the client hands over is the one naming the line's thing: the same
 -- link, showing that name. Another addon's button may carry the very same link, as
 -- GLink's `[Spawn]` does after a creature's name, and only its label tells it apart.
--- The client hands a link's text over with its codes; a label a server leaves open runs
--- on past the name, so the name need only begin it.
+-- The client hands a link's text over in its codes, colour included, so the label is
+-- read from between them; a label a server leaves open runs on past the name, so the
+-- name need only begin it.
 local function naming(link, text, place, wanted)
 	if link ~= wanted or type(text) ~= "string" or not place.label then
 		return false
 	end
-	local label = text:match("^|H[^|]*|h(.*)|h$") or text
+	local label = text:match("|h(.-)|h") or text
 	return label:sub(1, #place.label) == place.label
 end
 

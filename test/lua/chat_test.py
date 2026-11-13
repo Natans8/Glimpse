@@ -565,7 +565,7 @@ def rest_on_link(
     label: str | None = None,
 ) -> None:
     """Rest the pointer on a link on a line as a chat frame drew it, handing over its text
-    as the client does: by default the label the line shows for that link."""
+    as the client does, colour codes and all: by default the label the line shows for it."""
     line = LINES[command][0]
     shown = drawn if drawn is not None else filtered(chat, line)
     if label is None:
@@ -573,9 +573,14 @@ def rest_on_link(
         label = found.group(1) if found else "[nothing]"
     chat.globals()[b"DRAWN"] = shown.encode()
     chat.globals()[b"POINTED"] = link.encode()
-    chat.globals()[b"POINTED_TEXT"] = f"|H{link}|h{label}|h".encode()
+    chat.globals()[b"POINTED_TEXT"] = as_handed(link, label).encode()
     chat.execute(b"REGION = { GetText = function() return DRAWN end }")
     chat.execute(b"SCRIPTS.OnHyperlinkEnter(ChatFrame1, POINTED, POINTED_TEXT, REGION)")
+
+
+def as_handed(link: str, label: str) -> str:
+    """A link's text as the client hands it to a hover or a click: in its colour codes."""
+    return f"|cffffffff|H{link}|h{label}|h|r"
 
 
 def click_link(
@@ -583,7 +588,7 @@ def click_link(
 ) -> None:
     """Click a link, Alt held or not, handing over its text as the client does."""
     chat.execute(f"ALT = {'true' if alt else 'false'}".encode())
-    chat.globals()[b"CLICKED_TEXT"] = f"|H{link}|h{label}|h".encode()
+    chat.globals()[b"CLICKED_TEXT"] = as_handed(link, label).encode()
     chat.execute(f'HOOKS.SetItemRef("{link}", CLICKED_TEXT, "{mouse}")'.encode())
 
 
